@@ -183,10 +183,10 @@ WHERE (m.status = 'open' OR t.kind = 'exec') AND t.status = 'open'
                   WHERE r.task_id = t.id AND q.status <> 'done')
 ORDER BY coalesce(m.queue_index, 0), priority DESC, m.id, p.id, t.id;
 
-INSERT INTO milestone (id, subject, status, body, created_at, implemented_at, queue_index) VALUES (1, 'first version build', 'open', 'build the app according to the idea specified in airbnb-bookkeeping-spec.md
+INSERT INTO milestone (id, subject, status, body, created_at, implemented_at, queue_index) VALUES (1, 'first version build', 'implemented', 'build the app according to the idea specified in airbnb-bookkeeping-spec.md
 
 * create an architecture-spec.md early on and have me decide on it before continuing
-* apart from that, keep human decisions minimal, follow your own recommendations', '2026-10-23T19:11:39Z', NULL, 0);
+* apart from that, keep human decisions minimal, follow your own recommendations', '2026-10-23T19:11:39Z', '2026-10-23T20:31:38Z', 0);
 
 INSERT INTO plan (id, milestone_id, subject, priority, body, intro, created_at, created_by_task) VALUES (1, 1, 'masterplan', 1000, 'Build the first version of the app described in `airbnb-bookkeeping-spec.md`: a local, single-user, single-property bookkeeping tool that allocates all income and costs per calendar day, imports the Airbnb transaction CSV (`airbnb_.csv` is a real sample), and shows a dashboard with metrics, a rolling 90-day chart and an expense breakdown. Only the spec''s "v1" features are in scope; its "Later" list is not.
 
