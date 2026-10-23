@@ -13,8 +13,8 @@ Binding: `decision 24: client-side framework: React with TypeScript, built by Vi
 - **Backend:** Flask (routes) served by waitress on `127.0.0.1`. It stays the
   **authoritative** side: parsing, validation, money and date rules live in Python;
   the client only shows data and sends what the user typed. It serves a **JSON API
-  under `/api`** (resources, shapes and errors are in the "JSON API" section added by
-  `plan 13: JSON API`) and the built client bundle.
+  under `/api`** (resources, shapes and errors are in the "JSON API" section below)
+  and the built client bundle.
 - **UI: a single-page app in the normal browser.** `rios-de-asia-accounting` starts the
   server on a free port and opens the browser tab. The app is a classic web app whose
   server happens to run locally. A "Quit" button in the header sends `POST /api/quit`
