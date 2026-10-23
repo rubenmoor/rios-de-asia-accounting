@@ -1780,7 +1780,7 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 - Delete temp dirs, screenshots and worktrees afterwards.
 
 Done when every screen worked or has a follow-up task, and the findings are in the task''s done note.', '2026-10-23T22:52:01Z', NULL, 94, 0, NULL, 'main');
-INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (97, 18, 'End-to-end test through the JSON API', 'work', 'open', 410, NULL, 'Rewrite `tests/test_e2e.py` so it drives the app through `/api` instead of scraping HTML, before the HTML pages are deleted (`plan 18: retire the server-rendered pages`).
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (97, 18, 'End-to-end test through the JSON API', 'work', 'done', 410, '2026-10-23, tests/test_e2e.py', 'Rewrite `tests/test_e2e.py` so it drives the app through `/api` instead of scraping HTML, before the HTML pages are deleted (`plan 18: retire the server-rendered pages`).
 
 - Same scenario, same hand-computed October 2026 numbers; the docstring stays the reference and is not changed.
 - Steps via the JSON API: Airbnb import with the listing choice, exchange rates, expenses, time entries, dashboard JSON values, `POST /api/quit`, then backup and restore.
@@ -1789,7 +1789,7 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 
 Checks: `pytest`, `ruff check src tests`, `ruff format --check src tests`.
 
-Done when the rewritten e2e test passes and uses no HTML route.', '2026-10-23T22:52:21Z', NULL, 94, 0, NULL, 'main');
+Done when the rewritten e2e test passes and uses no HTML route.', '2026-10-23T22:52:21Z', '2026-10-23T23:17:56Z', 94, 0, NULL, 'main');
 INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (98, 18, 'Delete the server-rendered pages, templates and charts.py', 'work', 'open', 410, NULL, 'Remove the Jinja side of the Flask app so it is only the JSON API plus the built React bundle (`decision 24: client-side framework: React with TypeScript, built by Vite, on top of a JSON API from the existing Python server`). No functional change: every URL of today must open the React screen via the index.html fallback. Details in `plan 18: retire the server-rendered pages`, sections "What goes, what stays" and "Tests".
 
 **Delete**
@@ -1953,6 +1953,7 @@ INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, b
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (89, 90, '2026-10-23T23:13:15Z', '2026-10-23T23:14:06Z', 'done', NULL, 0, '020bfe15683ff50b190b26aca3c3c71102ed35e6', 'main', 'claude-sonnet-5-5', 'f2360096-458c-4e30-88b4-3ca6dccb0200', 88, 7, 14, 7596, 450236, 19947, 0.48663910000000016, 72569, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (90, 92, '2026-10-23T23:14:06Z', '2026-10-23T23:16:38Z', 'done', NULL, 0, '363d1a7a655376495d0c4aed6c36c7c12b746cfc', 'main', 'claude-sonnet-5-5', 'a89cb2e3-813b-4a28-ae5a-96c0df71c494', NULL, 24, 48, 12099, 1291089, 56785, 0.47733489999999995, 69265, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (91, 93, '2026-10-23T23:16:38Z', '2026-10-23T23:17:20Z', 'done', NULL, 0, '4482bd8b29d1a98e208a1f3b50085657296222ed', 'main', 'claude-sonnet-5-5', 'a89cb2e3-813b-4a28-ae5a-96c0df71c494', 90, 5, 10, 3749, 375086, 11223, 0.5972455, 80253, 60, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (92, 97, '2026-10-23T23:17:20Z', '2026-10-23T23:18:00Z', 'done', NULL, 0, '6846bc15b25ff167ff9725da0f842052e539919c', 'main', 'claude-sonnet-5-5', '7440b93a-67be-41d1-9e6b-6efb7b50d36c', NULL, 9, 18, 4008, 311217, 31957, 0.19906569999999998, 44205, 60, 1465683);
 
 INSERT INTO task_decision (task_id, decision_id) VALUES (2, 1);
 INSERT INTO task_decision (task_id, decision_id) VALUES (4, 2);

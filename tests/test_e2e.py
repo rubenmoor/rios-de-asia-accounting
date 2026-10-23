@@ -14,7 +14,6 @@ October 2026, listings "Large 4 bed …" and "Master bedroom …":
   09-15, 23 days of 6.576 = 151.248; maintenance 180.000; 4 hours logged
 """
 
-import re
 import shutil
 from datetime import date
 from pathlib import Path
@@ -30,30 +29,31 @@ LISTINGS = [
 ]
 TODAY = date(2026, 10, 23)
 
+# row key → value in the October column: whole COP, ratios as fractions, hours as minutes
 OCTOBER = {
-    "Available nights": "22",
-    "Occupied nights": "8",
-    "Occupancy": "36.4 %",
-    "ADR": "544.156",
-    "RevPAR": "197.875",
-    "Income": "4.353.251",
-    "Total cost": "1.537.732",
-    "Profit": "2.815.519",
-    "Variable cost per night": "109.077",
-    "Break-even occupancy": "6.9 %",
-    "Long-term rental benchmark": "2.225.808",
-    "Profit vs. long-term rental": "589.711",
-    "Hours": "4.0",
-    "Profit per hour": "703.880",
-    "Profit after own time": "2.735.519",
+    "available_nights": 22,
+    "occupied_nights": 8,
+    "occupancy": "36.4 %",
+    "adr": 544156,
+    "revpar": 197875,
+    "income": 4353251,
+    "total_cost": 1537732,
+    "profit": 2815519,
+    "variable_cost_per_night": 109077,
+    "break_even_occupancy": "6.9 %",
+    "benchmark": 2225808,
+    "profit_vs_long_term": 589711,
+    "minutes": 240,
+    "profit_per_hour": 703880,
+    "profit_after_own_time": 2735519,
 }
 BREAKDOWN = {
-    "Fixed": "333.872",
-    "Per night": "45.001",
-    "Per booking": "827.611",
-    "Maintenance": "180.000",
-    "Capex depreciation": "151.248",
-    "Tax": "0",
+    "cost_fixed": 333872,
+    "cost_per_night": 45001,
+    "cost_per_booking": 827611,
+    "cost_maintenance": 180000,
+    "cost_capex": 151248,
+    "cost_tax": 0,
 }
 
 
@@ -64,47 +64,42 @@ def _app(db, backup_dir):
 
 
 def _ok(response):
-    assert response.status_code in (200, 302), response.data[:500]
-    return response
-
-
-def _table(page: bytes) -> dict[str, list[str]]:
-    """First cell of each table row → the other cells, as text."""
-    rows = {}
-    for tr in re.findall(r"<tr>(.*?)</tr>", page.decode(), re.S):
-        cells = [
-            re.sub(r"<[^>]+>", "", c).strip()
-            for c in re.findall(r"<t[hd][^>]*>(.*?)</t[hd]>", tr, re.S)
-        ]
-        if cells:
-            rows[cells[0]] = cells[1:]
-    return rows
+    assert response.status_code == 200, response.data[:500]
+    return response.get_json()["data"]
 
 
 def _october(client) -> tuple[dict, dict]:
-    rows = _table(client.get("/?month=2026-10").data)
-    heads = rows["COP unless stated"]
-    month = next(i for i, head in enumerate(heads) if head.startswith("Month 2026-10"))
-    return (
-        {label: rows[label][month] for label in OCTOBER},
-        {label: rows[label][0] for label in BREAKDOWN},
-    )
+    body = client.get("/api/dashboard?month=2026-10").get_json()
+    month = next(i for i, c in enumerate(body["columns"]) if c["start"] == "2026-10-01")
+    rows = {row["key"]: row["values"][month] for row in body["rows"]}
+    shown = {}
+    for key in OCTOBER:
+        value = rows[key]
+        shown[key] = (
+            f"{value * 100:.1f} %" if key in ("occupancy", "break_even_occupancy") else value
+        )
+    breakdown = {item["key"]: item["amount"] for item in body["breakdown"]["items"]}
+    return shown, breakdown
 
 
 def _enter_everything(client):
     data = {"file": ((FIXTURES / "airbnb_sample.csv").open("rb"), "airbnb_sample.csv")}
-    page = _ok(client.post("/import/airbnb", data=data, content_type="multipart/form-data")).data
-    token = re.search(rb'name="token" value="([0-9a-f]{32})"', page).group(1).decode()
-    done = client.post("/import/airbnb/apply", data={"token": token, "listings": LISTINGS}).data
-    assert b"Import done" in done
+    preview = _ok(client.post("/api/import/airbnb", data=data, content_type="multipart/form-data"))
+    assert preview["needs_listing_choice"]
+    done = _ok(
+        client.post(
+            "/api/import/airbnb/apply", json={"token": preview["token"], "listings": LISTINGS}
+        )
+    )
+    assert done["new"] > 0
 
     for day, rate in (("2026-10-08", "3850.25"), ("2026-10-09", "3900.00")):
-        _ok(client.post("/rates/new", data={"date": day, "currency": "USD", "rate": rate}))
+        _ok(client.post("/api/rates", json={"date": day, "currency": "USD", "rate": rate}))
 
     _ok(
-        client.post(
-            "/settings",
-            data={
+        client.put(
+            "/api/settings",
+            json={
                 "hourly_value_cop": "20.000",
                 "long_term_rent_cop_per_month": "3.000.000",
                 "per_booking_allocation": "check_in",
@@ -115,8 +110,8 @@ def _enter_everything(client):
     )
     _ok(
         client.post(
-            "/recurring/new",
-            data={
+            "/api/recurring",
+            json={
                 "description": "Admin fee",
                 "amount": "450.000",
                 "category": "fixed",
@@ -135,14 +130,14 @@ def _enter_everything(client):
         },
         {"date": "2026-10-18", "amount": "180.000", "category": "maintenance"},
     ):
-        _ok(client.post("/expenses/new", data={"description": "x", **expense}))
+        _ok(client.post("/api/expenses", json={"description": "x", **expense}))
     _ok(
         client.post(
-            "/blocked-days/new", data={"from": "2026-10-15", "to": "2026-10-15", "reason": "owner"}
+            "/api/blocked-days", json={"from": "2026-10-15", "to": "2026-10-15", "reason": "owner"}
         )
     )
-    _ok(client.post("/time/new", data={"date": "2026-10-07", "hours": "2,5"}))
-    _ok(client.post("/time/new", data={"date": "2026-10-21", "hours": "1:30"}))
+    _ok(client.post("/api/time", json={"date": "2026-10-07", "hours": "2,5"}))
+    _ok(client.post("/api/time", json={"date": "2026-10-21", "hours": "1:30"}))
 
 
 def test_october_2026_end_to_end(tmp_path):
@@ -157,8 +152,8 @@ def test_october_2026_end_to_end(tmp_path):
     before = _october(client)
     assert before == (OCTOBER, BREAKDOWN)
 
-    response = client.post("/quit")
-    assert b"you can close this tab" in response.data
+    response = client.post("/api/quit")
+    assert response.status_code == 200
     response.close()  # runs the shutdown callback: the backup at exit
     (backup,) = backup_dir.glob("books-*.db")
 
