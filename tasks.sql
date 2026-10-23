@@ -430,6 +430,49 @@ Input: the `Day` list of `plan 5: daily allocation engine` (`date, available, oc
 - Add `rolling_90`, `expense_breakdown`, `capex_book_value`.
 - Tests: rolling on 89 days → empty, on 90 → one point equal to `summarize` over those days, on 200 days each point equals `summarize` of its window (check a few); a window with no available nights → None values; breakdown sums to total cost and shares sum to 1, all-zero → None shares; capex book value before, during (hand-checked, incl. a leap day) and after the useful life, and two purchases.
 - Done when `pytest`, `ruff check` and `ruff format --check` pass.', 'The dashboard answers three questions: is hosting worth it, are prices right, and where are things heading. This part computes the figures behind those answers for any period, from the amounts the app has already spread over each calendar day: occupancy, average nightly price, revenue per available night, profit, the occupancy needed to break even, the comparison with a long-term rental, profit per hour of own work, and what is left to write off on big purchases. It also produces the 90-day trend series and the split of costs by kind, and defines what is shown when a figure cannot be computed.', '2026-10-23T19:42:49Z', 7);
+INSERT INTO plan (id, milestone_id, subject, priority, body, intro, created_at, created_by_task) VALUES (7, 1, 'Airbnb CSV import', 700, 'Part 6 of `plan 1: masterplan`. Implements section 6 of `architecture-spec.md` (approved, `decision 3: approve the architecture`) on top of the storage of `plan 4: database schema and storage`: tables `bookings`, `booking_lines`, `exchange_rates`, setting `property_listings`, and the repo functions of its tasks 3 and 4. Totals are never stored, they come from the lines (`decision 5: booking money totals are derived from booking lines, not stored`).
+
+Out of scope: the import screen (part 7 calls the functions here), the allocation of co-host lines as costs (part 4), the dashboard''s "needs exchange rate" count (part 8).
+
+## Rules (from the architecture spec, checked against `airbnb_.csv`)
+
+- Read with `utf-8-sig`; columns by header name; a missing required column (`Date, Type, Confirmation code, Start date, End date, Nights, Listing, Guest, Currency, Amount, Service fee, Cleaning fee, Gross earnings, Paid out`) is a file error.
+- Dates `MM/DD/YYYY` → ISO; `End date` is the exclusive check-out.
+- Amounts: strip thousands commas, parse with `Decimal`, store as integer hundredths (`amount_minor`) for every currency, COP included; more than 2 decimals or junk → a problem row. Empty fee columns → 0, empty `Gross earnings` → NULL.
+- Types: `Reservation`, `Adjustment`, `Resolution Adjustment`, `Resolution Payout`, `Co-Host payout` → booking lines; `Payout` → ignored, counted; anything else → problem.
+- One booking per confirmation code; a line is identified by the schema''s unique key (booking, type, date, currency, amount). Re-importing adds only unknown lines.
+- Only rows whose `Listing` is in the setting `property_listings` are imported; others are skipped and counted per listing. When the setting is empty, the import reports the listings found and imports nothing until the user chooses; the chosen list is saved to the setting.
+- COP lines get rate 100 (hundredths); other currencies get the rate on or before the line''s `Date`, or none (booking flagged "needs exchange rate").
+- Booking fields on re-import: see the decision recorded with this plan (dates, listing and guest name follow the latest-dated `Reservation` row; `guests` and `notes` are never touched).
+- Overlapping stays among the imported listings → warnings, not errors.
+
+## Tasks
+
+### 1. Test fixture and CSV parser (work tree `main`)
+- Requires `task 21: Model and repository: bookings, lines, exchange rates` (it creates `money.py` and the model).
+- `tests/fixtures/airbnb_sample.csv`: a trimmed copy of `airbnb_.csv` with BOM and the original header, keeping one example of each case: the monthly rows of one long stay, a co-host payout, an adjustment (incl. `-0.01`), a resolution adjustment and payout, payout rows (EUR and USD), COP and USD reservations, an amount with a thousands comma, at least two listings. Guest names and the owner''s name/IBAN in `Details` replaced with fake ones.
+- `money.py`: `parse_minor(text) -> int` (hundredths, exact, raises on junk or >2 decimals).
+- `importer/airbnb_csv.py`: `parse(file) -> ParsedFile` (pure, no DB): typed rows (type, code, dates, nights, listing, guest, currency, amounts in minor units), payout count, listings found with row counts, problems with CSV line numbers. Checks `End − Start = Nights` (mismatch is a problem).
+- Tests (`tests/test_import.py`): the fixture parses with the expected counts; BOM; comma amounts; negative and empty fields; missing column; unknown type; bad date; bad amount.
+- Done when pytest and ruff pass.
+
+### 2. Import plan and apply (work tree `main`, requires task 1 and `task 22: Repository: expenses, recurring expenses, blocked days, time log, settings`)
+- `importer/airbnb_csv.py`: `plan_import(conn, parsed, listings=None) -> ImportPlan` (reads only): new bookings, updated bookings (new lines or changed dates/listing/guest name, with what changed), skipped (payout rows, known lines, rows of other listings per listing), problems, warnings (overlapping stays, lines without a rate). `listings=None` uses the setting; empty setting → plan with `needs_listing_choice` and the listings found.
+- `apply_import(conn, plan)`: one transaction through `repo` (no SQL here); saves a given listing choice to `property_listings`; fills rates via `repo.recompute_lines()`; returns the summary (new, updated, skipped, problems, warnings, bookings needing a rate).
+- Tests on a temp DB with the fixture: first import creates the expected bookings and lines; totals of one long stay and of a USD stay with a rate hand-checked; co-host line stored as its own type; second import of the same file → nothing new or updated; an overlapping file with one extra row → one updated booking; a row of another listing skipped; empty setting → nothing imported until listings given; user-edited `guests`/`notes` survive a re-import; USD stay without a rate flagged, then filled after adding a rate.
+- Done when pytest and ruff pass.
+
+### 3. Command line import (work tree `main`, requires task 2)
+- `cli.py`: `airbnb-books import <csv> [--listing NAME …] [--dry-run]`: migrates, plans, prints a readable summary (counts plus the problem and warning lines), applies unless `--dry-run` or listings still need choosing (then prints the listings found and how to pass `--listing`, exit code 2).
+- Test: run `main([...])` on a temp DB with the fixture (dry run changes nothing; real run imports; exit code 2 without listings). One test imports the real `airbnb_.csv` from the repo root (skipped when the file is absent) with all its listings and asserts there are no problems.
+- Done when pytest and ruff pass and the command works on `airbnb_.csv` in the dev shell.
+
+### 4. Exchange-rate (TRM) import (work tree `main`, requires task 3, web access)
+- The user downloads the official Colombian TRM history by hand from datos.gov.co ("Tasa de Cambio Representativa del Mercado – Histórico"); check its real column names, date and number format there.
+- `importer/trm_csv.py`: parse → (date, COP per USD in hundredths) using each row''s start-of-validity date; problems with line numbers. Apply: upsert into `exchange_rates` for `USD` through `repo`, then `repo.recompute_lines()`; summary (rates added, changed, lines recomputed, bookings still needing a rate).
+- `cli.py`: `airbnb-books import-rates <csv> [--currency USD]`.
+- Fixture `tests/fixtures/trm_sample.csv` (a few weeks, in the real format); tests: parse, re-import changes nothing, a changed rate recomputes a booking''s COP.
+- Done when pytest and ruff pass.', 'Airbnb lets the owner download a spreadsheet of every payment it made: guest stays, corrections, damage reimbursements, the co-host''s share and the bank transfers. This part reads that file and turns it into the app''s records of stays and their money, without counting anything twice when the same or an overlapping file is loaded again. It also reads the official Colombian dollar exchange-rate history, so stays paid in dollars can be shown in pesos, and tells the owner after each import what was added, changed, skipped and what needs attention.', '2026-10-23T19:44:20Z', 8);
 
 INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (1, 1, 'write the masterplan of milestone 1: first version build', 'masterplan', 'done', NULL, '2026-10-23, plan 1 body and intro (no files)', 'Write `plan 1: masterplan`, the masterplan of `milestone 1: first version build`: expand on everything that needs to be done to achieve it,
 divided into parts, with an intro in plain English (`pm plan edit 1 --intro "…" --body -`). State in the masterplan that its own tasks are not implementation work: each of them writes the
@@ -690,6 +733,13 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 - `capex_book_value(expenses, as_of) -> int`: Σ over capex expenses of amount − the part of `split(amount, useful_life_days)` on days ≤ as_of; purchases after as_of not counted; 0 after full life.
 - Tests in `tests/test_metrics.py`: rolling on 89 days → empty; on 90 → one point equal to `summarize` over those days; on 200 days a few points each equal `summarize` of their window; a window with no available nights → None values; breakdown sums to total cost and shares sum to 1, all-zero → None shares; capex book value before, during (hand-checked, incl. a leap day), after the useful life, and with two purchases.
 - Done when `pytest`, `ruff check` and `ruff format --check` pass.', '2026-10-23T19:43:18Z', NULL, 23, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (29, 7, 'create tasks for plan 7: Airbnb CSV import', 'split', 'open', 1000, NULL, 'Split `plan 7: Airbnb CSV import` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
+done and dropped ones stay as they are (pm refuses to change them): drop the open ones that no longer fit and add
+tasks for what the plan asks beyond them. A task that writes a plan gets `--kind plan`. A task that needs another
+task''s result (in this plan or another, in any work tree) requires it: `pm task add … --requires <task id>`, or
+`pm task requires <task id> <prerequisite id>` for an existing one; priority is only a hint and orders nothing across
+work trees. When you drop an open task that others require and add one in its place, drop it with
+`--replaced-by <new task id>`.', '2026-10-23T19:44:20Z', NULL, 8, 0, NULL, NULL);
 
 INSERT INTO decision (id, subject, status, options, body, intro, answer, reason, created_at, closed_at, created_by_task, signoff, kind, decided_by_task, consequences) VALUES (1, 'Sign off the masterplan of milestone 1: first version build', 'answered', '["approve"]', '', 'This is the overall roadmap for building the first working version of a small, private bookkeeping app for one Airbnb apartment. The app turns every booking and every cost into amounts per calendar day, so it can answer whether hosting pays off, whether prices are set well, and how things are trending. The roadmap splits the build into parts, starting with a short architecture document the owner approves before anything else is built, and ending with a check against the real Airbnb export.
 
