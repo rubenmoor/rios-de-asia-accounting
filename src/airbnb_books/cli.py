@@ -2,6 +2,7 @@ import argparse
 import socket
 import sys
 import webbrowser
+from datetime import date
 
 from waitress import create_server
 
@@ -13,6 +14,7 @@ from airbnb_books.importer.airbnb_csv import (
     parse,
     plan_import,
 )
+from airbnb_books.recurring import generate_recurring
 from airbnb_books.storage.db import connect, migrate
 from airbnb_books.web.app import create_app
 
@@ -129,6 +131,11 @@ def main(argv: list[str] | None = None) -> None:
                 sys.exit(code)
         else:
             run_migrate(args.db)
+            conn = connect(resolve_db_path(args.db))
+            try:
+                generate_recurring(conn, date.today())
+            finally:
+                conn.close()
             serve(args.port, not args.no_browser)
     except (ConfigError, FileError, OSError) as e:
         parser.exit(2, f"airbnb-books: {e}\n")
