@@ -1310,13 +1310,13 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 - Binding: `decision 24: client-side framework: React with TypeScript, built by Vite, on top of a JSON API from the existing Python server`; the masterplan''s ground rules (offline, same URLs, same-origin guard).
 - Waits for `decision 25: In which order do the visual design update and the new client-side framework happen, and does the design work move onto the new screens?`: the answer decides whether the shell gets the default daisyUI look or the ledger theme of `plan 11: masterplan`.
 - Split into tasks that each fit one worker run (e.g. spec rewrite; frontend skeleton + shell; Flask serving + dev workflow; Nix packaging).', '2026-10-23T22:43:05Z', NULL, 62, 0, NULL, 'main');
-INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (64, 12, 'write the plan for part 2: JSON API', 'plan', 'open', 1000, NULL, 'Write the plan for part 2 of `plan 12: masterplan` ("JSON API"): `pm plan add 3 "JSON API" --priority 800 --intro "…"` with the full body.
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (64, 12, 'write the plan for part 2: JSON API', 'plan', 'done', 1000, '2026-10-23, plan 13: JSON API added (priority 800); no files changed', 'Write the plan for part 2 of `plan 12: masterplan` ("JSON API"): `pm plan add 3 "JSON API" --priority 800 --intro "…"` with the full body.
 
 - Scope as in the masterplan''s part 2: endpoints under `/api` for every current screen and action (dashboard incl. chart series and rate warnings, bookings with lines and overlap warning, expenses, recurring templates, blocked days, time log, rates, settings, CSV import upload → preview → listing choice → confirm, TRM rates import, quit).
 - One error shape (`422` with per-field messages from the `web/forms.py` parsers) and one shape for warnings/notices (today''s flash messages); money and minutes as integers; a short API section in `architecture-spec.md` the TS types mirror.
 - Reuse the logic of the current route modules (`web/bookings.py`, `web/expenses.py`, …); HTML routes stay until part 6; API tests with Flask''s test client, one or two per resource.
 - Binding: `decision 24: client-side framework: React with TypeScript, built by Vite, on top of a JSON API from the existing Python server`, `decision 15: data entry forms: how money and hours are typed`, `decision 10: a figure that cannot be computed is shown as empty, not as zero` (null, not 0, in JSON).
-- Independent of part 1 and of `decision 25`; split by resource so tasks fit one worker run (a shared foundation task first: blueprint, error/notice shape, same-origin guard).', '2026-10-23T22:43:05Z', NULL, 62, 0, NULL, 'main');
+- Independent of part 1 and of `decision 25`; split by resource so tasks fit one worker run (a shared foundation task first: blueprint, error/notice shape, same-origin guard).', '2026-10-23T22:43:05Z', '2026-10-23T22:44:33Z', 62, 0, NULL, 'main');
 INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (65, 12, 'write the plan for part 3: data screens', 'plan', 'open', 1000, NULL, 'Write the plan for part 3 of `plan 12: masterplan` ("Data screens"): `pm plan add 3 "data screens" --priority 500 --intro "…"` with the full body.
 
 - Scope as in the masterplan''s part 3: React lists and forms for bookings (detail lines, read-only fields of imported bookings per `decision 17: bookings from the Airbnb import: dates, listing and guest name are read-only in the edit form`), expenses (category toggle), recurring templates, blocked days, time log, rates, settings.
@@ -1340,13 +1340,80 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 
 - Scope as in the masterplan''s part 6: delete Jinja templates, HTML routes, `web/charts.py` if fully ported, unused Jinja filters; update `pyproject.toml` package data; reduce `tests/test_web.py`/`tests/test_e2e.py` to API tests; README (run, develop, build) and `architecture-spec.md` final; an end-to-end check with the real `airbnb_.csv` through the running app.
 - Its tasks `--requires` the implementation tasks of parts 3–5 (data screens, dashboard and charts, import flow), whose plans the required tasks wrote.', '2026-10-23T22:43:05Z', NULL, 62, 0, NULL, 'main');
-INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (69, 13, 'create tasks for plan 13: JSON API', 'split', 'open', 1000, NULL, 'Split `plan 13: JSON API` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (69, 13, 'create tasks for plan 13: JSON API', 'split', 'done', 1000, '2026-10-23, tasks 70-76', 'Split `plan 13: JSON API` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
 done and dropped ones stay as they are (pm refuses to change them): drop the open ones that no longer fit and add
 tasks for what the plan asks beyond them. A task that writes a plan gets `--kind plan`. A task that needs another
 task''s result (in this plan or another, in any work tree) requires it: `pm task add … --requires <task id>`, or
 `pm task requires <task id> <prerequisite id>` for an existing one; priority is only a hint and orders nothing across
 work trees. When you drop an open task that others require and add one in its place, drop it with
-`--replaced-by <new task id>`.', '2026-10-23T22:44:30Z', NULL, 64, 0, NULL, NULL);
+`--replaced-by <new task id>`.', '2026-10-23T22:44:30Z', '2026-10-23T22:45:19Z', 64, 0, NULL, NULL);
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (70, 13, 'JSON API foundation: /api blueprint, helpers, JSON errors, quit', 'work', 'open', NULL, NULL, 'First step of `plan 13: JSON API`; fixes the conventions every other API task uses (read the plan''s "Conventions" section, it is binding).
+
+What:
+- New package `src/rios_de_asia_accounting/web/api/` with one Flask blueprint at `/api`, registered in `create_app` (`web/app.py`).
+- Helpers in the package (e.g. `api/common.py`):
+  - read the JSON body (object of strings, arrays for multi-value fields) into `web/forms.py` `Form(data, lists)` so the existing parsers and messages apply;
+  - `ok(data, notices)` → `200 {"data": …, "notices": [{"level", "text"}]}`;
+  - `invalid(form)` → `422 {"errors": {field: message}}`, repo `ValidationError` under key `""`;
+  - a notice helper (`info` / `warning` / `error`).
+- JSON error handlers for paths under `/api`: 404, 403, 405 (and 400 for a body that is not a JSON object) as `{"error": "<text>"}`, not HTML pages. HTML routes keep their pages.
+- Same-origin guard in `web/app.py`: from POST only to every non-GET method (PUT, DELETE, PATCH), for HTML and API alike.
+- `POST /api/quit`: like `/quit`, shuts the server down after the response; returns `ok(None, [])`.
+- A "JSON API" section in `architecture-spec.md`: the conventions from the plan (input, output values, reads, writes, notices, errors) and the first endpoint line (`POST /api/quit`). Later tasks add one line per endpoint (method, path, request, response).
+- One test file `tests/test_api_foundation.py`: 404 JSON shape under `/api` and a cross-origin PUT/DELETE → 403. Sparse (AGENTS.md).
+
+Done when: the blueprint and helpers exist, HTML pages unchanged, `pytest`, `ruff check src tests`, `ruff format --check src tests` green.', '2026-10-23T22:44:54Z', NULL, 69, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (71, 13, 'JSON API: bookings', 'work', 'open', NULL, NULL, 'Part of `plan 13: JSON API`: bookings under `/api`, module `web/api/bookings.py`, next to `web/bookings.py`.
+
+- `GET /api/bookings?from=&to=&listing=`: list with today''s filters, money as integer pesos, `null` where a total cannot be computed (`decision 10: a figure that cannot be computed is shown as empty, not as zero`).
+- `GET /api/bookings/<id>`: detail with booking lines, derived totals and an `imported` flag (has Airbnb lines).
+- `GET /api/bookings/options`: listing names.
+- `POST /api/bookings`, `PUT /api/bookings/<id>`: create/update with today''s fields and messages; imported bookings accept only guests and notes (`decision 17: bookings from the Airbnb import: dates, listing and guest name are read-only in the edit form`); overlap warning as a `warning` notice; "Booking saved." etc. as `info`.
+- `DELETE /api/bookings/<id>`: blocked when expenses point at it → 422 with today''s text under key `""`.
+- Test file `tests/test_api_bookings.py`.
+
+Follow the "Conventions" of `plan 13: JSON API` and the helpers from `task 70: JSON API foundation: /api blueprint, helpers, JSON errors, quit` (`ok`, `invalid`, JSON body → `Form`). Reuse the parsers and helpers the HTML routes use; move logic out of HTML view functions into plain functions where both need it, with no behaviour change for the HTML pages. Add one line per endpoint (method, path, request, response) to the "JSON API" section of `architecture-spec.md`. Tests sparse: one happy path and one 422 or notice. Checks: `pytest`, `ruff check src tests`, `ruff format --check src tests`.', '2026-10-23T22:45:16Z', NULL, 69, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (72, 13, 'JSON API: expenses and recurring templates', 'work', 'open', NULL, NULL, 'Part of `plan 13: JSON API`: expenses and recurring expense templates under `/api`, module `web/api/expenses.py`, next to `web/expenses.py`.
+
+- `GET /api/expenses` with today''s filters (incl. category), `GET /api/expenses/<id>`, `GET /api/expenses/options` (categories, booking choices from `booking_options`), `POST`, `PUT /<id>`, `DELETE /<id>`.
+- `GET /api/recurring`, `GET /api/recurring/<id>`, `POST`, `PUT /<id>`, `DELETE /<id>` with today''s notices ("… N expense(s) generated", "the expenses it generated are kept").
+- Money as integer pesos, months as `YYYY-MM`.
+- Test file `tests/test_api_expenses.py`.
+
+Follow the "Conventions" of `plan 13: JSON API` and the helpers from `task 70: JSON API foundation: /api blueprint, helpers, JSON errors, quit` (`ok`, `invalid`, JSON body → `Form`). Reuse the parsers and helpers the HTML routes use; move logic out of HTML view functions into plain functions where both need it, with no behaviour change for the HTML pages. Add one line per endpoint (method, path, request, response) to the "JSON API" section of `architecture-spec.md`. Tests sparse: one happy path and one 422 or notice. Checks: `pytest`, `ruff check src tests`, `ruff format --check src tests`.', '2026-10-23T22:45:16Z', NULL, 69, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (73, 13, 'JSON API: blocked days and time log', 'work', 'open', NULL, NULL, 'Part of `plan 13: JSON API`: blocked days and time entries under `/api`, modules `web/api/blocked.py` and `web/api/timelog.py`, next to `web/blocked.py` and `web/timelog.py`.
+
+- Blocked days: `GET /api/blocked-days`, `POST` (day ranges as today, the inside-a-booking notice), `PUT /api/blocked-days/<day>`, `DELETE /api/blocked-days/<day>`.
+- Time entries: `GET /api/time`, `POST`, `PUT /api/time/<id>`, `DELETE /api/time/<id>`; minutes as integers in output, input hours as typed (`decision 15: data entry forms: how money and hours are typed`).
+- Test files `tests/test_api_blocked.py`, `tests/test_api_timelog.py` (one test each is enough).
+
+Follow the "Conventions" of `plan 13: JSON API` and the helpers from `task 70: JSON API foundation: /api blueprint, helpers, JSON errors, quit` (`ok`, `invalid`, JSON body → `Form`). Reuse the parsers and helpers the HTML routes use; move logic out of HTML view functions into plain functions where both need it, with no behaviour change for the HTML pages. Add one line per endpoint (method, path, request, response) to the "JSON API" section of `architecture-spec.md`. Tests sparse: one happy path and one 422 or notice. Checks: `pytest`, `ruff check src tests`, `ruff format --check src tests`.', '2026-10-23T22:45:16Z', NULL, 69, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (74, 13, 'JSON API: exchange rates and settings', 'work', 'open', NULL, NULL, 'Part of `plan 13: JSON API`: exchange rates and settings under `/api`, module(s) in `web/api/` next to `web/settings.py`.
+
+- Rates: `GET /api/rates`, `POST`, `PUT /api/rates/<day>/<currency>`, `DELETE /api/rates/<day>/<currency>`; rate as the stored integer (COP × 100); the "N bookings still need a rate" notice (`_needs_rate_message`) on writes.
+- Settings: `GET /api/settings`, `PUT /api/settings`; listings as an array of strings.
+- Test files `tests/test_api_rates.py`, `tests/test_api_settings.py` (one test each is enough).
+
+Follow the "Conventions" of `plan 13: JSON API` and the helpers from `task 70: JSON API foundation: /api blueprint, helpers, JSON errors, quit` (`ok`, `invalid`, JSON body → `Form`). Reuse the parsers and helpers the HTML routes use; move logic out of HTML view functions into plain functions where both need it, with no behaviour change for the HTML pages. Add one line per endpoint (method, path, request, response) to the "JSON API" section of `architecture-spec.md`. Tests sparse: one happy path and one 422 or notice. Checks: `pytest`, `ruff check src tests`, `ruff format --check src tests`.', '2026-10-23T22:45:16Z', NULL, 69, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (75, 13, 'JSON API: dashboard', 'work', 'open', NULL, NULL, 'Part of `plan 13: JSON API`: the dashboard as data, module `web/api/dashboard.py`, next to `web/dashboard.py`.
+
+- `GET /api/dashboard?month=&from=&to=`: today''s parameter handling and messages (as `error` notices in the response), per `decision 18: dashboard layout: which periods are shown and which period the cost breakdown uses`.
+- Returns: column heads (label, start, end); metric rows (key, label, kind: `int`/`pct`/`money`/`minutes`, one value per column, `null` where uncomputable per `decision 10: a figure that cannot be computed is shown as empty, not as zero`), incl. remaining capex book value; count of bookings needing a rate; an `empty` flag; the rolling 90-day series as raw daily points (`date`, `adr`, `revpar`, `occupancy`; empty list before 90 days of history, `decision 13: the rolling 90-day chart starts once 90 days of history exist`); the expense breakdown (range, items with key, label, amount, share).
+- Ratios as plain numbers (0.42). No chart geometry (ticks, scales): the client does that later.
+- Move the period handling and table building out of the HTML view into a plain function both use; the HTML dashboard stays unchanged.
+- Test file `tests/test_api_dashboard.py`.
+
+Follow the "Conventions" of `plan 13: JSON API` and the helpers from `task 70: JSON API foundation: /api blueprint, helpers, JSON errors, quit` (`ok`, `invalid`, JSON body → `Form`). Reuse the parsers and helpers the HTML routes use; move logic out of HTML view functions into plain functions where both need it, with no behaviour change for the HTML pages. Add one line per endpoint (method, path, request, response) to the "JSON API" section of `architecture-spec.md`. Tests sparse: one happy path and one 422 or notice. Checks: `pytest`, `ruff check src tests`, `ruff format --check src tests`.', '2026-10-23T22:45:16Z', NULL, 69, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (76, 13, 'JSON API: Airbnb and exchange-rate import', 'work', 'open', NULL, NULL, 'Part of `plan 13: JSON API`: the CSV imports under `/api`, module `web/api/importing.py`, next to `web/importing.py`.
+
+- `POST /api/import/airbnb` (multipart upload) → token + preview: new / updated / skipped / problems, whether a listing choice is needed and which listings the file has.
+- `POST /api/import/airbnb/apply` (`token`, `listings`, `other_listing`) → summary; missing listing choice → 422 with the preview again.
+- `DELETE /api/import/airbnb/<token>` → notice "Import cancelled; nothing was changed."
+- `POST /api/import/rates` (multipart file + currency) → summary and problems, or 422.
+- Same temp-file and token handling as `web/importing.py`: shared (moved into plain functions), not copied; HTML import pages unchanged.
+- Test file `tests/test_api_import.py` (use a fixture from `tests/fixtures`).
+
+Follow the "Conventions" of `plan 13: JSON API` and the helpers from `task 70: JSON API foundation: /api blueprint, helpers, JSON errors, quit` (`ok`, `invalid`, JSON body → `Form`). Reuse the parsers and helpers the HTML routes use; move logic out of HTML view functions into plain functions where both need it, with no behaviour change for the HTML pages. Add one line per endpoint (method, path, request, response) to the "JSON API" section of `architecture-spec.md`. Tests sparse: one happy path and one 422 or notice. Checks: `pytest`, `ruff check src tests`, `ruff format --check src tests`.', '2026-10-23T22:45:16Z', NULL, 69, 0, NULL, 'main');
 
 INSERT INTO decision (id, subject, status, options, body, intro, answer, reason, created_at, closed_at, created_by_task, signoff, kind, decided_by_task, consequences) VALUES (1, 'Sign off the masterplan of milestone 1: first version build', 'answered', '["approve"]', '', 'This is the overall roadmap for building the first working version of a small, private bookkeeping app for one Airbnb apartment. The app turns every booking and every cost into amounts per calendar day, so it can answer whether hosting pays off, whether prices are set well, and how things are trending. The roadmap splits the build into parts, starting with a short architecture document the owner approves before anything else is built, and ending with a check against the real Airbnb export.
 
@@ -1450,7 +1517,9 @@ INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, b
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (57, 56, '2026-10-23T22:35:47Z', '2026-10-23T22:36:18Z', 'done', NULL, 0, '7faa97406f08108a46310f9871a10fc84dd865c2', NULL, 'claude-opus-5-5', 'bf51736c-943f-42e6-abcd-cf051af1b426', NULL, 5, 10, 3052, 144365, 26562, 0.30244899999999997, 38770, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (58, 61, '2026-10-23T22:40:12Z', '2026-10-23T22:42:26Z', 'done', NULL, 0, '8d3c79a692c087a8f89bdc7d42ef13ce6afce0e3', NULL, 'claude-opus-5-5', '01dffd4b-1034-4c1c-858b-36b5d9880892', NULL, 12, 22, 12516, 514152, 54645, 0.79039840000000017, 66516, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (59, 62, '2026-10-23T22:42:26Z', '2026-10-23T22:43:19Z', 'done', NULL, 0, '5511bc35a8fb5cf4ae213a70f0e108cadca60c1b', NULL, 'claude-opus-5-5', '5bcfcb02-50ac-4e6a-aca3-f225874ff936', NULL, 5, 10, 4538, 145023, 27335, 0.3384846, 39817, 60, 1465683);
-INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (60, 64, '2026-10-23T22:43:14Z', NULL, 'running', NULL, NULL, '5511bc35a8fb5cf4ae213a70f0e108cadca60c1b', 'main', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (60, 64, '2026-10-23T22:43:14Z', '2026-10-23T22:44:43Z', 'done', NULL, 0, '5511bc35a8fb5cf4ae213a70f0e108cadca60c1b', 'main', 'claude-opus-5-5', '5e892322-f772-44cf-a313-390a1b378158', NULL, 7, 14, 5899, 241613, 38083, 0.47102259999999996, 50644, 60, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (61, 69, '2026-10-23T22:44:31Z', '2026-10-23T22:45:26Z', 'done', NULL, 0, '07b7fee76df1be721d5c0648c64ee45ba600bb57', NULL, 'claude-opus-5-5', '5f5e5acd-1d2f-42f3-a668-df5b2d298ad6', NULL, 9, 18, 4825, 292745, 30810, 0.401601, 43021, 60, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (62, 63, '2026-10-23T22:44:43Z', NULL, 'running', NULL, NULL, '07b7fee76df1be721d5c0648c64ee45ba600bb57', 'main', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1465683);
 
 INSERT INTO task_decision (task_id, decision_id) VALUES (2, 1);
 INSERT INTO task_decision (task_id, decision_id) VALUES (4, 2);
@@ -1544,3 +1613,9 @@ INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (67, 64);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (68, 65);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (68, 66);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (68, 67);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (71, 70);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (72, 70);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (73, 70);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (74, 70);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (75, 70);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (76, 70);
