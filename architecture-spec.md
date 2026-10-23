@@ -214,6 +214,22 @@ Endpoints (method, path, request → response):
   (`decision 16: changing a recurring expense template only affects months not yet generated`).
 - `DELETE /api/recurring/<id>` — → `{data: null, notices: ["Recurring expense deleted;
   the expenses it generated are kept."]}`.
+- `GET /api/blocked-days?from=&to=` — optional day filters (bad value → `422`) → list,
+  newest day first, of `{date, reason, note}`.
+- `GET /api/blocked-days/options` — `{"reasons": ["buffer", "owner", "maintenance", "other"]}`.
+- `POST /api/blocked-days` — `{from, to, reason, note?}` (a day range, at most 731 days)
+  → `{data: null, notices}`: "N day(s) blocked[; M already blocked and skipped]." `info`,
+  plus a `warning` listing blocked days that fall inside a booking.
+- `PUT /api/blocked-days/<YYYY-MM-DD>` — `{reason, note?}` → `{data: <item>, notices: ["Blocked day saved."]}`.
+- `DELETE /api/blocked-days/<YYYY-MM-DD>` — → `{data: null, notices: ["Blocked day deleted."]}`.
+- `GET /api/time?from=&to=` — optional day filters (bad value → `422`) → list, newest
+  first, of `{id, date, minutes, booking_id, description}` (`minutes` integer).
+- `GET /api/time/options` — `{"bookings": [{"id", "label"}]}`.
+- `GET /api/time/<id>` — one such item.
+- `POST /api/time`, `PUT /api/time/<id>` — `{date, hours, booking_id?, description?}`;
+  `hours` as typed (`1.5`, `1,5` or `1:30`, `decision 15: data entry forms: how money and hours are typed`)
+  → `{data: <item>, notices: ["Time entry saved."]}`.
+- `DELETE /api/time/<id>` — → `{data: null, notices: ["Time entry deleted."]}`.
 
 ## 4. Tests
 
