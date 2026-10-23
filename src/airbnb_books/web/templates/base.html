@@ -6,7 +6,9 @@
   <title>{% block title %}airbnb-books{% endblock %}</title>
   <style>
     body { font-family: system-ui, sans-serif; margin: 0; color: #222; background: #fafafa; }
-    nav { background: #264653; padding: .5rem 1rem; }
+    nav { background: #264653; padding: .5rem 1rem; display: flex; align-items: center; }
+    nav form { margin-left: auto; }
+    nav button { margin: 0; padding: .1rem .6rem; }
     nav a { color: #eee; margin-right: 1rem; text-decoration: none; }
     nav a.active { font-weight: bold; border-bottom: 2px solid #e9c46a; }
     main { max-width: 64rem; margin: 1rem auto; padding: 0 1rem; }
@@ -29,6 +31,7 @@
     {% for endpoint, url, label in nav %}
     <a href="{{ url }}"{% if active == endpoint %} class="active"{% endif %}>{{ label }}</a>
     {% endfor %}
+    <form method="post" action="/quit"><button type="submit">Quit</button></form>
   </nav>
   <main>
     {% with messages = get_flashed_messages(with_categories=true) %}

@@ -118,3 +118,52 @@ def test_cli_backup(db, tmp_path, capsys):
         main(["--db", str(db), "backup", "--backup-dir", str(blocker)])
     assert e.value.code != 0
     assert "backup" in capsys.readouterr().err
+
+
+def test_quit_triggers_shutdown_after_response(db):
+    from airbnb_books.web.app import create_app
+
+    calls = []
+    client = create_app(db, shutdown=lambda: calls.append(1)).test_client()
+    assert b"Quit" in client.get("/bookings").data
+    resp = client.post("/quit")
+    assert b"you can close this tab" in resp.data
+    resp.close()
+    assert calls == [1]
+    assert client.get("/quit").status_code == 405
+
+
+def test_serve_backs_up_once_even_with_repeated_signals(db, tmp_path, monkeypatch):
+    import signal
+
+    from airbnb_books import cli
+
+    calls = []
+    monkeypatch.setattr(cli, "backup", lambda *a: calls.append(a) or tmp_path / "x")
+
+    class FakeServer:
+        effective_port = 1
+
+        def run(self):
+            signal.raise_signal(signal.SIGTERM)
+
+        def close(self):
+            signal.raise_signal(signal.SIGINT)  # a second stop signal during shutdown
+
+    monkeypatch.setattr(cli, "create_server", lambda *a, **k: FakeServer())
+    old = signal.getsignal(signal.SIGINT), signal.getsignal(signal.SIGTERM)
+    try:
+        cli.serve(db, 1, False, str(tmp_path / "bk"))
+    finally:
+        signal.signal(signal.SIGINT, old[0])
+        signal.signal(signal.SIGTERM, old[1])
+    assert len(calls) == 1
+
+
+def test_failed_exit_backup_is_reported_not_raised(db, tmp_path, capsys):
+    from airbnb_books import cli
+
+    blocker = tmp_path / "file"
+    blocker.write_text("x")
+    cli.backup_on_exit(db, str(blocker))
+    assert "backup at exit failed" in capsys.readouterr().err
