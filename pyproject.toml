@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "airbnb-books"
+version = "0.1.0"
+description = "Local bookkeeping for Airbnb rentals"
+requires-python = ">=3.11"
+dependencies = ["flask", "jinja2", "waitress"]
+
+[project.scripts]
+airbnb-books = "airbnb_books.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+airbnb_books = ["web/templates/*.html"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
