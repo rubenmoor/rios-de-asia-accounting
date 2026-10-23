@@ -1093,7 +1093,7 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 - Every mismatch or bug found becomes a follow-up task in the plan it belongs to; don''t fix it here.
 
 Done when `tests/test_e2e.py` passes; the done note names the month checked and the result.', '2026-10-23T19:50:00Z', '2026-10-23T20:30:10Z', 46, 0, 'opus', 'main');
-INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (52, 10, 'Rates page stores typed exchange rates at the wrong scale', 'work', 'open', NULL, NULL, 'Found in `task 51: End-to-end check with real data`. Belongs to the Rates screen of `plan 8: data entry screens` (closed, hence here).
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (52, 10, 'Rates page stores typed exchange rates at the wrong scale', 'work', 'done', NULL, '2026-10-23, src/airbnb_books/web/forms.py, tests/test_web.py, tests/test_e2e.py', 'Found in `task 51: End-to-end check with real data`. Belongs to the Rates screen of `plan 8: data entry screens` (closed, hence here).
 
 **Bug:** a rate typed on the Rates page is stored 100× too big, so every USD booking converted with it gets 100× its income (and co-host cost).
 
@@ -1107,7 +1107,14 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 - `tests/test_e2e.py` loads its rates through a TRM file because of this bug (comment in `_enter_everything`); switch it to typing the two rates on `/rates/new` (2026-10-08 3850.25 and 2026-10-09 3900.00); the asserted numbers must stay the same.
 - No migration needed: the app has not been used with typed rates yet.
 
-Done when a rate typed on the Rates page gives the same COP as the TRM import of that rate, the Rates page shows TRM rates as typed (`3209.78`), and `pytest` passes.', '2026-10-23T20:30:02Z', NULL, 51, 0, NULL, 'main');
+Done when a rate typed on the Rates page gives the same COP as the TRM import of that rate, the Rates page shows TRM rates as typed (`3209.78`), and `pytest` passes.', '2026-10-23T20:30:02Z', '2026-10-23T20:31:04Z', 51, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (53, 1, 'post-milestone cleanup of milestone 1: first version build', 'cleanup', 'open', NULL, NULL, 'After `milestone 1: first version build`, for the whole project:
+* rewrite top-level .md files to reflect the current state of the project
+* remove files that have become redundant
+* suggest entirely new files, if necessary
+* delete code that isn''t actually used
+* check pending decisions if they are still relevant and really pending
+* check other milestones if their contents are up-to-date; raise a decision for each change they need', '2026-10-23T20:31:04Z', NULL, NULL, 0, NULL, NULL);
 
 INSERT INTO decision (id, subject, status, options, body, intro, answer, reason, created_at, closed_at, created_by_task, signoff, kind, decided_by_task, consequences) VALUES (1, 'Sign off the masterplan of milestone 1: first version build', 'answered', '["approve"]', '', 'This is the overall roadmap for building the first working version of a small, private bookkeeping app for one Airbnb apartment. The app turns every booking and every cost into amounts per calendar day, so it can answer whether hosting pays off, whether prices are set well, and how things are trending. The roadmap splits the build into parts, starting with a short architecture document the owner approves before anything else is built, and ending with a check against the real Airbnb export.
 
@@ -1197,6 +1204,7 @@ INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, b
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (50, 49, '2026-10-23T20:23:23Z', '2026-10-23T20:24:03Z', 'done', NULL, 0, '6f3017a901117fce7d1a000da1b342c2e751af1c', 'main', 'claude-sonnet-5-5', '02de1d34-c631-426f-9388-30b2899550b7', 49, 4, 8, 3095, 268742, 8551, 0.5529619, 71847, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (51, 50, '2026-10-23T20:24:03Z', '2026-10-23T20:24:37Z', 'done', NULL, 0, 'aaadff6a06fbe1b9f79c35f79be708567208aa24', 'main', 'claude-sonnet-5-5', '02de1d34-c631-426f-9388-30b2899550b7', 50, 5, 10, 2929, 389327, 11996, 0.6691886, 83612, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (52, 51, '2026-10-23T20:24:37Z', '2026-10-23T20:30:28Z', 'done', NULL, 0, 'd8d02ae237fa66f6355968b5b843107574ee38ae', 'main', 'claude-opus-5-5', 'a5149d23-d068-4127-8c42-f4f248bd236f', NULL, 44, 80, 24625, 3537707, 110129, 2.0813933999999996, 122764, 60, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (53, 52, '2026-10-23T20:30:28Z', NULL, 'running', NULL, NULL, '3f5bf4b0ce5338fa71bcc45711d88cac022a2cb4', 'main', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1465683);
 
 INSERT INTO task_decision (task_id, decision_id) VALUES (2, 1);
 INSERT INTO task_decision (task_id, decision_id) VALUES (4, 2);
