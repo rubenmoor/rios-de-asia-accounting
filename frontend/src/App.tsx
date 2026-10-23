@@ -3,6 +3,7 @@ import { NavLink, Route, Routes } from "react-router";
 import { api } from "./api";
 import { Notices, NoticesProvider } from "./components/Notices";
 import { NAV } from "./nav";
+import { BlockedEdit, BlockedList, BlockedNew } from "./pages/Blocked";
 import {
   BookingDetail,
   BookingEdit,
@@ -19,10 +20,20 @@ import {
 } from "./pages/Expenses";
 import { NotFound } from "./pages/NotFound";
 import { Placeholder } from "./pages/Placeholder";
+import { RateEdit, RateList, RateNew } from "./pages/Rates";
+import { SettingsPage } from "./pages/Settings";
 import { Stopped } from "./pages/Stopped";
 import { TimeEdit, TimeList, TimeNew } from "./pages/Time";
 
-const IMPLEMENTED = ["/bookings", "/time", "/expenses", "/recurring"];
+const IMPLEMENTED = [
+  "/bookings",
+  "/time",
+  "/expenses",
+  "/recurring",
+  "/blocked-days",
+  "/rates",
+  "/settings",
+];
 
 export function App() {
   const quit = useMutation({ mutationFn: () => api("POST", "/api/quit") });
@@ -78,6 +89,13 @@ export function App() {
           <Route path="/recurring" element={<RecurringList />} />
           <Route path="/recurring/new" element={<RecurringNew />} />
           <Route path="/recurring/:id" element={<RecurringEdit />} />
+          <Route path="/blocked-days" element={<BlockedList />} />
+          <Route path="/blocked-days/new" element={<BlockedNew />} />
+          <Route path="/blocked-days/:day" element={<BlockedEdit />} />
+          <Route path="/rates" element={<RateList />} />
+          <Route path="/rates/new" element={<RateNew />} />
+          <Route path="/rates/:day/:currency" element={<RateEdit />} />
+          <Route path="/settings" element={<SettingsPage />} />
           {NAV.filter((entry) => !IMPLEMENTED.includes(entry.path)).map(
             (entry) => (
               <Route
