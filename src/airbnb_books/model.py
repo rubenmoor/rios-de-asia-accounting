@@ -100,3 +100,35 @@ class Inputs:
     blocked_days: list[BlockedDay]
     time_log: list[TimeEntry]
     settings: Settings
+
+
+@dataclass
+class Day:
+    """One row of the per-day view; money in whole COP, time in minutes."""
+
+    date: date
+    available: bool = True
+    occupied: bool = False
+    income: int = 0
+    cost_fixed: int = 0
+    cost_per_night: int = 0
+    cost_per_booking: int = 0
+    cost_maintenance: int = 0
+    cost_capex: int = 0
+    cost_tax: int = 0
+    minutes: int = 0
+
+    @property
+    def costs(self) -> int:
+        return (
+            self.cost_fixed
+            + self.cost_per_night
+            + self.cost_per_booking
+            + self.cost_maintenance
+            + self.cost_capex
+            + self.cost_tax
+        )
+
+    @property
+    def profit(self) -> int:
+        return self.income - self.costs
