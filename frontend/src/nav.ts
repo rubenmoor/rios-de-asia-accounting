@@ -1,4 +1,4 @@
-// Same entries as NAV in web/app.py.
+// The navigation entries of the app shell.
 export const NAV = [
   { path: "/bookings", label: "Bookings" },
   { path: "/expenses", label: "Expenses" },

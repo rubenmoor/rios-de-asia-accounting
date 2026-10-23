@@ -6,15 +6,53 @@ from rios_de_asia_accounting.model import Booking, BookingLine
 from rios_de_asia_accounting.storage import repo
 from rios_de_asia_accounting.web.api.common import bp, info, invalid, ok, read_form, warning
 from rios_de_asia_accounting.web.app_db import get_db
-from rios_de_asia_accounting.web.bookings import (
-    _delete_refused,
-    _is_imported,
-    _listing_names,
-    _manual_amount,
-    _overlap_message,
-    _read,
-)
 from rios_de_asia_accounting.web.forms import Form
+
+
+def _is_imported(lines: list) -> bool:
+    return any(line.type != "Manual" for line in lines)
+
+
+def _manual_amount(lines: list) -> int | None:
+    return next((line.amount_cop for line in lines if line.type == "Manual"), None)
+
+
+def _overlap_message(conn, booking: Booking) -> str | None:
+    others = [
+        b
+        for b in repo.list_bookings(conn, booking.check_in, booking.check_out)
+        if b.id != booking.id
+    ]
+    if not others:
+        return None
+    names = ", ".join(f"{b.check_in} – {b.check_out} ({b.guest_name or '-'})" for b in others)
+    return f"This stay overlaps another booking: {names}."
+
+
+def _delete_refused(reason: str) -> str:
+    return f"Booking not deleted: {reason}. Delete its expenses first."
+
+
+def listing_names(conn) -> list[str]:
+    names = {b.listing for b in repo.list_bookings(conn) if b.listing}
+    names.update(repo.load_settings(conn).property_listings)
+    return sorted(names)
+
+
+def _read(form: Form, imported: bool) -> None:
+    """Parse the posted fields; imported bookings only take guests and notes."""
+    form.whole("guests", positive=True)
+    form.text("notes")
+    if imported:
+        return
+    check_in = form.day("check_in", required=True)
+    check_out = form.day("check_out", required=True)
+    if check_in and check_out and check_out <= check_in:
+        form.error("check_out", "check-out must be after check-in")
+    form.money("net_payout", required=True)
+    form.text("airbnb_code")
+    form.text("listing")
+    form.text("guest_name")
 
 
 def _line(line: BookingLine) -> dict:
@@ -82,7 +120,7 @@ def list_bookings():
 
 @bp.get("/bookings/options")
 def booking_options_api():
-    return {"listings": _listing_names(get_db())}
+    return {"listings": listing_names(get_db())}
 
 
 @bp.get("/bookings/<int:booking_id>")

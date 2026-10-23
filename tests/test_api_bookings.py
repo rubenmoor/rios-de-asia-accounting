@@ -1,16 +1,25 @@
+from datetime import date
+
 import pytest
 
+from rios_de_asia_accounting.model import Booking, BookingLine
+from rios_de_asia_accounting.storage import repo
 from rios_de_asia_accounting.storage.db import connect, migrate
 from rios_de_asia_accounting.web.app import create_app
 
 
 @pytest.fixture
-def client(tmp_path):
+def db_path(tmp_path):
     path = tmp_path / "books.db"
     conn = connect(path)
     migrate(conn)
     conn.close()
-    return create_app(path).test_client()
+    return path
+
+
+@pytest.fixture
+def client(db_path):
+    return create_app(db_path).test_client()
 
 
 def test_create_overlap_warning_and_delete(client):
@@ -30,3 +39,15 @@ def test_invalid_booking_is_422(client):
     assert response.status_code == 422
     assert set(response.get_json()["errors"]) == {"check_out", "net_payout"}
     assert client.get("/api/bookings/99").status_code == 404
+
+
+def test_imported_booking_only_takes_guests_and_notes(client, db_path):
+    conn = connect(db_path)
+    bid = repo.create_booking(
+        conn, Booking(date(2026, 4, 1), date(2026, 4, 3), airbnb_code="IMP", guest_name="Bob")
+    )
+    repo.add_line(conn, BookingLine(bid, "Reservation", date(2026, 4, 1), "COP", 100000000))
+    body = {"check_in": "2030-01-01", "guest_name": "Eve", "guests": "2", "notes": "hi"}
+    saved = client.put(f"/api/bookings/{bid}", json=body).get_json()["data"]
+    assert (saved["check_in"], saved["guest_name"]) == ("2026-04-01", "Bob")
+    assert (saved["guests"], saved["notes"], saved["net_payout"]) == (2, "hi", 1000000)

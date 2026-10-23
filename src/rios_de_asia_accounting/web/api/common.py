@@ -58,7 +58,7 @@ def invalid(form: Form | None = None, exc: ValidationError | None = None) -> tup
 
 def _json_error(exc: HTTPException):
     if not request.path.startswith("/api/") and request.path != "/api":
-        return exc  # HTML routes keep their pages
+        return exc  # the bundle and its index.html fallback
     response = jsonify({"error": exc.description or exc.name})
     response.status_code = exc.code or 500
     return response

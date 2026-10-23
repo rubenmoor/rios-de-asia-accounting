@@ -40,7 +40,7 @@
             cp -r --no-preserve=mode ${self.packages.${system}.frontend}/. src/rios_de_asia_accounting/web/dist/
           '';
           build-system = [ pkgs.python3Packages.setuptools ];
-          dependencies = with pkgs.python3Packages; [ flask jinja2 waitress ];
+          dependencies = with pkgs.python3Packages; [ flask waitress ];
           nativeCheckInputs = [ pkgs.python3Packages.pytestCheckHook ];
           meta.mainProgram = "rios-de-asia-accounting";
         };
@@ -118,7 +118,7 @@
         default = pkgs.mkShell {
           packages = [
             # first, so `python` is the one with the libraries, not a bare one pulled in by pm
-            (pkgs.python3.withPackages (ps: [ ps.flask ps.jinja2 ps.waitress ps.pytest ]))
+            (pkgs.python3.withPackages (ps: [ ps.flask ps.waitress ps.pytest ]))
             pm.packages.${system}.default
             pm.packages.${system}.dashboard
             pkgs.git

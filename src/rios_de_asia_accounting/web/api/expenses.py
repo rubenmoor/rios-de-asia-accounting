@@ -7,17 +7,63 @@ from rios_de_asia_accounting.recurring import generate_recurring
 from rios_de_asia_accounting.storage import repo
 from rios_de_asia_accounting.web.api.common import bp, info, invalid, ok, read_form
 from rios_de_asia_accounting.web.app_db import get_db
-from rios_de_asia_accounting.web.expenses import (
-    EXPENSE_CATEGORIES,
-    RECURRING_CATEGORIES,
-    RECURRING_DELETED,
-    _fill_expense,
-    _fill_recurring,
-    _read_expense,
-    _read_recurring,
-    _recurring_saved,
-)
 from rios_de_asia_accounting.web.forms import Form, booking_options
+
+EXPENSE_CATEGORIES = ["fixed", "per_night", "per_booking", "maintenance", "capex", "tax"]
+RECURRING_CATEGORIES = ["fixed", "per_night", "maintenance", "tax"]
+
+
+def _read_expense(form: Form) -> None:
+    form.day("date", required=True)
+    form.money("amount", positive=True, required=True)
+    category = form.choice("category", EXPENSE_CATEGORIES)
+    form.text("description")
+    # booking and useful life only count for their own category
+    booking = form.whole("booking_id", required=category == "per_booking")
+    form.whole("useful_life_days", required=category == "capex", positive=True)
+    if category != "per_booking":
+        form.errors.pop("booking_id", None)
+        form.values["booking_id"] = None
+    elif booking is not None and repo.get_booking(get_db(), booking) is None:
+        form.error("booking_id", "choose one of the bookings")
+    if category != "capex":
+        form.errors.pop("useful_life_days", None)
+        form.values["useful_life_days"] = None
+
+
+def _fill_expense(form: Form, expense: Expense) -> None:
+    expense.date = form.values["date"]
+    expense.amount = form.values["amount"]
+    expense.category = form.values["category"]
+    expense.booking_id = form.values["booking_id"]
+    expense.useful_life_days = form.values["useful_life_days"]
+    expense.description = form.values["description"]
+
+
+def _read_recurring(form: Form) -> None:
+    form.text("description", required=True)
+    form.money("amount", positive=True, required=True)
+    form.choice("category", RECURRING_CATEGORIES)
+    start = form.month("start_month", required=True)
+    end = form.month("end_month")
+    if start and end and end < start:
+        form.error("end_month", "the end month must not be before the start month")
+
+
+def _fill_recurring(form: Form, item: RecurringExpense) -> None:
+    item.description = form.values["description"]
+    item.amount = form.values["amount"]
+    item.category = form.values["category"]
+    item.start_month = form.values["start_month"].isoformat()[:7]
+    end = form.values["end_month"]
+    item.end_month = end.isoformat()[:7] if end else None
+
+
+def _recurring_saved(created: int) -> str:
+    return f"Recurring expense saved; {created} expense(s) generated."
+
+
+RECURRING_DELETED = "Recurring expense deleted; the expenses it generated are kept."
 
 
 def _expense(e: Expense) -> dict:

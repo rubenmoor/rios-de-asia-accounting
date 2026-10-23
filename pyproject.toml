@@ -7,7 +7,7 @@ name = "rios-de-asia-accounting"
 version = "0.1.0"
 description = "Local bookkeeping for Airbnb rentals"
 requires-python = ">=3.11"
-dependencies = ["flask", "jinja2", "waitress"]
+dependencies = ["flask", "waitress"]
 
 [project.scripts]
 rios-de-asia-accounting = "rios_de_asia_accounting.cli:main"
@@ -16,7 +16,7 @@ rios-de-asia-accounting = "rios_de_asia_accounting.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-rios_de_asia_accounting = ["web/templates/*.html", "web/dist/**/*", "storage/migrations/*.sql"]
+rios_de_asia_accounting = ["web/dist/**/*", "storage/migrations/*.sql"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

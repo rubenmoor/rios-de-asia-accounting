@@ -125,12 +125,11 @@ def test_quit_triggers_shutdown_after_response(db):
 
     calls = []
     client = create_app(db, shutdown=lambda: calls.append(1)).test_client()
-    assert b"Quit" in client.get("/bookings").data
-    resp = client.post("/quit")
-    assert b"you can close this tab" in resp.data
+    resp = client.post("/api/quit")
+    assert calls == []
     resp.close()
     assert calls == [1]
-    assert client.get("/quit").status_code == 405
+    assert client.get("/api/quit").status_code == 405
 
 
 def test_serve_backs_up_once_even_with_repeated_signals(db, tmp_path, monkeypatch):

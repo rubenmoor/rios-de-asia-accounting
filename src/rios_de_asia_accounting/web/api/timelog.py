@@ -7,7 +7,22 @@ from rios_de_asia_accounting.storage import repo
 from rios_de_asia_accounting.web.api.common import bp, info, invalid, ok, read_form
 from rios_de_asia_accounting.web.app_db import get_db
 from rios_de_asia_accounting.web.forms import Form, booking_options
-from rios_de_asia_accounting.web.timelog import _fill, _read
+
+
+def _read(form: Form) -> None:
+    form.day("date", required=True)
+    form.hours("hours", required=True, positive=True)
+    booking = form.whole("booking_id")
+    form.text("description")
+    if booking is not None and repo.get_booking(get_db(), booking) is None:
+        form.error("booking_id", "choose one of the bookings")
+
+
+def _fill(form: Form, entry: TimeEntry) -> None:
+    entry.date = form.values["date"]
+    entry.minutes = form.values["hours"]
+    entry.booking_id = form.values["booking_id"]
+    entry.description = form.values["description"]
 
 
 def _item(e: TimeEntry) -> dict:
