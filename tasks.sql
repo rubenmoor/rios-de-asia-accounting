@@ -604,10 +604,10 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 
 - Covers: create, list, edit, delete for bookings, expenses, recurring expenses, blocked days, time log; a settings screen; the CSV import reachable from the UI; validation matching the schema rules (e.g. capex needs a useful life).
 - Tasks require the schema tasks of part 3, and the import screen requires the import tasks of part 6.', '2026-10-23T19:19:30Z', '2026-10-23T19:46:36Z', 2, 0, NULL, 'main');
-INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (10, 1, 'write the plan for part 8: dashboard and charts', 'plan', 'open', 1000, NULL, 'Write the plan for part 8 of `plan 1: masterplan` (section "8. Dashboard and charts"); suggested plan priority 400.
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (10, 1, 'write the plan for part 8: dashboard and charts', 'plan', 'done', 1000, '2026-10-23, plan 9: dashboard and charts, decision 18', 'Write the plan for part 8 of `plan 1: masterplan` (section "8. Dashboard and charts"); suggested plan priority 400.
 
 - Covers: metrics for the standard ranges side by side plus a custom range, a chart of rolling 90-day RevPAR, ADR and occupancy, expense breakdown by category for a chosen range; plain, readable presentation.
-- Tasks require the metrics tasks of part 5 and, where they share UI scaffolding, the screens of part 7.', '2026-10-23T19:19:30Z', NULL, 2, 0, NULL, 'main');
+- Tasks require the metrics tasks of part 5 and, where they share UI scaffolding, the screens of part 7.', '2026-10-23T19:19:30Z', '2026-10-23T19:47:47Z', 2, 0, NULL, 'main');
 INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (11, 1, 'write the plan for part 9: backup, install and final check', 'plan', 'open', 1000, NULL, 'Write the plan for part 9 of `plan 1: masterplan` (section "9. Backup, install and final check"); suggested plan priority 300.
 
 - Covers: `sqlite3 … ".backup …"` into a Dropbox folder as `books-YYYY-MM-DD.db`, keeping the last N, on app exit and via a daily systemd user timer shipped as a NixOS / home-manager module in the flake; restore and install/run/import/backup docs in the README; an end-to-end check (fresh DB, import `airbnb_.csv`, a few expenses, dashboard numbers verified by hand for one month).
@@ -944,13 +944,55 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 - Tests with `tests/fixtures/airbnb_sample.csv`: upload on an empty DB asks for listings and imports nothing; choosing listings then applying creates the bookings; uploading the same file again previews nothing new; a broken file shows the file error; the temp file is gone after apply; the TRM fixture upload shows its summary.
 
 Done when `pytest`, `ruff check`, `ruff format --check` pass and the page works against a running `airbnb-books --db /tmp/x.db --no-browser` (checked with `curl -F`, stopped by PID).', '2026-10-23T19:47:16Z', NULL, 35, 0, NULL, 'main');
-INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (42, 9, 'create tasks for plan 9: dashboard and charts', 'split', 'open', 1000, NULL, 'Split `plan 9: dashboard and charts` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (42, 9, 'create tasks for plan 9: dashboard and charts', 'split', 'done', 1000, '2026-10-23, tasks 43, 45, 44', 'Split `plan 9: dashboard and charts` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
 done and dropped ones stay as they are (pm refuses to change them): drop the open ones that no longer fit and add
 tasks for what the plan asks beyond them. A task that writes a plan gets `--kind plan`. A task that needs another
 task''s result (in this plan or another, in any work tree) requires it: `pm task add … --requires <task id>`, or
 `pm task requires <task id> <prerequisite id>` for an existing one; priority is only a hint and orders nothing across
 work trees. When you drop an open task that others require and add one in its place, drop it with
-`--replaced-by <new task id>`.', '2026-10-23T19:47:43Z', NULL, 10, 0, NULL, NULL);
+`--replaced-by <new task id>`.', '2026-10-23T19:47:43Z', '2026-10-23T19:48:28Z', 10, 0, NULL, NULL);
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (43, 9, 'SVG chart module', 'work', 'open', NULL, NULL, 'Part of `plan 9: dashboard and charts`. Our own small chart drawer, used by the dashboard: inline SVG, no JavaScript, no chart library, no CDN (`architecture-spec.md`, `decision 3: approve the architecture`).
+
+**What**
+- New `web/charts.py` with pure functions returning `markupsafe.Markup` SVG strings:
+  - `line_chart(series, *, y_format, y_min=None, y_max=None, width, height)`, `series = [(label, [(date, value|None), …])]`
+  - `bar_chart(items, *, value_format)`, `items = [(label, value)]` (horizontal bars)
+- Fixed size via `viewBox` (scales to page width); a few y gridlines labelled at round values; x labels at month starts; a legend; a fixed small palette, each series also with its own line dash (print and colour-blind friendly); `<title>` elements so hovering shows the value.
+- A `None` value breaks the line: one `<polyline>`/`<path>` per run of non-None values.
+- Labels are escaped. Empty input or all values None → `None` (the template shows its own text) or an empty-state SVG; pick one and document it in the docstring.
+
+**Tests** in `tests/test_charts.py`
+- output parses as XML (`xml.etree`)
+- a None in the middle gives two segments
+- y labels at round values for a sample range (e.g. 0–1 234 567)
+- a label containing `<&>` is escaped
+- bar widths proportional to values
+- zero values and empty inputs don''t divide by zero
+
+**Done when** `pytest`, `ruff check` and `ruff format --check` pass.', '2026-10-23T19:48:11Z', NULL, 42, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (44, 9, 'Dashboard: rolling chart and expense breakdown', 'work', 'open', NULL, NULL, 'Part of `plan 9: dashboard and charts` (read its Layout section). Adds the charts and the capex row to the dashboard built by `task 45: Dashboard: metrics table and period form`, using `web/charts.py` and `metrics.rolling_90`, `metrics.expense_breakdown`, `metrics.capex_book_value`.
+
+**What**
+- Rolling chart: two stacked line charts sharing the date axis: money (ADR and RevPAR, COP) and occupancy (0–100 %); one point per day from `metrics.rolling_90`; `None` breaks the line. Fewer than 90 days of history → the text "the 90-day chart starts once 90 days of history exist" and no chart (`decision 13: the rolling 90-day chart starts once 90 days of history exist`).
+- Expense breakdown for the custom range if set, else the chosen month (`decision 18: dashboard layout: which periods are shown and which period the cost breakdown uses`): horizontal bar chart plus a small table (category, amount, share %), the six categories in `metrics.expense_breakdown`''s order; all zero → "no costs in this period".
+- Last row of the metrics table: remaining capex book value at each period''s end.
+
+**Tests** in `tests/test_web.py`: under 90 days → the message and no chart; 120 days of data → two `<svg>` line charts containing the series labels; the breakdown follows the custom range when given, else the chosen month; the capex row matches `capex_book_value` at the period end.
+
+**Done when** `pytest`, `ruff check` and `ruff format --check` pass and the dashboard works in the browser on a DB with `airbnb_.csv` imported (`airbnb-books --db /tmp/x.db --no-browser`, checked with `curl`, stopped by PID).', '2026-10-23T19:48:11Z', NULL, 42, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (45, 9, 'Dashboard: metrics table and period form', 'work', 'open', 410, NULL, 'Part of `plan 9: dashboard and charts` (read its Layout section; layout per `decision 18: dashboard layout: which periods are shown and which period the cost breakdown uses`). Replaces the placeholder route `/` from `task 36: Web frame: layout, form helpers, app on a real DB`. The page only calls `recurring.load_days`, `metrics` and `repo`, never SQL.
+
+**What**
+- `today`: `date.today()` in the route, overridable through the app config in tests; passed to `load_days` and `metrics`.
+- Period form (one GET form at the top): month input (`?month=YYYY-MM`, default last month), from/to date inputs (`?from=…&to=…`), Apply, Reset link. Invalid input (bad date, from > to) → that column left out and one message, status 200, never a 500.
+- Metrics table, one column per period: all-time, last 90 days, last 30 days, this month, chosen month, custom (only when set). Headers show the period''s dates.
+- Rows: available nights, occupied nights, occupancy %, ADR, RevPAR, income, total cost, profit, variable cost per night, break-even occupancy %, long-term rental benchmark, profit vs. long-term rental, hours, profit per hour, profit after own time. (The capex book value row comes in `task 44: Dashboard: rolling chart and expense breakdown`.)
+- Formatting: money with the `web/forms.py` formatter (thousands dots, "COP" in the header, not per cell); ratios `57.3 %` (one decimal, break-even above 100 % shown as is); hours one decimal; `None` as a dash (`decision 10: a figure that cannot be computed is shown as empty, not as zero`); negative profit with minus sign and red text.
+- Notices above everything: "N bookings need an exchange rate" linking to the rates screen (`task 40: Settings and exchange-rate screens`); an empty DB shows "nothing here yet: import the Airbnb CSV or add a booking" with links instead of the table.
+
+**Tests** in `tests/test_web.py`, temp DB with a booking, a fixed expense and a time entry (hand-checked numbers): all standard columns present; `?month=` and `?from/to` add/change columns; invalid custom range → message and 200; a booking with a USD line without a rate → the notice; empty DB → empty state; None shown as a dash.
+
+**Done when** `pytest`, `ruff check` and `ruff format --check` pass and `/` renders in the browser (`airbnb-books --db /tmp/x.db --no-browser`, checked with `curl`, stopped by PID).', '2026-10-23T19:48:24Z', NULL, 42, 0, NULL, 'main');
 
 INSERT INTO decision (id, subject, status, options, body, intro, answer, reason, created_at, closed_at, created_by_task, signoff, kind, decided_by_task, consequences) VALUES (1, 'Sign off the masterplan of milestone 1: first version build', 'answered', '["approve"]', '', 'This is the overall roadmap for building the first working version of a small, private bookkeeping app for one Airbnb apartment. The app turns every booking and every cost into amounts per calendar day, so it can answer whether hosting pays off, whether prices are set well, and how things are trending. The roadmap splits the build into parts, starting with a short architecture document the owner approves before anything else is built, and ending with a check against the real Airbnb export.
 
@@ -1004,7 +1046,9 @@ INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, b
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (17, 9, '2026-10-23T19:44:57Z', '2026-10-23T19:46:45Z', 'done', NULL, 0, '0d7c14b00e7235476057dea7716f6ac435e04a83', 'main', 'claude-opus-5-5', '3bf62a14-25f5-4b7f-8e82-1f53f2650eea', NULL, 8, 16, 8840, 322352, 45798, 0.6077184000000001, 58377, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (18, 30, '2026-10-23T19:45:10Z', '2026-10-23T19:45:27Z', 'done', NULL, 0, 'a464701117b5d7059b03c81d06513ea37c81384d', NULL, 'claude-opus-5-5', 'fb2fc270-84a3-452e-b977-298ffb385526', NULL, 4, 8, 717, 113661, 28172, 0.2624802, 40268, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (19, 35, '2026-10-23T19:46:36Z', '2026-10-23T19:47:31Z', 'done', NULL, 0, 'a8fa68692dc46c04958671f49c502ab49c9ee357', NULL, 'claude-opus-5-5', '871c309e-4819-4b09-914a-7751cc7d2271', NULL, 10, 20, 5831, 345005, 32128, 0.44272499999999992, 44391, 60, 1465683);
-INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (20, 10, '2026-10-23T19:46:45Z', NULL, 'running', NULL, NULL, 'a8fa68692dc46c04958671f49c502ab49c9ee357', 'main', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (20, 10, '2026-10-23T19:46:45Z', '2026-10-23T19:47:55Z', 'done', NULL, 0, 'a8fa68692dc46c04958671f49c502ab49c9ee357', 'main', 'claude-opus-5-5', 'b680badb-d1d7-4dfb-86b9-824d30f2f5f9', NULL, 10, 20, 4693, 405832, 41885, 0.5101864, 54385, 60, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (21, 42, '2026-10-23T19:47:43Z', '2026-10-23T19:48:33Z', 'done', NULL, 0, '0acf1aed2824d3f41eb0046b0a673c0fd6f12c47', NULL, 'claude-opus-5-5', 'a324808b-955c-4092-a048-bdd5c400e144', NULL, 9, 18, 5472, 292183, 29225, 0.4017486, 41517, 60, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (22, 11, '2026-10-23T19:47:55Z', NULL, 'running', NULL, NULL, '0acf1aed2824d3f41eb0046b0a673c0fd6f12c47', 'main', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1465683);
 
 INSERT INTO task_decision (task_id, decision_id) VALUES (2, 1);
 INSERT INTO task_decision (task_id, decision_id) VALUES (4, 2);
@@ -1053,3 +1097,11 @@ INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (40, 36);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (41, 32);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (41, 34);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (41, 36);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (43, 17);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (44, 28);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (44, 45);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (45, 26);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (45, 27);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (45, 36);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (45, 40);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (45, 43);
