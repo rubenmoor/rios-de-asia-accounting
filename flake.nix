@@ -14,13 +14,33 @@
     let
       systems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" ];
       forAll = f: nixpkgs.lib.genAttrs systems (system: f system nixpkgs.legacyPackages.${system});
+      # the React app, built offline from frontend/package-lock.json
+      frontendFor = pkgs: extra: pkgs.buildNpmPackage ({
+        pname = "rios-de-asia-accounting-frontend";
+        version = "0.1.0";
+        src = ./frontend;
+        npmDeps = pkgs.importNpmLock { npmRoot = ./frontend; };
+        npmConfigHook = pkgs.importNpmLock.npmConfigHook;
+      } // extra);
     in {
       packages = forAll (system: pkgs: {
+        # vite.config.ts builds into the Python package; here it goes to dist instead
+        frontend = frontendFor pkgs {
+          npmBuildScript = "build";
+          npmBuildFlags = [ "--" "--outDir" "dist" "--emptyOutDir" ];
+          installPhase = "cp -r dist $out";
+        };
         default = pkgs.python3Packages.buildPythonApplication {
           pname = "rios-de-asia-accounting";
           version = "0.1.0";
           pyproject = true;
           src = ./.;
+          preBuild = ''
+            mkdir -p src/rios_de_asia_accounting/web/dist
+            cp -r --no-preserve=mode ${self.packages.${system}.frontend}/. src/rios_de_asia_accounting/web/dist/
+          '';
+          # the tests assume no bundle (an unknown page is a plain 404): drop it once the wheel is built
+          postBuild = "rm -rf src/rios_de_asia_accounting/web/dist";
           build-system = [ pkgs.python3Packages.setuptools ];
           dependencies = with pkgs.python3Packages; [ flask jinja2 waitress ];
           nativeCheckInputs = [ pkgs.python3Packages.pytestCheckHook ];
@@ -69,6 +89,21 @@
           assert ok;
           pkgs.runCommand "rios-de-asia-accounting-backup-module" { } "touch $out";
         default = self.packages.${system}.default;
+        frontend-lint = frontendFor pkgs {
+          pname = "rios-de-asia-accounting-frontend-lint";
+          dontNpmBuild = true;
+          doCheck = true;
+          # npm's prebuilt native binaries (biome, tsc) need the dynamic loader of Nix
+          nativeBuildInputs = [ pkgs.autoPatchelfHook ];
+          buildInputs = [ pkgs.stdenv.cc.cc.lib ];
+          checkPhase = ''
+            autoPatchelf node_modules
+            npx biome check
+            npx tsc --noEmit
+            npx vitest run
+          '';
+          installPhase = "touch $out";
+        };
         lint = pkgs.runCommand "rios-de-asia-accounting-lint" { nativeBuildInputs = [ pkgs.ruff ]; } ''
           cd ${./.}
           export RUFF_CACHE_DIR=$TMPDIR/ruff
