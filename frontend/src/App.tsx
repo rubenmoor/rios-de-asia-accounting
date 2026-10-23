@@ -1,10 +1,12 @@
 import { useMutation } from "@tanstack/react-query";
 import { NavLink, Route, Routes } from "react-router";
 import { api } from "./api";
+import { Notices, NoticesProvider } from "./components/Notices";
 import { NAV } from "./nav";
 import { NotFound } from "./pages/NotFound";
 import { Placeholder } from "./pages/Placeholder";
 import { Stopped } from "./pages/Stopped";
+import { TimeEdit, TimeList, TimeNew } from "./pages/Time";
 
 export function App() {
   const quit = useMutation({ mutationFn: () => api("POST", "/api/quit") });
@@ -12,13 +14,16 @@ export function App() {
   if (quit.isSuccess) return <Stopped />;
 
   return (
-    <>
+    <NoticesProvider>
       <header className="navbar bg-base-200 gap-2">
         <NavLink to="/" className="btn btn-ghost text-lg">
           rios-de-asia-accounting
         </NavLink>
         <ul className="menu menu-horizontal flex-1 gap-1">
-          {NAV.map((entry) => (
+          <Route path="/time" element={<TimeList />} />
+          <Route path="/time/new" element={<TimeNew />} />
+          <Route path="/time/:id/edit" element={<TimeEdit />} />
+          {NAV.filter((entry) => entry.path !== "/time").map((entry) => (
             <li key={entry.path}>
               <NavLink
                 to={entry.path}
@@ -44,9 +49,13 @@ export function App() {
             {quit.error.message}
           </div>
         )}
+        <Notices />
         <Routes>
           <Route path="/" element={<Placeholder title="Dashboard" />} />
-          {NAV.map((entry) => (
+          <Route path="/time" element={<TimeList />} />
+          <Route path="/time/new" element={<TimeNew />} />
+          <Route path="/time/:id/edit" element={<TimeEdit />} />
+          {NAV.filter((entry) => entry.path !== "/time").map((entry) => (
             <Route
               key={entry.path}
               path={entry.path}
@@ -56,6 +65,6 @@ export function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
-    </>
+    </NoticesProvider>
   );
 }
