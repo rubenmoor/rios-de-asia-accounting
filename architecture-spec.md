@@ -175,6 +175,25 @@ Endpoints (method, path, request → response):
 
 - `POST /api/quit` — no body → `200 {"data": null, "notices": []}`; the server shuts
   down after the response.
+- `GET /api/bookings?from=&to=&listing=` — filters optional (`from`/`to` are days;
+  a bad one → `422 {"errors": {"from": …}}`) → list, newest check-in first, of
+  `{id, check_in, check_out, guest_name, listing, nights, net_payout, needs_rate}`;
+  `net_payout` is integer pesos, `null` when `needs_rate`.
+- `GET /api/bookings/<id>` — `{id, check_in, check_out, airbnb_code, listing, guest_name,
+  guests, notes, nights, imported, needs_rate, net_payout, gross, airbnb_fee,
+  cohost_cost, manual_amount, lines: [{date, type, currency, amount_minor, amount_cop}]}`;
+  totals are `null` when `needs_rate`, `amount_cop` `null` for a line without rate,
+  `manual_amount` (pesos of the Manual line) `null` for imported bookings; `imported` = has
+  Airbnb lines.
+- `GET /api/bookings/options` — `{"listings": ["…"]}`.
+- `POST /api/bookings` — `{check_in, check_out, net_payout, airbnb_code?, listing?,
+  guest_name?, guests?, notes?}` → `{data: <detail>, notices}` ("Booking saved." `info`;
+  overlap `warning`).
+- `PUT /api/bookings/<id>` — same fields; an imported booking accepts only `guests` and
+  `notes` (`decision 17: bookings from the Airbnb import: dates, listing and guest name are read-only in the edit form`)
+  → as `POST`.
+- `DELETE /api/bookings/<id>` — → `{data: null, notices: ["Booking deleted."]}`; blocked
+  by expenses → `422 {"errors": {"": "Booking not deleted: …. Delete its expenses first."}}`.
 
 ## 4. Tests
 
