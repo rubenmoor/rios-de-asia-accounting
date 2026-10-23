@@ -1,0 +1,5 @@
+# direnv cache
+.direnv/
+# nix build outputs
+result
+result-*
