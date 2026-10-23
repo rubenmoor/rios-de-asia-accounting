@@ -1,5 +1,7 @@
 """The dashboard on `/`: one metrics table with a column per period."""
 
+from collections.abc import Mapping
+from dataclasses import dataclass, field
 from datetime import date
 
 from flask import Flask, render_template, request
@@ -90,92 +92,118 @@ def _header(rng: metrics.DateRange) -> str:
     return f"{rng.start} – {rng.end}"
 
 
-def register(app: Flask) -> None:
-    @app.route("/")
-    def index() -> str:
-        conn = get_db()
-        today = app.config.get("TODAY") or date.today()
-        messages: list[str] = []
-        args = request.args
+@dataclass
+class Dashboard:
+    """The dashboard's data before any formatting; shared by the HTML page and the JSON API."""
 
-        month = _last_month(today)
-        month_raw = args.get("month", "").strip()
-        month_ok = True
-        if month_raw:
-            try:
-                month = parse_month(month_raw)
-            except ValueError as e:
-                messages.append(str(e))
-                month_ok = False
+    messages: list[str]
+    needing: int
+    form: dict[str, str]
+    days: list = field(default_factory=list)
+    columns: list[tuple[str, metrics.DateRange]] = field(default_factory=list)
+    summaries: list = field(default_factory=list)
+    capex: list[float | None] = field(default_factory=list)
+    breakdown_range: metrics.DateRange | None = None
+    breakdown: list[tuple[str, str, int, float | None]] = field(default_factory=list)
 
-        custom = None
-        start_raw, end_raw = args.get("from", "").strip(), args.get("to", "").strip()
-        if start_raw or end_raw:
-            try:
-                if not (start_raw and end_raw):
-                    raise ValueError("enter both a from and a to date")
-                start, end = parse_date(start_raw), parse_date(end_raw)
-                if start > end:
-                    raise ValueError("the from date must not be after the to date")
-                custom = metrics.custom(start, end)
-            except ValueError as e:
-                messages.append(str(e))
+    @property
+    def empty(self) -> bool:
+        return not self.days
 
-        days = load_days(conn, today)
-        needing = sum(1 for b in repo.list_bookings(conn) if b.needs_rate)
-        form = {
+
+def build_dashboard(conn, today: date, args: Mapping[str, str]) -> Dashboard:
+    """Period handling (month, custom range, messages) and the figures for every column."""
+    messages: list[str] = []
+    month = _last_month(today)
+    month_raw = args.get("month", "").strip()
+    month_ok = True
+    if month_raw:
+        try:
+            month = parse_month(month_raw)
+        except ValueError as e:
+            messages.append(str(e))
+            month_ok = False
+
+    custom = None
+    start_raw, end_raw = args.get("from", "").strip(), args.get("to", "").strip()
+    if start_raw or end_raw:
+        try:
+            if not (start_raw and end_raw):
+                raise ValueError("enter both a from and a to date")
+            start, end = parse_date(start_raw), parse_date(end_raw)
+            if start > end:
+                raise ValueError("the from date must not be after the to date")
+            custom = metrics.custom(start, end)
+        except ValueError as e:
+            messages.append(str(e))
+
+    days = load_days(conn, today)
+    result = Dashboard(
+        messages=messages,
+        needing=sum(1 for b in repo.list_bookings(conn) if b.needs_rate),
+        form={
             "month": month.strftime("%Y-%m") if month_ok else month_raw,
             "from": start_raw,
             "to": end_raw,
-        }
-        page = {"messages": messages, "needing": needing, "form": form}
-        if not days:
-            return render_template("index.html", empty=True, **page)
+        },
+    )
+    if not days:
+        return result
+    settings = repo.load_settings(conn)
+    ranges = metrics.standard_ranges(today, days[0].date)
+    columns = [
+        ("All time", ranges["all_time"]),
+        ("Last 90 days", ranges["last_90"]),
+        ("Last 30 days", ranges["last_30"]),
+        ("This month", ranges["this_month"]),
+    ]
+    if month_ok:
+        columns.append((f"Month {month:%Y-%m}", metrics.month_range(month.year, month.month)))
+    if custom:
+        columns.append(("Custom", custom))
+    expenses = repo.list_expenses(conn)
+    result.days = days
+    result.columns = columns
+    result.summaries = [metrics.summarize(days, rng, settings) for _, rng in columns]
+    result.capex = [metrics.capex_book_value(expenses, rng.end) for _, rng in columns]
+    result.breakdown_range = custom or metrics.month_range(month.year, month.month)
+    result.breakdown = [
+        (column, COST_LABELS[column], amount, share)
+        for column, amount, share in metrics.expense_breakdown(days, result.breakdown_range)
+    ]
+    return result
 
-        settings = repo.load_settings(conn)
-        ranges = metrics.standard_ranges(today, days[0].date)
-        columns = [
-            ("All time", ranges["all_time"]),
-            ("Last 90 days", ranges["last_90"]),
-            ("Last 30 days", ranges["last_30"]),
-            ("This month", ranges["this_month"]),
-        ]
-        if month_ok:
-            columns.append((f"Month {month:%Y-%m}", metrics.month_range(month.year, month.month)))
-        if custom:
-            columns.append(("Custom", custom))
-        summaries = [metrics.summarize(days, rng, settings) for _, rng in columns]
+
+def register(app: Flask) -> None:
+    @app.route("/")
+    def index() -> str:
+        today = app.config.get("TODAY") or date.today()
+        data = build_dashboard(get_db(), today, request.args)
+        page = {"messages": data.messages, "needing": data.needing, "form": data.form}
+        if data.empty:
+            return render_template("index.html", empty=True, **page)
         rows = [
-            (label, [_cell(getattr(m, attr), kind) for m in summaries])
+            (label, [_cell(getattr(m, attr), kind) for m in data.summaries])
             for label, attr, kind in ROWS
         ]
-        expenses = repo.list_expenses(conn)
-        capex = [
-            (_cell(metrics.capex_book_value(expenses, rng.end), "money")) for _, rng in columns
-        ]
-        rows.append(("Remaining capex book value", capex))
-        rolling, has_history = _rolling_charts(days)
-        breakdown_rng = custom or metrics.month_range(month.year, month.month)
-        breakdown = [
-            (COST_LABELS[column], amount, share)
-            for column, amount, share in metrics.expense_breakdown(days, breakdown_rng)
-        ]
+        rows.append(("Remaining capex book value", [_cell(v, "money") for v in data.capex]))
+        rolling, has_history = _rolling_charts(data.days)
+        breakdown = [(label, amount, share) for _, label, amount, share in data.breakdown]
         bars = None
         if any(amount for _, amount, _ in breakdown):
             bars = charts.bar_chart(
                 [(label, amount) for label, amount, _ in breakdown],
                 value_format=lambda v: format_money(round(v)),
             )
-        heads = [(label, _header(rng)) for label, rng in columns]
         return render_template(
             "index.html",
             empty=False,
-            heads=heads,
+            heads=[(label, _header(rng)) for label, rng in data.columns],
             rows=rows,
             rolling=rolling,
             has_history=has_history,
             breakdown=breakdown,
-            breakdown_head=_header(breakdown_rng),
+            breakdown_head=_header(data.breakdown_range),
             bars=bars,
             **page,
         )
