@@ -22,6 +22,44 @@ def _inside_bookings(conn, days: list[date]) -> list[date]:
     return [d for d in days if any(b.check_in <= d < b.check_out for b in bookings)]
 
 
+def read_range(form: Form) -> None:
+    """Parse the posted day range, reason and note of a "block days" request."""
+    first = form.day("from", required=True)
+    last = form.day("to", required=True)
+    form.choice("reason", REASONS)
+    form.text("note")
+    if first and last:
+        if last < first:
+            form.error("to", "the last day must not be before the first day")
+        elif (last - first).days >= MAX_RANGE_DAYS:
+            form.error("to", f"at most {MAX_RANGE_DAYS} days at once")
+
+
+def block_range(conn, form: Form) -> list[tuple[str, str]]:
+    """Block the days of a valid range form; returns the (level, text) messages."""
+    first, last = form.values["from"], form.values["to"]
+    days = [first + timedelta(days=i) for i in range((last - first).days + 1)]
+    taken = {b.date for b in repo.list_blocked_days(conn, first, last + timedelta(days=1))}
+    fresh = [d for d in days if d not in taken]
+    for day in fresh:
+        repo.set_blocked_day(conn, BlockedDay(day, form.values["reason"], form.values["note"]))
+    message = f"{len(fresh)} day(s) blocked"
+    if taken:
+        message += f"; {len(taken)} already blocked and skipped"
+    messages = [("info", message + ".")]
+    booked = _inside_bookings(conn, fresh)
+    if booked:
+        messages.append(
+            (
+                "warning",
+                f"{len(booked)} blocked day(s) fall inside a booking: "
+                + ", ".join(str(d) for d in booked[:10])
+                + (" …" if len(booked) > 10 else ""),
+            )
+        )
+    return messages
+
+
 def register(app: Flask) -> None:
     def blocked() -> str:
         conn = get_db()
@@ -40,36 +78,13 @@ def register(app: Flask) -> None:
                 "blocked_new.html", reasons=REASONS, form=Form(), title="Block days"
             )
         form = Form(request.form)
-        first = form.day("from", required=True)
-        last = form.day("to", required=True)
-        reason = form.choice("reason", REASONS)
-        note = form.text("note")
-        if first and last:
-            if last < first:
-                form.error("to", "the last day must not be before the first day")
-            elif (last - first).days >= MAX_RANGE_DAYS:
-                form.error("to", f"at most {MAX_RANGE_DAYS} days at once")
+        read_range(form)
         if not form.ok:
             return render_template(
                 "blocked_new.html", reasons=REASONS, form=form, title="Block days"
             )
-        days = [first + timedelta(days=i) for i in range((last - first).days + 1)]
-        taken = {b.date for b in repo.list_blocked_days(conn, first, last + timedelta(days=1))}
-        fresh = [d for d in days if d not in taken]
-        for day in fresh:
-            repo.set_blocked_day(conn, BlockedDay(day, reason, note))
-        message = f"{len(fresh)} day(s) blocked"
-        if taken:
-            message += f"; {len(taken)} already blocked and skipped"
-        flash(message + ".")
-        booked = _inside_bookings(conn, fresh)
-        if booked:
-            flash(
-                f"{len(booked)} blocked day(s) fall inside a booking: "
-                + ", ".join(str(d) for d in booked[:10])
-                + (" …" if len(booked) > 10 else ""),
-                "warning",
-            )
+        for level, text in block_range(conn, form):
+            flash(text, level)
         return redirect(url_for("blocked"))
 
     def blocked_edit(day: str) -> str | Response:
