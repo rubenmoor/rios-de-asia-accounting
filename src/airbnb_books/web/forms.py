@@ -93,10 +93,17 @@ class Form:
     empty or invalid field; `raw` keeps what was typed so the form can be re-shown.
     """
 
-    def __init__(self, data: Mapping[str, str] | None = None) -> None:
+    def __init__(
+        self, data: Mapping[str, str] | None = None, lists: Mapping[str, list[str]] | None = None
+    ) -> None:
         self.raw: dict[str, str] = dict(data or {})
+        self.lists: dict[str, list[str]] = {k: list(v) for k, v in (lists or {}).items()}
         self.values: dict[str, Any] = {}
         self.errors: dict[str, str] = {}
+
+    def raw_list(self, field: str) -> list[str]:
+        """Repeated values of a multi-value field (checkboxes), blanks dropped."""
+        return [v.strip() for v in self.lists.get(field, []) if v.strip()]
 
     def error(self, field: str, message: str) -> None:
         self.errors.setdefault(field, message)
