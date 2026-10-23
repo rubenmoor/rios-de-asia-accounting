@@ -1,0 +1,62 @@
+import type { ReactNode } from "react";
+
+type InputProps = {
+  name: string;
+  value: string;
+  onChange: (value: string) => void;
+};
+
+// Text inputs only: what was typed goes to the server as is (no client parsing).
+function TextInput({
+  name,
+  value,
+  onChange,
+  inputMode,
+  type = "text",
+  className = "",
+}: InputProps & {
+  inputMode?: "numeric" | "decimal";
+  type?: "text" | "date";
+  className?: string;
+}) {
+  return (
+    <input
+      className={`input ${className}`}
+      type={type}
+      name={name}
+      value={value}
+      inputMode={inputMode}
+      onChange={(e) => onChange(e.target.value)}
+    />
+  );
+}
+
+export const MoneyInput = (p: InputProps) => (
+  <TextInput {...p} inputMode="numeric" />
+);
+export const HoursInput = (p: InputProps) => <TextInput {...p} />;
+export const RateInput = (p: InputProps) => (
+  <TextInput {...p} inputMode="decimal" />
+);
+export const DateInput = (p: InputProps) => <TextInput {...p} type="date" />;
+export const TextField = (p: InputProps & { className?: string }) => (
+  <TextInput {...p} />
+);
+
+export function Select({
+  name,
+  value,
+  onChange,
+  children,
+}: InputProps & { children: ReactNode }) {
+  return (
+    <select
+      className="select"
+      name={name}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    >
+      {children}
+    </select>
+  );
+}
