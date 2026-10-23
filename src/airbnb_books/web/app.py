@@ -54,12 +54,6 @@ def create_app(db_path: str | Path, shutdown: Callable[[], None] | None = None) 
         active = next((e for e, url, _ in NAV if request.path.startswith(url)), None)
         return {"nav": NAV, "active": active}
 
-    def register_stub(endpoint: str, url: str, title: str) -> None:
-        def view() -> str:
-            return render_template("stub.html", title=title)
-
-        app.add_url_rule(url, endpoint, view)
-
     @app.post("/quit")
     def quit_app():
         response = app.make_response(render_template("stopped.html"))
@@ -74,8 +68,5 @@ def create_app(db_path: str | Path, shutdown: Callable[[], None] | None = None) 
     timelog.register(app)
     settings.register(app)
     importing.register(app)
-    for endpoint, url, title in NAV:
-        if endpoint not in app.view_functions:
-            register_stub(endpoint, url, title)
 
     return app
