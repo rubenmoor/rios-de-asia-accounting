@@ -46,6 +46,19 @@ rios-de-asia-accounting --no-browser --port 8080
 Press **Quit** in the page header (or Ctrl-C in the terminal) to stop it. A backup is taken when it
 stops.
 
+## Develop
+
+The screens are a React app in `frontend/` that talks to the JSON API under `/api`. Two terminals:
+
+```sh
+rios-de-asia-accounting --no-browser --port 8080     # terminal 1: the server
+cd frontend && npm install && npm run dev            # terminal 2: http://localhost:5173
+```
+
+The dev server proxies `/api` to the server on port 8080. `npm run build` writes the bundle to
+`src/rios_de_asia_accounting/web/dist/`; the Flask server then serves it itself, at every path it
+has no page for. Checks: `npm run typecheck`, `npm run lint`, `npm test`.
+
 ## Import the Airbnb CSV
 
 1. On airbnb.com open your Transaction history (under Earnings), choose all dates and download
