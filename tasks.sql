@@ -1508,7 +1508,7 @@ task''s result (in this plan or another, in any work tree) requires it: `pm task
 `pm task requires <task id> <prerequisite id>` for an existing one; priority is only a hint and orders nothing across
 work trees. When you drop an open task that others require and add one in its place, drop it with
 `--replaced-by <new task id>`.', '2026-10-23T22:44:30Z', '2026-10-23T22:45:19Z', 64, 0, NULL, NULL);
-INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (70, 13, 'JSON API foundation: /api blueprint, helpers, JSON errors, quit', 'work', 'open', NULL, NULL, 'First step of `plan 13: JSON API`; fixes the conventions every other API task uses (read the plan''s "Conventions" section, it is binding).
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (70, 13, 'JSON API foundation: /api blueprint, helpers, JSON errors, quit', 'work', 'done', NULL, '2026-10-23, web/api/{__init__,common,system}.py, web/app.py, architecture-spec.md, tests/test_api_foundation.py', 'First step of `plan 13: JSON API`; fixes the conventions every other API task uses (read the plan''s "Conventions" section, it is binding).
 
 What:
 - New package `src/rios_de_asia_accounting/web/api/` with one Flask blueprint at `/api`, registered in `create_app` (`web/app.py`).
@@ -1523,7 +1523,7 @@ What:
 - A "JSON API" section in `architecture-spec.md`: the conventions from the plan (input, output values, reads, writes, notices, errors) and the first endpoint line (`POST /api/quit`). Later tasks add one line per endpoint (method, path, request, response).
 - One test file `tests/test_api_foundation.py`: 404 JSON shape under `/api` and a cross-origin PUT/DELETE → 403. Sparse (AGENTS.md).
 
-Done when: the blueprint and helpers exist, HTML pages unchanged, `pytest`, `ruff check src tests`, `ruff format --check src tests` green.', '2026-10-23T22:44:54Z', NULL, 69, 0, NULL, 'main');
+Done when: the blueprint and helpers exist, HTML pages unchanged, `pytest`, `ruff check src tests`, `ruff format --check src tests` green.', '2026-10-23T22:44:54Z', '2026-10-23T22:53:57Z', 69, 0, NULL, 'main');
 INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (71, 13, 'JSON API: bookings', 'work', 'open', NULL, NULL, 'Part of `plan 13: JSON API`: bookings under `/api`, module `web/api/bookings.py`, next to `web/bookings.py`.
 
 - `GET /api/bookings?from=&to=&listing=`: list with today''s filters, money as integer pesos, `null` where a total cannot be computed (`decision 10: a figure that cannot be computed is shown as empty, not as zero`).
@@ -1932,6 +1932,7 @@ INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, b
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (71, 94, '2026-10-23T22:51:23Z', '2026-10-23T22:52:35Z', 'done', NULL, 0, 'a7c0f2b322431a1f436f4af0c7738dc83068f5fe', NULL, 'claude-opus-5-5', '79f4b6a7-0dfb-4548-91f9-885df33b913c', NULL, 11, 22, 6830, 401954, 34360, 0.49195880000000003, 46720, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (72, 79, '2026-10-23T22:51:37Z', '2026-10-23T22:52:11Z', 'done', NULL, 0, 'a7c0f2b322431a1f436f4af0c7738dc83068f5fe', 'main', 'claude-sonnet-5-5', 'b8654fde-9001-40ac-b4b0-185849fef2c5', NULL, 5, 10, 4424, 128141, 38696, 0.2118581, 39287, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (73, 80, '2026-10-23T22:52:11Z', '2026-10-23T22:53:17Z', 'done', NULL, 0, '1947d8645de1c70eac18e5c157e1c54e809f0a84', 'main', 'claude-sonnet-5-5', 'b8654fde-9001-40ac-b4b0-185849fef2c5', 72, 8, 16, 5238, 384468, 15146, 0.36330089999999987, 54459, 60, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (74, 70, '2026-10-23T22:53:17Z', '2026-10-23T22:54:02Z', 'done', NULL, 0, 'c8f2451439ce9837971f5169319bcd25cb59d5d4', 'main', 'claude-sonnet-5-5', '06d358ad-a487-42fa-8af5-be4999790291', NULL, 10, 20, 5043, 324865, 27869, 0.19443249999999998, 40306, 60, 1465683);
 
 INSERT INTO task_decision (task_id, decision_id) VALUES (2, 1);
 INSERT INTO task_decision (task_id, decision_id) VALUES (4, 2);
