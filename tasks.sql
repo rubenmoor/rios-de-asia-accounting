@@ -830,7 +830,7 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 - Each test also checks that each column sums (with `today` after the full span) to the input total.
 
 **Done when** `pytest`, `ruff check` and `ruff format --check` pass.', '2026-10-23T19:42:51Z', '2026-10-23T20:01:06Z', 16, 0, 'opus', 'main');
-INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (26, 5, 'Recurring expense generation and load_days entry point', 'work', 'open', NULL, NULL, 'Last step of `plan 5: daily allocation engine`: monthly expenses from recurring templates, and the single call the metrics and web layers use. Binding: `decision 9: monthly expenses generated from templates are dated the 1st and come back if deleted`.
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (26, 5, 'Recurring expense generation and load_days entry point', 'work', 'done', NULL, '2026-10-23, src/airbnb_books/recurring.py, cli.py, tests/test_recurring.py', 'Last step of `plan 5: daily allocation engine`: monthly expenses from recurring templates, and the single call the metrics and web layers use. Binding: `decision 9: monthly expenses generated from templates are dated the 1st and come back if deleted`.
 
 **What**
 - `recurring.py`:
@@ -844,7 +844,7 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 - `generate_recurring` twice creates rows once; an edited generated row is kept; a deleted one is recreated.
 - `load_days` on a small temp DB (a booking, a recurring fixed cost, a capex) gives hand-checked totals.
 
-**Done when** `pytest`, `ruff check` and `ruff format --check` pass.', '2026-10-23T19:42:51Z', NULL, 16, 0, NULL, 'main');
+**Done when** `pytest`, `ruff check` and `ruff format --check` pass.', '2026-10-23T19:42:51Z', '2026-10-23T20:02:05Z', 16, 0, NULL, 'main');
 INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (27, 6, 'Metrics: date ranges and per-range summary', 'work', 'open', NULL, NULL, 'Part of `plan 6: metrics`; read the plan''s "Rules" section, it is the spec for this task.
 
 - Builds on `task 24: Day model, split helper and income/occupancy allocation` (`Day`, `split`); `Day` objects are built by hand in tests, so the cost rules of `task 25` are not needed.
@@ -1164,6 +1164,7 @@ INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, b
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (32, 33, '2026-10-23T19:57:36Z', '2026-10-23T19:58:13Z', 'done', NULL, 0, 'a3391ef94edad483321b0f4a24bce9d143879f05', 'main', 'claude-sonnet-5-5', '3de9937b-e624-47c2-bb03-a53cbc801ac0', NULL, 8, 16, 3756, 250401, 27352, 0.17204010000000003, 39742, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (33, 24, '2026-10-23T19:58:43Z', '2026-10-23T19:59:57Z', 'done', NULL, 0, '3415ed77e928a722ce54a134e837e83ed2518b9d', 'main', 'claude-opus-5-5', 'ef561f6e-2bb8-4e5e-a1dc-21b94acc45ad', NULL, 8, 16, 6048, 260898, 30305, 0.4156436, 42757, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (34, 25, '2026-10-23T19:59:57Z', '2026-10-23T20:01:15Z', 'done', NULL, 0, 'f240dc736b62bbec0b90631fefa30f4ae5231169', 'main', 'claude-opus-5-5', 'ef561f6e-2bb8-4e5e-a1dc-21b94acc45ad', 33, 8, 16, 6801, 413004, 15943, 0.7618724, 58119, 60, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (35, 26, '2026-10-23T20:01:15Z', '2026-10-23T20:02:09Z', 'done', NULL, 0, 'a5fb21139682c2ff1395ad4c21725cce4de100a4', 'main', 'claude-sonnet-5-5', '47c1893f-0e46-48ea-828a-cebebeae2ac9', NULL, 9, 18, 4154, 296711, 28518, 0.18531910000000001, 40774, 60, 1465683);
 
 INSERT INTO task_decision (task_id, decision_id) VALUES (2, 1);
 INSERT INTO task_decision (task_id, decision_id) VALUES (4, 2);
