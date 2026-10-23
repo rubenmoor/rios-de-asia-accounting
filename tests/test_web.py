@@ -1,4 +1,8 @@
+import io
+import re
+import tempfile
 from datetime import date
+from pathlib import Path
 
 import pytest
 
@@ -521,3 +525,68 @@ def test_rates_validation(client, db_path):
     assert b"up to 2 decimals" in client.post("/rates/new", data={**base, "rate": "4000.123"}).data
     assert b"required" in client.post("/rates/new", data={**base, "date": ""}).data
     assert repo.list_exchange_rates(_db(db_path)) == []
+
+
+FIXTURES = Path(__file__).parent / "fixtures"
+
+
+def _upload(client, name, url="/import/airbnb", **extra):
+    data = {"file": (io.BytesIO((FIXTURES / name).read_bytes()), name), **extra}
+    return client.post(url, data=data, content_type="multipart/form-data")
+
+
+def _token(page: bytes) -> str:
+    return re.search(rb'name="token" value="([0-9a-f]{32})"', page).group(1).decode()
+
+
+def _kept_files(token):
+    return list(Path(tempfile.gettempdir()).glob(f"airbnb-books-uploads/{token}.csv"))
+
+
+def test_import_asks_for_listings_then_applies(client, db_path):
+    assert client.get("/import").status_code == 200
+    page = _upload(client, "airbnb_sample.csv").data
+    assert b"No listings of this property are chosen" in page
+    assert b"Master bedroom in beautiful neighbourhood" in page
+    assert repo.list_bookings(_db(db_path)) == []
+    token = _token(page)
+    assert _kept_files(token)
+    # nothing chosen: asked again, file kept
+    assert (
+        b"choose at least one listing"
+        in client.post("/import/airbnb/apply", data={"token": token}).data
+    )
+    assert _kept_files(token)
+    done = client.post(
+        "/import/airbnb/apply",
+        data={"token": token, "listings": ["Master bedroom in beautiful neighbourhood"]},
+    ).data
+    assert b"Import done" in done
+    conn = _db(db_path)
+    assert len(repo.list_bookings(conn)) == 2
+    assert repo.load_settings(conn).property_listings == [
+        "Master bedroom in beautiful neighbourhood"
+    ]
+    assert not _kept_files(token)
+    # gone after apply
+    assert b"file is gone" in client.post("/import/airbnb/apply", data={"token": token}).data
+    # same file again: listings known, nothing new
+    page = _upload(client, "airbnb_sample.csv").data
+    assert b"0 new booking(s)" in page and b"0 updated booking(s)" in page
+    client.post("/import/airbnb/cancel", data={"token": _token(page)})
+    assert not _kept_files(_token(page))
+
+
+def test_import_bad_token_and_broken_file(client):
+    assert client.post("/import/airbnb/apply", data={"token": "../../etc/x"}).status_code == 404
+    data = {"file": (io.BytesIO(b"a,b\n1,2\n"), "x.csv")}
+    page = client.post("/import/airbnb", data=data, content_type="multipart/form-data").data
+    assert b'class="error"' in page and b"Import preview" not in page
+    assert b"choose the Airbnb CSV file" in client.post("/import/airbnb").data
+
+
+def test_import_rates_file(client, db_path):
+    page = _upload(client, "trm_sample.csv", "/import/rates", currency="usd").data
+    assert b"USD rates:" in page and b"added" in page
+    assert repo.list_exchange_rates(_db(db_path))
+    assert b"3-letter" in _upload(client, "trm_sample.csv", "/import/rates", currency="x").data
