@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Time · rios-de-asia-accounting{% endblock %}
+{% block content %}
+<h1>Time</h1>
+<form method="get">
+  <label>From <input type="date" name="from" value="{{ form.raw.get('from', '') }}"></label>
+  <label>To <input type="date" name="to" value="{{ form.raw.get('to', '') }}"></label>
+  {% for message in form.errors.values() %}<div class="error">{{ message }}</div>{% endfor %}
+  <button>Filter</button>
+  <a class="button" href="{{ url_for('time_new') }}">New time entry</a>
+</form>
+<table>
+  <tr><th>Date</th><th>Description</th><th class="num">Hours</th></tr>
+  {% for e in entries %}
+  <tr>
+    <td><a href="{{ url_for('time_edit', entry_id=e.id) }}">{{ e.date }}</a></td>
+    <td>{{ e.description or '' }}</td>
+    <td class="num">{{ e.minutes | hours }} h</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="3">No time entries.</td></tr>
+  {% endfor %}
+  <tr><th colspan="2">Total</th><th class="num">{{ total | hours }} h</th></tr>
+</table>
+{% endblock %}

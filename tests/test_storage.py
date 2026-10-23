@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from airbnb_books.config import ConfigError, resolve_backup_dir, resolve_db_path
-from airbnb_books.storage.db import connect, migrate
+from rios_de_asia_accounting.config import ConfigError, resolve_backup_dir, resolve_db_path
+from rios_de_asia_accounting.storage.db import connect, migrate
 
 
 def version(conn):
@@ -58,12 +58,12 @@ def test_hook_only_for_existing_db_with_pending(tmp_path):
 
 def test_db_path_resolution_order(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
-    monkeypatch.delenv("AIRBNB_BOOKS_DB", raising=False)
+    monkeypatch.delenv("RIOS_DE_ASIA_ACCOUNTING_DB", raising=False)
     monkeypatch.delenv("XDG_DATA_HOME", raising=False)
-    assert resolve_db_path() == tmp_path / "home/.local/share/airbnb-books/books.db"
+    assert resolve_db_path() == tmp_path / "home/.local/share/rios-de-asia-accounting/books.db"
     monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "xdg"))
-    assert resolve_db_path() == tmp_path / "xdg/airbnb-books/books.db"
-    monkeypatch.setenv("AIRBNB_BOOKS_DB", str(tmp_path / "env/b.db"))
+    assert resolve_db_path() == tmp_path / "xdg/rios-de-asia-accounting/books.db"
+    monkeypatch.setenv("RIOS_DE_ASIA_ACCOUNTING_DB", str(tmp_path / "env/b.db"))
     assert resolve_db_path() == tmp_path / "env/b.db"
     assert resolve_db_path(tmp_path / "flag/c.db") == tmp_path / "flag/c.db"
     assert (tmp_path / "flag").is_dir()
@@ -77,8 +77,8 @@ def test_dropbox_refused(tmp_path):
 
 def test_backup_dir_resolution(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path))
-    monkeypatch.delenv("AIRBNB_BOOKS_BACKUP_DIR", raising=False)
-    assert resolve_backup_dir() == tmp_path / "Dropbox/airbnb-books"
-    monkeypatch.setenv("AIRBNB_BOOKS_BACKUP_DIR", str(tmp_path / "env"))
+    monkeypatch.delenv("RIOS_DE_ASIA_ACCOUNTING_BACKUP_DIR", raising=False)
+    assert resolve_backup_dir() == tmp_path / "Dropbox/rios-de-asia-accounting"
+    monkeypatch.setenv("RIOS_DE_ASIA_ACCOUNTING_BACKUP_DIR", str(tmp_path / "env"))
     assert resolve_backup_dir() == tmp_path / "env"
     assert resolve_backup_dir(tmp_path / "flag") == tmp_path / "flag"

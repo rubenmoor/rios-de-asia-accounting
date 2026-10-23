@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · rios-de-asia-accounting{% endblock %}
+{% macro err(field) %}{% if field in form.errors %}<div class="error">{{ form.errors[field] }}</div>{% endif %}{% endmacro %}
+{% macro val(field) %}{{ form.raw.get(field, '') }}{% endmacro %}
+{% block content %}
+<h1>{{ title }}</h1>
+{% if expense and expense.recurring_expense_id %}<p class="hint">Generated from a <a href="{{ url_for('recurring_edit', item_id=expense.recurring_expense_id) }}">recurring expense</a>; your edits are kept.</p>{% endif %}
+{{ err('') }}
+<form method="post">
+  <label>Date <input type="date" name="date" value="{{ val('date') }}"></label>{{ err('date') }}
+  <label>Amount (COP) <input name="amount" value="{{ val('amount') }}" inputmode="numeric"></label>{{ err('amount') }}
+  <label>Category
+    <select name="category" id="category">
+      {% for c in categories %}<option{% if c == form.raw.get('category') %} selected{% endif %}>{{ c }}</option>{% endfor %}
+    </select>
+  </label>{{ err('category') }}
+  <div id="booking-field">
+    <label>Booking <span class="hint">only for per_booking</span>
+      <select name="booking_id">
+        <option value="">–</option>
+        {% for id, label in bookings %}<option value="{{ id }}"{% if id|string == form.raw.get('booking_id') %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </label>{{ err('booking_id') }}
+  </div>
+  <div id="life-field">
+    <label>Useful life in days <span class="hint">only for capex; 3 years ≈ 1095</span>
+      <input name="useful_life_days" value="{{ val('useful_life_days') }}" inputmode="numeric">
+    </label>{{ err('useful_life_days') }}
+  </div>
+  <label>Description <input name="description" value="{{ val('description') }}" size="50"></label>
+  <button>Save</button>
+  <a href="{{ url_for('expenses') }}">Cancel</a>
+</form>
+{% if expense %}
+<form method="post" action="{{ url_for('expense_delete', expense_id=expense.id) }}" onsubmit="return confirm('Delete this expense?')">
+  <button class="danger">Delete expense</button>
+</form>
+{% endif %}
+<script>
+  // Cosmetic only: the server ignores the fields that do not belong to the category.
+  const category = document.getElementById("category");
+  function toggle() {
+    document.getElementById("booking-field").hidden = category.value !== "per_booking";
+    document.getElementById("life-field").hidden = category.value !== "capex";
+  }
+  category.addEventListener("change", toggle);
+  toggle();
+</script>
+{% endblock %}

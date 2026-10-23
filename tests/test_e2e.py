@@ -19,9 +19,9 @@ import shutil
 from datetime import date
 from pathlib import Path
 
-from airbnb_books.cli import backup_on_exit
-from airbnb_books.storage.db import connect, migrate
-from airbnb_books.web.app import create_app
+from rios_de_asia_accounting.cli import backup_on_exit
+from rios_de_asia_accounting.storage.db import connect, migrate
+from rios_de_asia_accounting.web.app import create_app
 
 FIXTURES = Path(__file__).parent / "fixtures"
 LISTINGS = [

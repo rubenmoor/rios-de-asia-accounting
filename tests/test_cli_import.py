@@ -2,10 +2,10 @@ from pathlib import Path
 
 import pytest
 
-from airbnb_books.cli import main
-from airbnb_books.importer.airbnb_csv import parse
-from airbnb_books.storage import repo
-from airbnb_books.storage.db import connect
+from rios_de_asia_accounting.cli import main
+from rios_de_asia_accounting.importer.airbnb_csv import parse
+from rios_de_asia_accounting.storage import repo
+from rios_de_asia_accounting.storage.db import connect
 
 FIXTURE = Path(__file__).parent / "fixtures" / "airbnb_sample.csv"
 REAL = Path(__file__).parent.parent / "airbnb_.csv"

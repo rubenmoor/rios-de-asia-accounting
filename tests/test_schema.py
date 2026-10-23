@@ -2,7 +2,7 @@ import sqlite3
 
 import pytest
 
-from airbnb_books.storage.db import connect, migrate
+from rios_de_asia_accounting.storage.db import connect, migrate
 
 
 @pytest.fixture

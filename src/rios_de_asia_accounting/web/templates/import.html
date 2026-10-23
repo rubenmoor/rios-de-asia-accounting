@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Import · rios-de-asia-accounting{% endblock %}
+{% block content %}
+<h1>Import</h1>
+<h2>Airbnb earnings CSV</h2>
+<p class="hint">You see what would change before anything is written.</p>
+{% if airbnb_error %}<div class="error">{{ airbnb_error }}</div>{% endif %}
+<form method="post" action="{{ url_for('import_airbnb') }}" enctype="multipart/form-data">
+  <label>CSV file <input type="file" name="file" accept=".csv,text/csv"></label>
+  <button>Preview</button>
+</form>
+<h2>Exchange rates (TRM)</h2>
+<p class="hint">CSV from datos.gov.co with the columns VALOR and VIGENCIADESDE.</p>
+{% if rates_error %}<div class="error">{{ rates_error }}</div>{% endif %}
+<form method="post" action="{{ url_for('import_rates') }}" enctype="multipart/form-data">
+  <label>CSV file <input type="file" name="file" accept=".csv,text/csv"></label>
+  <label>Currency <input name="currency" value="{{ rates_form.raw.get('currency', 'USD') if rates_form else 'USD' }}" size="4" maxlength="3"></label>
+  <button>Load rates</button>
+</form>
+{% if rates_summary %}
+<div class="flash">
+  {{ rates_currency }} rates: {{ rates_summary.added }} added, {{ rates_summary.changed }} changed;
+  {{ rates_summary.lines_recomputed }} line(s) recomputed;
+  {{ rates_summary.needing_rate }} booking(s) still need an exchange rate.
+</div>
+{% if rates_problems %}
+<p>{{ rates_problems | length }} problem(s):</p>
+<ul>{% for p in rates_problems %}<li>line {{ p.line }}: {{ p.message }}</li>{% endfor %}</ul>
+{% endif %}
+{% endif %}
+{% endblock %}

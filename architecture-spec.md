@@ -2,14 +2,14 @@
 
 How the app described in `airbnb-bookkeeping-spec.md` is built. One recommendation
 per question; alternatives only where the choice matters. Name of the app and its
-command: **`airbnb-books`**.
+command: **`rios-de-asia-accounting`**.
 
 ## 1. Tech stack and UI
 
 - **Language:** Python 3 (the `python3` of nixpkgs). Short code, `sqlite3` in the
   standard library, every dependency already packaged in nixpkgs, easy to test.
 - **UI: a local web server on `127.0.0.1`**, opened in the normal browser.
-  `airbnb-books` starts the server on a free port and opens the browser tab;
+  `rios-de-asia-accounting` starts the server on a free port and opens the browser tab;
   Ctrl-C (or closing via a "Quit" button) stops it. Forms and tables work best in a
   browser; no GUI toolkit to package, no TUI limits for charts.
 - **Libraries:** Flask (routes), Jinja2 (HTML templates), waitress (the server).
@@ -35,15 +35,15 @@ All in the existing `flake.nix`:
   app's dependencies, pytest, ruff and `sqlite` (CLI, for poking at the DB).
 - `homeManagerModules.default` and `nixosModules.default` (same options; the NixOS
   one sets up a **systemd user** service for all users):
-  `services.airbnb-books-backup = { enable; backupDir; keep ? 30; dbPath ? <default>; onCalendar ? "daily"; }`
-  → a `airbnb-books-backup.service` running `airbnb-books backup` and a
+  `services.rios-de-asia-accounting-backup = { enable; backupDir; keep ? 30; dbPath ? <default>; onCalendar ? "daily"; }`
+  → a `rios-de-asia-accounting-backup.service` running `rios-de-asia-accounting backup` and a
   `.timer` with `Persistent = true`.
 
 ## 3. Code layout
 
 ```
 pyproject.toml
-src/airbnb_books/
+src/rios_de_asia_accounting/
   cli.py            entry point: `serve` (default), `backup`, `import <csv>`, `migrate`
   config.py         paths: DB, backup dir (env vars and flags)
   money.py          parsing amounts, currency → COP, rounding
@@ -97,11 +97,11 @@ Boundaries:
 
 ## 5. Database location and migrations
 
-- **Default path:** `$XDG_DATA_HOME/airbnb-books/books.db`
-  (`~/.local/share/airbnb-books/books.db` when unset). Never inside Dropbox.
-- **Override:** `--db <path>` or env `AIRBNB_BOOKS_DB`; tests always use a temp file.
-- **Backup dir:** `--backup-dir` or env `AIRBNB_BOOKS_BACKUP_DIR`, default
-  `~/Dropbox/airbnb-books`; keep the last 30 (`--keep`).
+- **Default path:** `$XDG_DATA_HOME/rios-de-asia-accounting/books.db`
+  (`~/.local/share/rios-de-asia-accounting/books.db` when unset). Never inside Dropbox.
+- **Override:** `--db <path>` or env `RIOS_DE_ASIA_ACCOUNTING_DB`; tests always use a temp file.
+- **Backup dir:** `--backup-dir` or env `RIOS_DE_ASIA_ACCOUNTING_BACKUP_DIR`, default
+  `~/Dropbox/rios-de-asia-accounting`; keep the last 30 (`--keep`).
 - **Backups** use SQLite's online backup API (Python's `Connection.backup`, the same
   mechanism as `sqlite3 … ".backup"`), file `books-YYYY-MM-DD.db`; a second backup on
   the same day overwrites that day's file. Run on server shutdown and by the timer.

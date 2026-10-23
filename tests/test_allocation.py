@@ -2,8 +2,14 @@ from datetime import date
 
 import pytest
 
-from airbnb_books.allocation import allocate, date_range, days_in_month, months_between, split
-from airbnb_books.model import BlockedDay, Booking, Expense, Inputs, Settings, TimeEntry
+from rios_de_asia_accounting.allocation import (
+    allocate,
+    date_range,
+    days_in_month,
+    months_between,
+    split,
+)
+from rios_de_asia_accounting.model import BlockedDay, Booking, Expense, Inputs, Settings, TimeEntry
 
 
 def d(s):

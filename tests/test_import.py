@@ -5,17 +5,17 @@ from pathlib import Path
 
 import pytest
 
-from airbnb_books.importer.airbnb_csv import (
+from rios_de_asia_accounting.importer.airbnb_csv import (
     REQUIRED_COLUMNS,
     FileError,
     apply_import,
     parse,
     plan_import,
 )
-from airbnb_books.model import ExchangeRate
-from airbnb_books.money import parse_minor
-from airbnb_books.storage import repo
-from airbnb_books.storage.db import connect, migrate
+from rios_de_asia_accounting.model import ExchangeRate
+from rios_de_asia_accounting.money import parse_minor
+from rios_de_asia_accounting.storage import repo
+from rios_de_asia_accounting.storage.db import connect, migrate
 
 FIXTURE = Path(__file__).parent / "fixtures" / "airbnb_sample.csv"
 HEADER = (

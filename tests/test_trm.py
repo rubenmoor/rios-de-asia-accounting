@@ -3,13 +3,13 @@ from pathlib import Path
 
 import pytest
 
-from airbnb_books.cli import main
-from airbnb_books.importer.airbnb_csv import FileError, apply_import, parse, plan_import
-from airbnb_books.importer.trm_csv import apply_rates
-from airbnb_books.importer.trm_csv import parse as parse_rates
-from airbnb_books.money import to_cop
-from airbnb_books.storage import repo
-from airbnb_books.storage.db import connect, migrate
+from rios_de_asia_accounting.cli import main
+from rios_de_asia_accounting.importer.airbnb_csv import FileError, apply_import, parse, plan_import
+from rios_de_asia_accounting.importer.trm_csv import apply_rates
+from rios_de_asia_accounting.importer.trm_csv import parse as parse_rates
+from rios_de_asia_accounting.money import to_cop
+from rios_de_asia_accounting.storage import repo
+from rios_de_asia_accounting.storage.db import connect, migrate
 
 HERE = Path(__file__).parent / "fixtures"
 TRM = HERE / "trm_sample.csv"

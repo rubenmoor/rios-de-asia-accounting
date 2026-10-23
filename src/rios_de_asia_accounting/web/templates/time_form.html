@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · rios-de-asia-accounting{% endblock %}
+{% macro err(field) %}{% if field in form.errors %}<div class="error">{{ form.errors[field] }}</div>{% endif %}{% endmacro %}
+{% block content %}
+<h1>{{ title }}</h1>
+{{ err('') }}
+<form method="post">
+  <label>Date <input type="date" name="date" value="{{ form.raw.get('date', '') }}"></label>{{ err('date') }}
+  <label>Hours <span class="hint">1.5, 1,5 or 1:30</span>
+    <input name="hours" value="{{ form.raw.get('hours', '') }}">
+  </label>{{ err('hours') }}
+  <label>Booking <span class="hint">optional</span>
+    <select name="booking_id">
+      <option value="">–</option>
+      {% for id, label in bookings %}<option value="{{ id }}"{% if id|string == form.raw.get('booking_id') %} selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </label>{{ err('booking_id') }}
+  <label>Description <input name="description" value="{{ form.raw.get('description', '') }}" size="50"></label>
+  <button>Save</button>
+  <a href="{{ url_for('time') }}">Cancel</a>
+</form>
+{% if entry %}
+<form method="post" action="{{ url_for('time_delete', entry_id=entry.id) }}" onsubmit="return confirm('Delete this time entry?')">
+  <button class="danger">Delete time entry</button>
+</form>
+{% endif %}
+{% endblock %}

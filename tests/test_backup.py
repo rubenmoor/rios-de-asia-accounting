@@ -2,11 +2,11 @@ from datetime import date
 
 import pytest
 
-from airbnb_books.backup import BackupError, backup, before_migrate_hook, resolve_keep
-from airbnb_books.cli import main
-from airbnb_books.model import Settings
-from airbnb_books.storage import repo
-from airbnb_books.storage.db import connect, migrate
+from rios_de_asia_accounting.backup import BackupError, backup, before_migrate_hook, resolve_keep
+from rios_de_asia_accounting.cli import main
+from rios_de_asia_accounting.model import Settings
+from rios_de_asia_accounting.storage import repo
+from rios_de_asia_accounting.storage.db import connect, migrate
 
 
 @pytest.fixture
@@ -121,7 +121,7 @@ def test_cli_backup(db, tmp_path, capsys):
 
 
 def test_quit_triggers_shutdown_after_response(db):
-    from airbnb_books.web.app import create_app
+    from rios_de_asia_accounting.web.app import create_app
 
     calls = []
     client = create_app(db, shutdown=lambda: calls.append(1)).test_client()
@@ -136,7 +136,7 @@ def test_quit_triggers_shutdown_after_response(db):
 def test_serve_backs_up_once_even_with_repeated_signals(db, tmp_path, monkeypatch):
     import signal
 
-    from airbnb_books import cli
+    from rios_de_asia_accounting import cli
 
     calls = []
     monkeypatch.setattr(cli, "backup", lambda *a: calls.append(a) or tmp_path / "x")
@@ -161,7 +161,7 @@ def test_serve_backs_up_once_even_with_repeated_signals(db, tmp_path, monkeypatc
 
 
 def test_failed_exit_backup_is_reported_not_raised(db, tmp_path, capsys):
-    from airbnb_books import cli
+    from rios_de_asia_accounting import cli
 
     blocker = tmp_path / "file"
     blocker.write_text("x")

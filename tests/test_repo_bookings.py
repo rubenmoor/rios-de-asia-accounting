@@ -2,10 +2,10 @@ from datetime import date
 
 import pytest
 
-from airbnb_books.model import Booking, BookingLine, ExchangeRate
-from airbnb_books.money import to_cop
-from airbnb_books.storage import repo
-from airbnb_books.storage.db import connect, migrate
+from rios_de_asia_accounting.model import Booking, BookingLine, ExchangeRate
+from rios_de_asia_accounting.money import to_cop
+from rios_de_asia_accounting.storage import repo
+from rios_de_asia_accounting.storage.db import connect, migrate
 
 
 @pytest.fixture

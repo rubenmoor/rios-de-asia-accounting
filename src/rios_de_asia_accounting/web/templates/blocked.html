@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Blocked days · rios-de-asia-accounting{% endblock %}
+{% block content %}
+<h1>Blocked days</h1>
+<form method="get">
+  <label>From <input type="date" name="from" value="{{ form.raw.get('from', '') }}"></label>
+  <label>To <input type="date" name="to" value="{{ form.raw.get('to', '') }}"></label>
+  {% for message in form.errors.values() %}<div class="error">{{ message }}</div>{% endfor %}
+  <button>Filter</button>
+  <a class="button" href="{{ url_for('blocked_new') }}">Block days</a>
+</form>
+<table>
+  <tr><th>Date</th><th>Reason</th><th>Note</th></tr>
+  {% for d in days %}
+  <tr>
+    <td><a href="{{ url_for('blocked_edit', day=d.date.isoformat()) }}">{{ d.date }}</a></td>
+    <td>{{ d.reason }}</td>
+    <td>{{ d.note or '' }}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="3">No blocked days.</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}

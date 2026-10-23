@@ -6,12 +6,12 @@ from pathlib import Path
 
 import pytest
 
-from airbnb_books import metrics
-from airbnb_books.model import Booking, BookingLine, Expense, Settings, TimeEntry
-from airbnb_books.storage import repo
-from airbnb_books.storage.db import connect, migrate
-from airbnb_books.web import forms
-from airbnb_books.web.app import NAV, create_app
+from rios_de_asia_accounting import metrics
+from rios_de_asia_accounting.model import Booking, BookingLine, Expense, Settings, TimeEntry
+from rios_de_asia_accounting.storage import repo
+from rios_de_asia_accounting.storage.db import connect, migrate
+from rios_de_asia_accounting.web import forms
+from rios_de_asia_accounting.web.app import NAV, create_app
 
 
 @pytest.fixture
@@ -31,7 +31,7 @@ def client(db_path):
 def test_index(client):
     response = client.get("/")
     assert response.status_code == 200
-    assert b"airbnb-books" in response.data
+    assert b"rios-de-asia-accounting" in response.data
 
 
 @pytest.mark.parametrize("url", [url for _, url, _ in NAV])
@@ -106,7 +106,7 @@ def test_form_collects_one_error_per_field():
 
 
 def test_form_apply_maps_validation_error():
-    from airbnb_books.storage.repo import ValidationError
+    from rios_de_asia_accounting.storage.repo import ValidationError
 
     def fail():
         raise ValidationError("nope")
@@ -141,7 +141,7 @@ def test_origin_check(db_path):
 
 
 def test_one_connection_per_request(db_path):
-    from airbnb_books.web.app import get_db
+    from rios_de_asia_accounting.web.app import get_db
 
     app = create_app(db_path)
     seen = []
@@ -542,7 +542,7 @@ def _token(page: bytes) -> str:
 
 
 def _kept_files(token):
-    return list(Path(tempfile.gettempdir()).glob(f"airbnb-books-uploads/{token}.csv"))
+    return list(Path(tempfile.gettempdir()).glob(f"rios-de-asia-accounting-uploads/{token}.csv"))
 
 
 def test_import_asks_for_listings_then_applies(client, db_path):

@@ -17,21 +17,21 @@
     in {
       packages = forAll (system: pkgs: {
         default = pkgs.python3Packages.buildPythonApplication {
-          pname = "airbnb-books";
+          pname = "rios-de-asia-accounting";
           version = "0.1.0";
           pyproject = true;
           src = ./.;
           build-system = [ pkgs.python3Packages.setuptools ];
           dependencies = with pkgs.python3Packages; [ flask jinja2 waitress ];
           nativeCheckInputs = [ pkgs.python3Packages.pytestCheckHook ];
-          meta.mainProgram = "airbnb-books";
+          meta.mainProgram = "rios-de-asia-accounting";
         };
       });
 
       apps = forAll (system: pkgs: {
         default = {
           type = "app";
-          program = "${self.packages.${system}.default}/bin/airbnb-books";
+          program = "${self.packages.${system}.default}/bin/rios-de-asia-accounting";
         };
       });
 
@@ -43,7 +43,7 @@
               modules = [
                 self.nixosModules.default
                 {
-                  services.airbnb-books-backup = {
+                  services.rios-de-asia-accounting-backup = {
                     enable = true;
                     backupDir = "/tmp/bk";
                     keep = 7;
@@ -56,9 +56,9 @@
                 }
               ];
             };
-            svc = os.config.systemd.user.services.airbnb-books-backup;
-            timer = os.config.systemd.user.timers.airbnb-books-backup;
-            exe = "${self.packages.${system}.default}/bin/airbnb-books";
+            svc = os.config.systemd.user.services.rios-de-asia-accounting-backup;
+            timer = os.config.systemd.user.timers.rios-de-asia-accounting-backup;
+            exe = "${self.packages.${system}.default}/bin/rios-de-asia-accounting";
             ok = svc.serviceConfig.Type == "oneshot"
               && svc.serviceConfig.ExecStart
                 == "${exe} --db /tmp/books.db backup --backup-dir /tmp/bk --keep 7"
@@ -67,9 +67,9 @@
               && timer.wantedBy == [ "timers.target" ];
           in
           assert ok;
-          pkgs.runCommand "airbnb-books-backup-module" { } "touch $out";
+          pkgs.runCommand "rios-de-asia-accounting-backup-module" { } "touch $out";
         default = self.packages.${system}.default;
-        lint = pkgs.runCommand "airbnb-books-lint" { nativeBuildInputs = [ pkgs.ruff ]; } ''
+        lint = pkgs.runCommand "rios-de-asia-accounting-lint" { nativeBuildInputs = [ pkgs.ruff ]; } ''
           cd ${./.}
           export RUFF_CACHE_DIR=$TMPDIR/ruff
           ruff check src tests

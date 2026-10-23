@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · rios-de-asia-accounting{% endblock %}
+{% macro err(field) %}{% if field in form.errors %}<div class="error">{{ form.errors[field] }}</div>{% endif %}{% endmacro %}
+{% block content %}
+<h1>{{ title }}</h1>
+{{ err('') }}
+<form method="post">
+  <label>Reason
+    <select name="reason">
+      {% for r in reasons %}<option{% if r == form.raw.get('reason') %} selected{% endif %}>{{ r }}</option>{% endfor %}
+    </select>
+  </label>{{ err('reason') }}
+  <label>Note <input name="note" value="{{ form.raw.get('note', '') }}" size="50"></label>
+  <button>Save</button>
+  <a href="{{ url_for('blocked') }}">Cancel</a>
+</form>
+<form method="post" action="{{ url_for('blocked_delete', day=item.date.isoformat()) }}" onsubmit="return confirm('Unblock this day?')">
+  <button class="danger">Delete blocked day</button>
+</form>
+{% endblock %}

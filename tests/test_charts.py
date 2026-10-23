@@ -1,7 +1,7 @@
 import xml.etree.ElementTree as ET
 from datetime import date, timedelta
 
-from airbnb_books.web.charts import bar_chart, line_chart, nice_ticks
+from rios_de_asia_accounting.web.charts import bar_chart, line_chart, nice_ticks
 
 NS = "{http://www.w3.org/2000/svg}"
 

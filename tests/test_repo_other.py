@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from airbnb_books.model import (
+from rios_de_asia_accounting.model import (
     BlockedDay,
     Booking,
     BookingLine,
@@ -11,9 +11,9 @@ from airbnb_books.model import (
     Settings,
     TimeEntry,
 )
-from airbnb_books.storage import repo
-from airbnb_books.storage.db import connect, migrate
-from airbnb_books.storage.repo import ValidationError
+from rios_de_asia_accounting.storage import repo
+from rios_de_asia_accounting.storage.db import connect, migrate
+from rios_de_asia_accounting.storage.repo import ValidationError
 
 
 @pytest.fixture

@@ -2,10 +2,10 @@ from datetime import date
 
 import pytest
 
-from airbnb_books.model import Booking, BookingLine, Expense, RecurringExpense
-from airbnb_books.recurring import due_expenses, generate_recurring, load_days
-from airbnb_books.storage import repo
-from airbnb_books.storage.db import connect, migrate
+from rios_de_asia_accounting.model import Booking, BookingLine, Expense, RecurringExpense
+from rios_de_asia_accounting.recurring import due_expenses, generate_recurring, load_days
+from rios_de_asia_accounting.storage import repo
+from rios_de_asia_accounting.storage.db import connect, migrate
 
 
 @pytest.fixture

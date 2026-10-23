@@ -3,8 +3,8 @@ from fractions import Fraction
 
 import pytest
 
-from airbnb_books.allocation import date_range
-from airbnb_books.metrics import (
+from rios_de_asia_accounting.allocation import date_range
+from rios_de_asia_accounting.metrics import (
     DateRange,
     capex_book_value,
     custom,
@@ -14,7 +14,7 @@ from airbnb_books.metrics import (
     standard_ranges,
     summarize,
 )
-from airbnb_books.model import Day, Expense, Settings
+from rios_de_asia_accounting.model import Day, Expense, Settings
 
 
 def d(s):
