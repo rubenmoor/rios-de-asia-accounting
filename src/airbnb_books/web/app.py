@@ -1,12 +1,13 @@
 import os
-import sqlite3
 from pathlib import Path
 from urllib.parse import urlparse
 
 from flask import Flask, abort, g, render_template, request
 
 from airbnb_books import __version__
-from airbnb_books.storage.db import connect
+from airbnb_books.web import bookings
+from airbnb_books.web.app_db import get_db  # noqa: F401  (re-exported)
+from airbnb_books.web.forms import format_money
 
 NAV = [
     ("bookings", "/bookings", "Bookings"),
@@ -18,13 +19,6 @@ NAV = [
     ("import", "/import", "Import"),
     ("settings", "/settings", "Settings"),
 ]
-
-
-def get_db() -> sqlite3.Connection:
-    """The request's connection, opened on first use and closed on teardown."""
-    if "db" not in g:
-        g.db = connect(g.app_db_path)
-    return g.db
 
 
 def _same_origin() -> bool:
@@ -52,9 +46,12 @@ def create_app(db_path: str | Path) -> Flask:
         if conn is not None:
             conn.close()
 
+    app.jinja_env.filters["money"] = format_money
+
     @app.context_processor
     def nav() -> dict:
-        return {"nav": NAV, "active": request.endpoint}
+        active = next((e for e, url, _ in NAV if request.path.startswith(url)), None)
+        return {"nav": NAV, "active": active}
 
     @app.route("/")
     def index() -> str:
@@ -66,7 +63,9 @@ def create_app(db_path: str | Path) -> Flask:
 
         app.add_url_rule(url, endpoint, view)
 
+    bookings.register(app)
     for endpoint, url, title in NAV:
-        register_stub(endpoint, url, title)
+        if endpoint not in app.view_functions:
+            register_stub(endpoint, url, title)
 
     return app
