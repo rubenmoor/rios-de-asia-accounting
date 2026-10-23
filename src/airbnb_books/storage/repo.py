@@ -1,15 +1,71 @@
+import functools
+import json
 import sqlite3
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from datetime import date
+from typing import TypeVar
 
-from airbnb_books.model import Booking, BookingLine, ExchangeRate
+from airbnb_books.model import (
+    BlockedDay,
+    Booking,
+    BookingLine,
+    ExchangeRate,
+    Expense,
+    Inputs,
+    RecurringExpense,
+    Settings,
+    TimeEntry,
+)
 from airbnb_books.money import COP_RATE, to_cop
 
 _BOOKING_SELECT = """
     SELECT b.*, t.nights, t.net_payout, t.cohost_cost, t.gross, t.airbnb_fee, t.needs_rate
     FROM bookings b JOIN booking_totals t ON t.booking_id = b.id
 """
+
+
+class ValidationError(Exception):
+    """A write broke a database rule; the message is meant for the user."""
+
+
+_CONSTRAINT_HINTS = {
+    "bookings.airbnb_code": "a booking with this Airbnb code already exists",
+    "booking_lines.booking_id, booking_lines.type": "this line already exists",
+    "expenses.recurring_expense_id, expenses.date": "already generated for that date",
+    "exchange_rates.date, exchange_rates.currency": "this exchange rate already exists",
+    "check_out > check_in": "check-out must be after check-in",
+    "category <> 'per_booking' OR booking_id IS NOT NULL": "a per-booking expense needs a booking",
+    "minutes > 0": "minutes must be greater than zero",
+}
+
+
+def _readable(error: sqlite3.IntegrityError) -> str:
+    text = str(error)
+    if text.startswith("FOREIGN KEY"):
+        return "it refers to, or is still used by, another record (booking, expense or template)"
+    for key, hint in _CONSTRAINT_HINTS.items():
+        if key in text:
+            return hint
+    if "capex" in text or "useful_life_days" in text:
+        return "capex needs a useful life in days (> 0); other categories must not have one"
+    return f"not allowed by the database rules ({text})"
+
+
+_F = TypeVar("_F", bound=Callable)
+
+
+def validated(func: _F) -> _F:
+    """Turn database constraint errors into one ValidationError."""
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except sqlite3.IntegrityError as e:
+            raise ValidationError(_readable(e)) from e
+
+    return wrapper  # type: ignore[return-value]
 
 
 @contextmanager
@@ -65,6 +121,7 @@ def _line(row: sqlite3.Row) -> BookingLine:
 # --- bookings ---------------------------------------------------------------------------------
 
 
+@validated
 def create_booking(
     conn: sqlite3.Connection, booking: Booking, manual_amount_cop: int | None = None
 ) -> int:
@@ -136,6 +193,7 @@ def list_bookings(
     return [_booking(r) for r in rows]
 
 
+@validated
 def update_booking(
     conn: sqlite3.Connection, booking: Booking, manual_amount_cop: int | None = None
 ) -> None:
@@ -159,6 +217,7 @@ def update_booking(
             _set_manual_amount(conn, booking.id, booking.check_in, manual_amount_cop)
 
 
+@validated
 def delete_booking(conn: sqlite3.Connection, booking_id: int) -> None:
     conn.execute("DELETE FROM bookings WHERE id = ?", (booking_id,))
 
@@ -166,6 +225,7 @@ def delete_booking(conn: sqlite3.Connection, booking_id: int) -> None:
 # --- booking lines ----------------------------------------------------------------------------
 
 
+@validated
 def add_line(conn: sqlite3.Connection, line: BookingLine) -> bool:
     """Add an imported line, converting with the known rate. False if it already existed."""
     if line.currency == "COP":
@@ -207,6 +267,7 @@ def list_lines(conn: sqlite3.Connection, booking_id: int) -> list[BookingLine]:
 # --- exchange rates ---------------------------------------------------------------------------
 
 
+@validated
 def set_exchange_rate(conn: sqlite3.Connection, rate: ExchangeRate) -> None:
     """Add or change a rate and re-convert the lines."""
     with transaction(conn):
@@ -218,6 +279,7 @@ def set_exchange_rate(conn: sqlite3.Connection, rate: ExchangeRate) -> None:
         recompute_lines(conn)
 
 
+@validated
 def delete_exchange_rate(conn: sqlite3.Connection, day: date, currency: str) -> None:
     with transaction(conn):
         conn.execute(
@@ -264,3 +326,291 @@ def recompute_lines(conn: sqlite3.Connection) -> None:
                 "UPDATE booking_lines SET rate = ?, amount_cop = ? WHERE id = ?",
                 (rate, cop, r["id"]),
             )
+
+
+# --- expenses ---------------------------------------------------------------------------------
+
+
+def _expense(r: sqlite3.Row) -> Expense:
+    return Expense(
+        id=r["id"],
+        date=date.fromisoformat(r["date"]),
+        amount=r["amount"],
+        category=r["category"],
+        booking_id=r["booking_id"],
+        useful_life_days=r["useful_life_days"],
+        description=r["description"],
+        recurring_expense_id=r["recurring_expense_id"],
+    )
+
+
+def _expense_args(e: Expense) -> tuple:
+    return (
+        e.date.isoformat(),
+        e.amount,
+        e.category,
+        e.booking_id,
+        e.useful_life_days,
+        e.description,
+        e.recurring_expense_id,
+    )
+
+
+_EXPENSE_COLS = (
+    "date, amount, category, booking_id, useful_life_days, description, recurring_expense_id"
+)
+
+
+@validated
+def create_expense(conn: sqlite3.Connection, expense: Expense) -> int:
+    cur = conn.execute(
+        f"INSERT INTO expenses ({_EXPENSE_COLS}) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        _expense_args(expense),
+    )
+    expense.id = cur.lastrowid
+    return expense.id
+
+
+@validated
+def insert_generated_expense(conn: sqlite3.Connection, expense: Expense) -> bool:
+    """Insert unless (recurring_expense_id, date) exists. True if it was new."""
+    cur = conn.execute(
+        f"INSERT INTO expenses ({_EXPENSE_COLS}) VALUES (?, ?, ?, ?, ?, ?, ?)"
+        " ON CONFLICT (recurring_expense_id, date) DO NOTHING",
+        _expense_args(expense),
+    )
+    if cur.rowcount == 0:
+        return False
+    expense.id = cur.lastrowid
+    return True
+
+
+def get_expense(conn: sqlite3.Connection, expense_id: int) -> Expense | None:
+    row = conn.execute("SELECT * FROM expenses WHERE id = ?", (expense_id,)).fetchone()
+    return _expense(row) if row else None
+
+
+def _range_filter(start: date | None, end: date | None) -> tuple[str, list[str]]:
+    """WHERE clause for start <= date < end."""
+    where, args = [], []
+    if start is not None:
+        where.append("date >= ?")
+        args.append(start.isoformat())
+    if end is not None:
+        where.append("date < ?")
+        args.append(end.isoformat())
+    return (" WHERE " + " AND ".join(where) if where else ""), args
+
+
+def list_expenses(
+    conn: sqlite3.Connection, start: date | None = None, end: date | None = None
+) -> list[Expense]:
+    """Expenses dated in [start, end)."""
+    where, args = _range_filter(start, end)
+    rows = conn.execute(f"SELECT * FROM expenses{where} ORDER BY date, id", args).fetchall()
+    return [_expense(r) for r in rows]
+
+
+def list_expenses_of_recurring(conn: sqlite3.Connection, recurring_id: int) -> list[Expense]:
+    rows = conn.execute(
+        "SELECT * FROM expenses WHERE recurring_expense_id = ? ORDER BY date", (recurring_id,)
+    ).fetchall()
+    return [_expense(r) for r in rows]
+
+
+@validated
+def update_expense(conn: sqlite3.Connection, expense: Expense) -> None:
+    conn.execute(
+        "UPDATE expenses SET date = ?, amount = ?, category = ?, booking_id = ?,"
+        " useful_life_days = ?, description = ?, recurring_expense_id = ? WHERE id = ?",
+        (*_expense_args(expense), expense.id),
+    )
+
+
+def delete_expense(conn: sqlite3.Connection, expense_id: int) -> None:
+    conn.execute("DELETE FROM expenses WHERE id = ?", (expense_id,))
+
+
+# --- recurring expenses -----------------------------------------------------------------------
+
+
+def _recurring(r: sqlite3.Row) -> RecurringExpense:
+    return RecurringExpense(
+        id=r["id"],
+        description=r["description"],
+        amount=r["amount"],
+        category=r["category"],
+        start_month=r["start_month"],
+        end_month=r["end_month"],
+    )
+
+
+@validated
+def create_recurring_expense(conn: sqlite3.Connection, item: RecurringExpense) -> int:
+    cur = conn.execute(
+        "INSERT INTO recurring_expenses (description, amount, category, start_month, end_month)"
+        " VALUES (?, ?, ?, ?, ?)",
+        (item.description, item.amount, item.category, item.start_month, item.end_month),
+    )
+    item.id = cur.lastrowid
+    return item.id
+
+
+def get_recurring_expense(conn: sqlite3.Connection, item_id: int) -> RecurringExpense | None:
+    row = conn.execute("SELECT * FROM recurring_expenses WHERE id = ?", (item_id,)).fetchone()
+    return _recurring(row) if row else None
+
+
+def list_recurring_expenses(conn: sqlite3.Connection) -> list[RecurringExpense]:
+    rows = conn.execute("SELECT * FROM recurring_expenses ORDER BY start_month, id").fetchall()
+    return [_recurring(r) for r in rows]
+
+
+@validated
+def update_recurring_expense(conn: sqlite3.Connection, item: RecurringExpense) -> None:
+    conn.execute(
+        "UPDATE recurring_expenses SET description = ?, amount = ?, category = ?,"
+        " start_month = ?, end_month = ? WHERE id = ?",
+        (item.description, item.amount, item.category, item.start_month, item.end_month, item.id),
+    )
+
+
+def delete_recurring_expense(conn: sqlite3.Connection, item_id: int) -> None:
+    """Generated expenses stay (their link is cleared)."""
+    conn.execute("DELETE FROM recurring_expenses WHERE id = ?", (item_id,))
+
+
+# --- blocked days -----------------------------------------------------------------------------
+
+
+def _blocked(r: sqlite3.Row) -> BlockedDay:
+    return BlockedDay(date.fromisoformat(r["date"]), r["reason"], r["note"])
+
+
+@validated
+def set_blocked_day(conn: sqlite3.Connection, day: BlockedDay) -> None:
+    """Block a day, or change the reason / note if it is blocked already."""
+    conn.execute(
+        "INSERT INTO blocked_days (date, reason, note) VALUES (?, ?, ?)"
+        " ON CONFLICT (date) DO UPDATE SET reason = excluded.reason, note = excluded.note",
+        (day.date.isoformat(), day.reason, day.note),
+    )
+
+
+def get_blocked_day(conn: sqlite3.Connection, day: date) -> BlockedDay | None:
+    row = conn.execute("SELECT * FROM blocked_days WHERE date = ?", (day.isoformat(),)).fetchone()
+    return _blocked(row) if row else None
+
+
+def list_blocked_days(
+    conn: sqlite3.Connection, start: date | None = None, end: date | None = None
+) -> list[BlockedDay]:
+    where, args = _range_filter(start, end)
+    rows = conn.execute(f"SELECT * FROM blocked_days{where} ORDER BY date", args).fetchall()
+    return [_blocked(r) for r in rows]
+
+
+def delete_blocked_day(conn: sqlite3.Connection, day: date) -> None:
+    conn.execute("DELETE FROM blocked_days WHERE date = ?", (day.isoformat(),))
+
+
+# --- time log ---------------------------------------------------------------------------------
+
+
+def _time_entry(r: sqlite3.Row) -> TimeEntry:
+    return TimeEntry(
+        id=r["id"],
+        date=date.fromisoformat(r["date"]),
+        minutes=r["minutes"],
+        booking_id=r["booking_id"],
+        description=r["description"],
+    )
+
+
+@validated
+def create_time_entry(conn: sqlite3.Connection, entry: TimeEntry) -> int:
+    cur = conn.execute(
+        "INSERT INTO time_log (date, minutes, booking_id, description) VALUES (?, ?, ?, ?)",
+        (entry.date.isoformat(), entry.minutes, entry.booking_id, entry.description),
+    )
+    entry.id = cur.lastrowid
+    return entry.id
+
+
+def get_time_entry(conn: sqlite3.Connection, entry_id: int) -> TimeEntry | None:
+    row = conn.execute("SELECT * FROM time_log WHERE id = ?", (entry_id,)).fetchone()
+    return _time_entry(row) if row else None
+
+
+def list_time_entries(
+    conn: sqlite3.Connection, start: date | None = None, end: date | None = None
+) -> list[TimeEntry]:
+    where, args = _range_filter(start, end)
+    rows = conn.execute(f"SELECT * FROM time_log{where} ORDER BY date, id", args).fetchall()
+    return [_time_entry(r) for r in rows]
+
+
+@validated
+def update_time_entry(conn: sqlite3.Connection, entry: TimeEntry) -> None:
+    conn.execute(
+        "UPDATE time_log SET date = ?, minutes = ?, booking_id = ?, description = ? WHERE id = ?",
+        (entry.date.isoformat(), entry.minutes, entry.booking_id, entry.description, entry.id),
+    )
+
+
+def delete_time_entry(conn: sqlite3.Connection, entry_id: int) -> None:
+    conn.execute("DELETE FROM time_log WHERE id = ?", (entry_id,))
+
+
+# --- settings ---------------------------------------------------------------------------------
+
+_INT_SETTINGS = ("hourly_value_cop", "long_term_rent_cop_per_month", "backup_keep")
+_ALLOCATIONS = ("check_in", "spread")
+
+
+def load_settings(conn: sqlite3.Connection) -> Settings:
+    """Stored values over the defaults in `Settings`; unknown keys are ignored."""
+    stored = {r["key"]: r["value"] for r in conn.execute("SELECT key, value FROM settings")}
+    settings = Settings()
+    for key in _INT_SETTINGS:
+        if key in stored:
+            setattr(settings, key, int(stored[key]))
+    for key in ("currency", "per_booking_allocation"):
+        if key in stored:
+            setattr(settings, key, stored[key])
+    if "property_listings" in stored:
+        settings.property_listings = list(json.loads(stored["property_listings"]))
+    return settings
+
+
+def save_settings(conn: sqlite3.Connection, settings: Settings) -> None:
+    if settings.per_booking_allocation not in _ALLOCATIONS:
+        raise ValidationError("per-booking allocation must be 'check_in' or 'spread'")
+    if settings.backup_keep < 1:
+        raise ValidationError("the number of backups to keep must be at least 1")
+    values = {
+        **{k: str(getattr(settings, k)) for k in _INT_SETTINGS},
+        "currency": settings.currency,
+        "per_booking_allocation": settings.per_booking_allocation,
+        "property_listings": json.dumps(settings.property_listings),
+    }
+    with transaction(conn):
+        for key, value in values.items():
+            conn.execute(
+                "INSERT INTO settings (key, value) VALUES (?, ?)"
+                " ON CONFLICT (key) DO UPDATE SET value = excluded.value",
+                (key, value),
+            )
+
+
+# --- allocation inputs ------------------------------------------------------------------------
+
+
+def load_inputs(conn: sqlite3.Connection) -> Inputs:
+    return Inputs(
+        bookings=list_bookings(conn),
+        expenses=list_expenses(conn),
+        blocked_days=list_blocked_days(conn),
+        time_log=list_time_entries(conn),
+        settings=load_settings(conn),
+    )

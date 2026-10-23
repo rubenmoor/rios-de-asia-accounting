@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 
 
@@ -41,3 +41,62 @@ class ExchangeRate:
     date: date
     currency: str
     rate: int
+
+
+@dataclass
+class Expense:
+    date: date
+    amount: int
+    category: str
+    booking_id: int | None = None
+    useful_life_days: int | None = None
+    description: str | None = None
+    recurring_expense_id: int | None = None
+    id: int | None = None
+
+
+@dataclass
+class RecurringExpense:
+    description: str
+    amount: int
+    category: str
+    start_month: str  # YYYY-MM
+    end_month: str | None = None  # YYYY-MM
+    id: int | None = None
+
+
+@dataclass
+class BlockedDay:
+    date: date
+    reason: str
+    note: str | None = None
+
+
+@dataclass
+class TimeEntry:
+    date: date
+    minutes: int
+    booking_id: int | None = None
+    description: str | None = None
+    id: int | None = None
+
+
+@dataclass
+class Settings:
+    hourly_value_cop: int = 0
+    long_term_rent_cop_per_month: int = 0
+    currency: str = "COP"
+    per_booking_allocation: str = "check_in"  # or "spread"
+    property_listings: list[str] = field(default_factory=list)
+    backup_keep: int = 30
+
+
+@dataclass
+class Inputs:
+    """Everything the allocation engine needs."""
+
+    bookings: list[Booking]
+    expenses: list[Expense]
+    blocked_days: list[BlockedDay]
+    time_log: list[TimeEntry]
+    settings: Settings
