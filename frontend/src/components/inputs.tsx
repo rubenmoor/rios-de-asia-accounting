@@ -18,7 +18,7 @@ function TextInput({
 }: InputProps & {
   list?: string;
   inputMode?: "numeric" | "decimal";
-  type?: "text" | "date";
+  type?: "text" | "date" | "month";
   className?: string;
 }) {
   return (
@@ -42,6 +42,7 @@ export const RateInput = (p: InputProps) => (
   <TextInput {...p} inputMode="decimal" />
 );
 export const DateInput = (p: InputProps) => <TextInput {...p} type="date" />;
+export const MonthInput = (p: InputProps) => <TextInput {...p} type="month" />;
 export const TextField = (
   p: InputProps & { className?: string; list?: string },
 ) => <TextInput {...p} />;
