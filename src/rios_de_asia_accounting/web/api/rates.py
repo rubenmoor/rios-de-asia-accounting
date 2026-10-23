@@ -7,7 +7,13 @@ from rios_de_asia_accounting.storage import repo
 from rios_de_asia_accounting.web.api.common import bp, info, invalid, ok, read_form
 from rios_de_asia_accounting.web.app_db import get_db
 from rios_de_asia_accounting.web.forms import Form
-from rios_de_asia_accounting.web.settings import _needs_rate_message
+
+
+def _needs_rate_message(conn, saved: str) -> str:
+    missing = sum(1 for b in repo.list_bookings(conn) if b.needs_rate)
+    if missing:
+        return f"{saved} {missing} booking(s) still need an exchange rate."
+    return f"{saved} No booking needs an exchange rate."
 
 
 def _item(r: ExchangeRate) -> dict:
