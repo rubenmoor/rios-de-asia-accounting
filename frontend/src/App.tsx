@@ -21,23 +21,10 @@ import {
 } from "./pages/Expenses";
 import { ImportPage } from "./pages/Import";
 import { NotFound } from "./pages/NotFound";
-import { Placeholder } from "./pages/Placeholder";
 import { RateEdit, RateList, RateNew } from "./pages/Rates";
 import { SettingsPage } from "./pages/Settings";
 import { Stopped } from "./pages/Stopped";
 import { TimeEdit, TimeList, TimeNew } from "./pages/Time";
-
-const IMPLEMENTED = [
-  "/",
-  "/bookings",
-  "/time",
-  "/expenses",
-  "/recurring",
-  "/blocked-days",
-  "/rates",
-  "/settings",
-  "/import",
-];
 
 export function App() {
   const quit = useMutation({ mutationFn: () => api("POST", "/api/quit") });
@@ -101,15 +88,6 @@ export function App() {
           <Route path="/rates/:day/:currency" element={<RateEdit />} />
           <Route path="/import" element={<ImportPage />} />
           <Route path="/settings" element={<SettingsPage />} />
-          {NAV.filter((entry) => !IMPLEMENTED.includes(entry.path)).map(
-            (entry) => (
-              <Route
-                key={entry.path}
-                path={entry.path}
-                element={<Placeholder title={entry.label} />}
-              />
-            ),
-          )}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
