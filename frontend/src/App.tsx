@@ -10,6 +10,7 @@ import {
   BookingList,
   BookingNew,
 } from "./pages/Bookings";
+import { DashboardPage } from "./pages/Dashboard";
 import {
   ExpenseEdit,
   ExpenseList,
@@ -26,6 +27,7 @@ import { Stopped } from "./pages/Stopped";
 import { TimeEdit, TimeList, TimeNew } from "./pages/Time";
 
 const IMPLEMENTED = [
+  "/",
   "/bookings",
   "/time",
   "/expenses",
@@ -75,7 +77,7 @@ export function App() {
         )}
         <Notices />
         <Routes>
-          <Route path="/" element={<Placeholder title="Dashboard" />} />
+          <Route path="/" element={<DashboardPage />} />
           <Route path="/bookings" element={<BookingList />} />
           <Route path="/bookings/new" element={<BookingNew />} />
           <Route path="/bookings/:id" element={<BookingDetail />} />
