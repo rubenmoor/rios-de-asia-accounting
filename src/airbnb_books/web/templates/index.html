@@ -28,5 +28,28 @@
   </tr>
   {% endfor %}
 </table>
+
+<h2>Last 90 days, day by day</h2>
+{% if not has_history %}
+<p>The 90-day chart starts once 90 days of history exist.</p>
+{% else %}
+{% for title, svg in rolling %}
+<h3>{{ title }}</h3>
+{% if svg %}{{ svg }}{% else %}<p>Nothing to chart.</p>{% endif %}
+{% endfor %}
+{% endif %}
+
+<h2>Expense breakdown <span class="hint">{{ breakdown_head }}</span></h2>
+{% if not bars %}
+<p>No costs in this period.</p>
+{% else %}
+{{ bars }}
+<table>
+  <tr><th>Category</th><th class="num">COP</th><th class="num">Share</th></tr>
+  {% for label, amount, share in breakdown %}
+  <tr><td>{{ label }}</td><td class="num">{{ amount | money }}</td><td class="num">{{ '–' if share is none else '%.1f %%' % (share * 100) }}</td></tr>
+  {% endfor %}
+</table>
+{% endif %}
 {% endif %}
 {% endblock %}

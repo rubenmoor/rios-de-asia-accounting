@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from airbnb_books import metrics
 from airbnb_books.model import Booking, BookingLine, Expense, Settings, TimeEntry
 from airbnb_books.storage import repo
 from airbnb_books.storage.db import connect, migrate
@@ -653,3 +654,43 @@ def test_dashboard_needs_rate_notice(db_path):
     repo.add_line(conn, BookingLine(bid, "Reservation", date(2026, 3, 6), "USD", 10000))
     page = _dash_app(db_path).get("/").data
     assert b"1 booking needs an exchange rate" in page
+
+
+def test_dashboard_short_history_has_no_rolling_chart(db_path):
+    _seed_dashboard(db_path)
+    page = _dash_app(db_path).get("/").data
+    assert (
+        b"starts once 90 days of history exist" in page
+        and b"<svg" not in page.split(b"Expense breakdown")[0]
+    )
+
+
+def _seed_long(db_path):
+    conn = _db(db_path)
+    repo.create_booking(conn, Booking(date(2026, 1, 1), date(2026, 1, 11)), 1_000_000)
+    repo.create_expense(conn, Expense(date(2026, 1, 1), 310_000, "fixed"))
+    repo.create_expense(conn, Expense(date(2026, 3, 1), 365_000, "capex", useful_life_days=365))
+
+
+def test_dashboard_rolling_charts_and_capex(db_path):
+    _seed_long(db_path)
+    today = date(2026, 5, 1)  # 121 days of history
+    page = _dash_app(db_path, today).get("/").data.decode()
+    rolling = page.split("Expense breakdown")[0]
+    assert rolling.count("<svg") == 2
+    assert all(label in rolling for label in ("ADR", "RevPAR", "Occupancy"))
+    # all-time column: bought 2026-03-01 for 365.000, 62 days depreciated (1.000 per day)
+    book = metrics.capex_book_value(repo.list_expenses(_db(db_path)), today)
+    assert book == 365_000 - 62_000
+    assert forms.format_money(book) in page.split("Remaining capex book value")[1]
+
+
+def test_dashboard_breakdown_range(db_path):
+    _seed_long(db_path)
+    client = _dash_app(db_path, date(2026, 5, 1))
+    # chosen month January: fixed 310.000 of the only cost -> 100.0 %
+    page = client.get("/?month=2026-01").data.decode().split("Expense breakdown")[1]
+    assert "310.000" in page and "100.0 %" in page
+    # custom range in February: no fixed cost there (spread over January only)
+    page = client.get("/?month=2026-01&from=2026-02-01&to=2026-02-10").data.decode()
+    assert "No costs in this period" in page.split("Expense breakdown")[1]
