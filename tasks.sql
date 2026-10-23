@@ -1378,13 +1378,13 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 - Reuse the logic of the current route modules (`web/bookings.py`, `web/expenses.py`, …); HTML routes stay until part 6; API tests with Flask''s test client, one or two per resource.
 - Binding: `decision 24: client-side framework: React with TypeScript, built by Vite, on top of a JSON API from the existing Python server`, `decision 15: data entry forms: how money and hours are typed`, `decision 10: a figure that cannot be computed is shown as empty, not as zero` (null, not 0, in JSON).
 - Independent of part 1 and of `decision 25`; split by resource so tasks fit one worker run (a shared foundation task first: blueprint, error/notice shape, same-origin guard).', '2026-10-23T22:43:05Z', '2026-10-23T22:44:33Z', 62, 0, NULL, 'main');
-INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (65, 12, 'write the plan for part 3: data screens', 'plan', 'open', 1000, NULL, 'Write the plan for part 3 of `plan 12: masterplan` ("Data screens"): `pm plan add 3 "data screens" --priority 500 --intro "…"` with the full body.
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (65, 12, 'write the plan for part 3: data screens', 'plan', 'done', 1000, '2026-10-23, plan 15: data screens (no files)', 'Write the plan for part 3 of `plan 12: masterplan` ("Data screens"): `pm plan add 3 "data screens" --priority 500 --intro "…"` with the full body.
 
 - Scope as in the masterplan''s part 3: React lists and forms for bookings (detail lines, read-only fields of imported bookings per `decision 17: bookings from the Airbnb import: dates, listing and guest name are read-only in the edit form`), expenses (category toggle), recurring templates, blocked days, time log, rates, settings.
 - Shared components: table, form field with error/hint, money/hours/date inputs per `decision 15: data entry forms: how money and hours are typed`, confirm-before-delete, notices; after save navigate as today''s redirects do.
 - Server stays authoritative: send typed strings, show the API''s per-field errors.
 - Build on the plans of parts 1 and 2 (written by the tasks this one requires): the plan''s tasks say which of their implementation tasks they need, so the split can `--requires` them.
-- Waits for `decision 25: In which order do the visual design update and the new client-side framework happen, and does the design work move onto the new screens?` (default daisyUI look vs. full ledger look of `plan 11: masterplan`).', '2026-10-23T22:43:05Z', NULL, 62, 0, NULL, 'main');
+- Waits for `decision 25: In which order do the visual design update and the new client-side framework happen, and does the design work move onto the new screens?` (default daisyUI look vs. full ledger look of `plan 11: masterplan`).', '2026-10-23T22:43:05Z', '2026-10-23T22:47:18Z', 62, 0, NULL, 'main');
 INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (66, 12, 'write the plan for part 4: dashboard and charts', 'plan', 'open', 1000, NULL, 'Write the plan for part 4 of `plan 12: masterplan` ("Dashboard and charts"): `pm plan add 3 "dashboard and charts" --priority 490 --intro "…"` with the full body.
 
 - Scope as in the masterplan''s part 4: period controls (month, from, to, Apply, Reset) in URL query params per `decision 18: dashboard layout: which periods are shown and which period the cost breakdown uses`; metric table with empty cells per `decision 10: a figure that cannot be computed is shown as empty, not as zero`; rate warning.
@@ -1534,13 +1534,57 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 Checks: `nix build`, `nix run` (app opens; until part 6 removes the Jinja pages, check that an unmatched path, e.g. `/app-check`, gets the shell and `/assets/…` load), `nix flake check` green; `pytest`, `ruff check/format --check src tests`.
 
 Done when: all of the above green and the installed package contains `web/dist/index.html`.', '2026-10-23T22:46:24Z', NULL, 77, 0, NULL, 'main');
-INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (83, 15, 'create tasks for plan 15: data screens', 'split', 'open', 1000, NULL, 'Split `plan 15: data screens` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (83, 15, 'create tasks for plan 15: data screens', 'split', 'done', 1000, '2026-10-23, tasks 84, 85, 86, 87', 'Split `plan 15: data screens` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
 done and dropped ones stay as they are (pm refuses to change them): drop the open ones that no longer fit and add
 tasks for what the plan asks beyond them. A task that writes a plan gets `--kind plan`. A task that needs another
 task''s result (in this plan or another, in any work tree) requires it: `pm task add … --requires <task id>`, or
 `pm task requires <task id> <prerequisite id>` for an existing one; priority is only a hint and orders nothing across
 work trees. When you drop an open task that others require and add one in its place, drop it with
-`--replaced-by <new task id>`.', '2026-10-23T22:47:12Z', NULL, 65, 0, NULL, NULL);
+`--replaced-by <new task id>`.', '2026-10-23T22:47:12Z', '2026-10-23T22:47:53Z', 65, 0, NULL, NULL);
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (84, 15, 'Form kit (format.ts, shared components, notices, useSave) and time log screens', 'work', 'open', NULL, NULL, 'First screens of `plan 15: data screens`, and the shared pieces every later screen uses. Follow the plan''s "Choices" section; binding: `decision 24: client-side framework: React with TypeScript, built by Vite, on top of a JSON API from the existing Python server` (server authoritative, no client parsing), `decision 15: data entry forms: how money and hours are typed`, `decision 10: a figure that cannot be computed is shown as empty, not as zero`, `decision 25: In which order do the visual design update and the new client-side framework happen, and does the design work move onto the new screens?` (plain daisyUI default classes only).
+
+What:
+- `frontend/src/format.ts`: TS ports of `format_money`, `format_hours`, `format_rate` from `src/rios_de_asia_accounting/web/forms.py` (identical output), plus display helpers (money with dot thousands, `null` → dash). Vitest tests for these — the only tests of the plan.
+- `frontend/src/components/`: `DataTable`, `Field`, `MoneyInput`, `HoursInput`, `RateInput` (text + `inputMode`, no parsing), `DateInput`, `Select`, `ConfirmDelete` (daisyUI modal, today''s texts), `Notices`.
+- Notices context in the app shell: keeps the last write''s `notices`, shows them as daisyUI alerts above the page after navigation, dismissable.
+- `useSave` hook: TanStack Query mutation; success → push notices, invalidate the resource''s queries, navigate; `422` → return `errors` to the form (field errors next to fields, `""` above the form; typed text stays); other errors → error notice.
+- Form state: plain `Record<string, string>` (+ `string[]` for multi-value), sent as JSON strings.
+- Time log screens at `/time`, `/time/new`, `/time/:id/edit` with delete, replacing the shell''s placeholder: same fields, hint texts, notices and redirects (save/delete → `/time`) as the Jinja pages (`web/app.py`, `templates/`). TS types mirror the "JSON API" section of `architecture-spec.md`.
+
+Gaps in the API (missing field/option): add a follow-up task to `plan 13: JSON API`, no client workaround.
+
+Done when: in `frontend/` `npm run build`, `npm run typecheck`, `npm run lint`, `npm test` pass; with the server (`--no-browser --port 8080`) on a copy of the real database and `npm run dev`, the time log list, create, edit with an error (e.g. hours `abc`) and delete work like today (ad-hoc headless screenshots fine).', '2026-10-23T22:47:34Z', NULL, 83, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (85, 15, 'Booking screens: list with filters, detail, new/edit, delete', 'work', 'open', NULL, NULL, 'Booking screens of `plan 15: data screens`, built with the form kit of `task 84: Form kit (format.ts, shared components, notices, useSave) and time log screens` on the endpoints of `task 71: JSON API: bookings`. Binding: `decision 17: bookings from the Airbnb import: dates, listing and guest name are read-only in the edit form`, `decision 10: a figure that cannot be computed is shown as empty, not as zero`, plain daisyUI classes (`decision 25`).
+
+What (same fields, texts and navigation as the Jinja pages in `web/app.py` / `templates/`):
+- `/bookings`: list with filters `from`, `to`, `listing` in the URL query.
+- `/bookings/:id`: fields, derived totals, lines table (amount, COP or "needs rate"), needs-rate warning linking to `/rates`.
+- `/bookings/new`, `/bookings/:id/edit`: imported bookings show dates, listing, guest name and amount read-only, only guests and notes editable, with today''s hint; listing suggestions from `GET /api/bookings/options`; overlap warning shown as a notice. Create/edit → detail page.
+- Delete with `ConfirmDelete` (imported: "It was imported from Airbnb; a re-import brings it back."); success → list; blocked delete (expenses point at it) → stays on detail with the error, as today.
+
+API gaps: follow-up task in `plan 13: JSON API`, no client workaround.
+
+Done when: `npm run build`, `npm run typecheck`, `npm run lint`, `npm test` pass in `frontend/`; via `npm run dev` against the server on a copy of the real database: list with filters, create, edit with an error, edit of an imported booking, delete and a blocked delete behave like today.', '2026-10-23T22:47:50Z', NULL, 83, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (86, 15, 'Expense and recurring template screens', 'work', 'open', NULL, NULL, 'Expense and recurring-template screens of `plan 15: data screens`, built with the form kit of `task 84: Form kit (format.ts, shared components, notices, useSave) and time log screens` on the endpoints of `task 72: JSON API: expenses and recurring templates`. Binding: `decision 16: changing a recurring expense template only affects months not yet generated`, plain daisyUI classes (`decision 25`).
+
+What (same fields, texts and navigation as the Jinja pages in `web/app.py` / `templates/`):
+- `/expenses`: list with today''s filters (incl. category) in the URL query.
+- `/expenses/new`, `/expenses/:id/edit`: category select; booking field shown only for `per_booking`, useful life only for `capex` (cosmetic, the server ignores the rest); booking choices and categories from `GET /api/expenses/options`; hint and link to the template when the expense was generated from one. Save/delete → `/expenses`.
+- `/recurring`, `/recurring/new`, `/recurring/:id`: the template''s own page has its form plus the list of expenses it generated, each linked to its edit page. Save → own page with the "… N expense(s) generated" notice; delete → list with today''s notice (generated expenses are kept).
+
+API gaps: follow-up task in `plan 13: JSON API`, no client workaround.
+
+Done when: `npm run build`, `npm run typecheck`, `npm run lint`, `npm test` pass in `frontend/`; via `npm run dev` against the server on a copy of the real database: list, create, edit with an error and delete work like today for both expenses and templates.', '2026-10-23T22:47:50Z', NULL, 83, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (87, 15, 'Blocked days, exchange rate and settings screens', 'work', 'open', NULL, NULL, 'Remaining data screens of `plan 15: data screens`, built with the form kit of `task 84: Form kit (format.ts, shared components, notices, useSave) and time log screens` on the endpoints of `task 73: JSON API: blocked days and time log` and `task 74: JSON API: exchange rates and settings`. Binding: `decision 15: data entry forms: how money and hours are typed` (rates up to 2 decimals), plain daisyUI classes (`decision 25`).
+
+What (same fields, texts and navigation as the Jinja pages in `web/app.py` / `templates/`):
+- `/blocked-days`, `/blocked-days/new`, `/blocked-days/:day`: new as a from/to range with reason and note, hint "Days that are already blocked are skipped.", today''s notices (incl. inside-a-booking); edit by day; delete. Save/delete → list.
+- `/rates`, `/rates/new`, `/rates/:day/:currency`: list, new, edit, delete; the "N bookings still need a rate" notice. Save/delete → list.
+- `/settings`: money fields, allocation select, listing checkboxes plus "another listing" (multi-value field as `string[]`), backups to keep, currency shown as COP. Save → settings.
+
+API gaps: follow-up task in `plan 13: JSON API`, no client workaround.
+
+Done when: `npm run build`, `npm run typecheck`, `npm run lint`, `npm test` pass in `frontend/`; via `npm run dev` against the server on a copy of the real database: list, create, edit with an error and delete work like today for blocked days and rates; settings save and show an error like today.', '2026-10-23T22:47:50Z', NULL, 83, 0, NULL, 'main');
 
 INSERT INTO decision (id, subject, status, options, body, intro, answer, reason, created_at, closed_at, created_by_task, signoff, kind, decided_by_task, consequences) VALUES (1, 'Sign off the masterplan of milestone 1: first version build', 'answered', '["approve"]', '', 'This is the overall roadmap for building the first working version of a small, private bookkeeping app for one Airbnb apartment. The app turns every booking and every cost into amounts per calendar day, so it can answer whether hosting pays off, whether prices are set well, and how things are trending. The roadmap splits the build into parts, starting with a short architecture document the owner approves before anything else is built, and ending with a check against the real Airbnb export.
 
@@ -1648,7 +1692,9 @@ INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, b
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (61, 69, '2026-10-23T22:44:31Z', '2026-10-23T22:45:26Z', 'done', NULL, 0, '07b7fee76df1be721d5c0648c64ee45ba600bb57', NULL, 'claude-opus-5-5', '5f5e5acd-1d2f-42f3-a668-df5b2d298ad6', NULL, 9, 18, 4825, 292745, 30810, 0.401601, 43021, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (62, 63, '2026-10-23T22:44:43Z', '2026-10-23T22:45:59Z', 'done', NULL, 0, '07b7fee76df1be721d5c0648c64ee45ba600bb57', 'main', 'claude-opus-5-5', 'cd930a8e-8fad-4ecb-a1ef-daedc8436d20', NULL, 8, 16, 6455, 314434, 41212, 0.5217468, 53765, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (63, 77, '2026-10-23T22:45:41Z', '2026-10-23T22:46:39Z', 'done', NULL, 0, '155278bcbccb6303070875901a3aca9ba1dd40a6', NULL, 'claude-opus-5-5', '836d605f-37b9-4d11-863d-5a43891de1f4', NULL, 5, 10, 5672, 150571, 30466, 0.38732220000000006, 42925, 60, 1465683);
-INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (64, 65, '2026-10-23T22:46:00Z', NULL, 'running', NULL, NULL, '155278bcbccb6303070875901a3aca9ba1dd40a6', 'main', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (64, 65, '2026-10-23T22:46:00Z', '2026-10-23T22:47:27Z', 'done', NULL, 0, '155278bcbccb6303070875901a3aca9ba1dd40a6', 'main', 'claude-opus-5-5', 'ee555f51-39a4-412c-bdb6-61dbd2c5cc9d', NULL, 15, 28, 6832, 559635, 41703, 0.582303, 54271, 60, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (65, 83, '2026-10-23T22:47:12Z', '2026-10-23T22:47:59Z', 'done', NULL, 0, 'afb7dba5b4554916d2f22a1d75797639f6739903', NULL, 'claude-opus-5-5', 'b0b523a3-e6f3-477c-9108-6778f889a9d4', NULL, 6, 12, 3863, 200752, 32331, 0.3761064, 44532, 60, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (66, 66, '2026-10-23T22:47:27Z', NULL, 'running', NULL, NULL, 'afb7dba5b4554916d2f22a1d75797639f6739903', 'main', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1465683);
 
 INSERT INTO task_decision (task_id, decision_id) VALUES (2, 1);
 INSERT INTO task_decision (task_id, decision_id) VALUES (4, 2);
@@ -1751,3 +1797,14 @@ INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (76, 70);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (81, 70);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (81, 80);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (82, 81);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (84, 70);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (84, 73);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (84, 80);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (84, 81);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (85, 71);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (85, 84);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (86, 72);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (86, 84);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (87, 73);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (87, 74);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (87, 84);
