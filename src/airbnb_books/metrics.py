@@ -9,7 +9,7 @@ from datetime import date, timedelta
 from fractions import Fraction
 
 from airbnb_books.allocation import days_in_month, split
-from airbnb_books.model import Day, Settings
+from airbnb_books.model import Day, Expense, Settings
 
 COST_COLUMNS = (
     "cost_fixed",
@@ -141,3 +141,62 @@ def summarize(days: list[Day], rng: DateRange, settings: Settings) -> Metrics:
         own_time_value=own_time_value,
         profit_after_own_time=profit - own_time_value,
     )
+
+
+@dataclass(frozen=True)
+class RollingPoint:
+    date: date
+    revpar: int | None
+    adr: int | None
+    occupancy: float | None
+
+
+ROLLING_WINDOW = 90
+
+
+def rolling_90(days: list[Day]) -> list[RollingPoint]:
+    """One point per day from the 90th day on, each over the 90 days ending that day."""
+    points = []
+    available = occupied = income = 0
+    for i, day in enumerate(days):
+        available += day.available
+        occupied += day.occupied
+        income += day.income
+        if i >= ROLLING_WINDOW:
+            old = days[i - ROLLING_WINDOW]
+            available -= old.available
+            occupied -= old.occupied
+            income -= old.income
+        if i >= ROLLING_WINDOW - 1:
+            points.append(
+                RollingPoint(
+                    date=day.date,
+                    revpar=_ratio(income, available),
+                    adr=_ratio(income, occupied),
+                    occupancy=occupied / available if available else None,
+                )
+            )
+    return points
+
+
+def expense_breakdown(days: list[Day], rng: DateRange) -> list[tuple[str, int, float | None]]:
+    """(cost column, amount, share of total cost) in fixed order; share None when no cost."""
+    selected = [day for day in days if day.date in rng]
+    amounts = [sum(getattr(day, column) for day in selected) for column in COST_COLUMNS]
+    total = sum(amounts)
+    return [
+        (column, amount, amount / total if total else None)
+        for column, amount in zip(COST_COLUMNS, amounts, strict=True)
+    ]
+
+
+def capex_book_value(expenses: list[Expense], as_of: date) -> int:
+    """Capex purchased on or before `as_of`, less what is depreciated on days up to `as_of`."""
+    value = 0
+    for expense in expenses:
+        if expense.category != "capex" or expense.date > as_of:
+            continue
+        life = expense.useful_life_days
+        elapsed = min((as_of - expense.date).days + 1, life)
+        value += expense.amount - sum(split(expense.amount, life)[:elapsed])
+    return value

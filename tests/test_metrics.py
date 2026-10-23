@@ -4,8 +4,17 @@ from fractions import Fraction
 import pytest
 
 from airbnb_books.allocation import date_range
-from airbnb_books.metrics import DateRange, custom, month_range, standard_ranges, summarize
-from airbnb_books.model import Day, Settings
+from airbnb_books.metrics import (
+    DateRange,
+    capex_book_value,
+    custom,
+    expense_breakdown,
+    month_range,
+    rolling_90,
+    standard_ranges,
+    summarize,
+)
+from airbnb_books.model import Day, Expense, Settings
 
 
 def d(s):
@@ -143,3 +152,98 @@ def test_current_month_on_the_first():
     days = [Day(day, cost_fixed=100) for day in date_range(d("2026-01-01"), d("2026-02-01"))]
     m = summarize(days, ranges["this_month"], Settings())
     assert (m.available_nights, m.total_cost) == (1, 100)
+
+
+def long_history(n):
+    """n days from 2026-01-01 with varying occupancy, income and costs."""
+    return [
+        Day(
+            date=day,
+            available=i % 17 != 0,
+            occupied=i % 3 != 0 and i % 17 != 0,
+            income=(40_000 + i * 100) if i % 3 != 0 and i % 17 != 0 else 0,
+            cost_fixed=1_000 + i,
+            cost_per_night=500 if i % 3 != 0 else 0,
+        )
+        for i, day in enumerate(
+            date_range(
+                d("2026-01-01"), d("2026-01-01").fromordinal(d("2026-01-01").toordinal() + n - 1)
+            )
+        )
+    ]
+
+
+def check_point(days, point, index):
+    window = days[index - 89 : index + 1]
+    m = summarize(days, custom(window[0].date, window[-1].date), Settings())
+    assert point.date == window[-1].date
+    assert (point.revpar, point.adr, point.occupancy) == (m.revpar, m.adr, m.occupancy)
+
+
+def test_rolling_needs_90_days():
+    assert rolling_90(long_history(89)) == []
+
+
+def test_rolling_on_exactly_90_days():
+    days = long_history(90)
+    points = rolling_90(days)
+    assert len(points) == 1
+    check_point(days, points[0], 89)
+
+
+def test_rolling_on_200_days():
+    days = long_history(200)
+    points = rolling_90(days)
+    assert len(points) == 111
+    for index in (89, 90, 120, 199):
+        check_point(days, points[index - 89], index)
+
+
+def test_rolling_window_without_available_nights():
+    days = [Day(day, available=False) for day in date_range(d("2026-01-01"), d("2026-03-31"))]
+    (point,) = rolling_90(days)
+    assert (point.revpar, point.adr, point.occupancy) == (None, None, None)
+
+
+def test_expense_breakdown():
+    rows = expense_breakdown(ten_days(), ALL)
+    assert [r[0] for r in rows] == [
+        "cost_fixed",
+        "cost_per_night",
+        "cost_per_booking",
+        "cost_maintenance",
+        "cost_capex",
+        "cost_tax",
+    ]
+    assert [r[1] for r in rows] == [100_000, 30_000, 40_000, 0, 0, 0]
+    assert sum(r[1] for r in rows) == summarize(ten_days(), ALL, Settings()).total_cost
+    assert sum(r[2] for r in rows) == pytest.approx(1)
+    assert rows[0][2] == pytest.approx(100 / 170)
+
+
+def test_expense_breakdown_without_costs():
+    days = [Day(d("2026-01-01"), income=5_000)]
+    assert all(share is None for _, _, share in expense_breakdown(days, ALL))
+
+
+def capex(on, amount, life):
+    return Expense(date=d(on), amount=amount, category="capex", useful_life_days=life)
+
+
+def test_capex_book_value():
+    bought = capex("2028-02-27", 1_000_001, 4)  # parts 250 001, 250 000, 250 000, 250 000
+    assert capex_book_value([bought], d("2028-02-26")) == 0  # not yet bought
+    assert capex_book_value([bought], d("2028-02-27")) == 750_000
+    assert capex_book_value([bought], d("2028-02-29")) == 250_000  # leap day counts as a day
+    assert capex_book_value([bought], d("2028-03-01")) == 0
+    assert capex_book_value([bought], d("2030-01-01")) == 0
+
+
+def test_capex_book_value_two_purchases_and_other_categories():
+    expenses = [
+        capex("2026-01-01", 1_000, 10),
+        capex("2026-01-05", 600, 3),
+        Expense(date=d("2026-01-01"), amount=999, category="fixed"),
+    ]
+    # first: 1 000 − 5 × 100 = 500; second: 600 − 200 = 400
+    assert capex_book_value(expenses, d("2026-01-05")) == 900
