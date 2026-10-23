@@ -250,3 +250,120 @@ def test_booking_delete(client, db_path):
     client.post(f"/bookings/{bid}/delete")
     assert repo.get_booking(conn, bid) is None
     assert client.get(f"/bookings/{bid}").status_code == 404
+
+
+# --- expenses and recurring expenses --------------------------------------------------------
+
+
+def _expense(client, **over):
+    data = {"date": "2026-03-10", "amount": "50.000", "category": "fixed", "description": "wifi"}
+    data.update(over)
+    return client.post("/expenses/new", data=data)
+
+
+def test_expense_create_edit_delete(client, db_path):
+    assert _expense(client).status_code == 302
+    conn = _db(db_path)
+    (expense,) = repo.list_expenses(conn)
+    assert expense.amount == 50000 and expense.booking_id is None
+    page = client.get(f"/expenses/{expense.id}/edit").data
+    assert b"50.000" in page and b"wifi" in page
+    data = {"date": "2026-03-11", "amount": "60000", "category": "tax"}
+    assert client.post(f"/expenses/{expense.id}/edit", data=data).status_code == 302
+    assert repo.get_expense(conn, expense.id).amount == 60000
+    assert b"2026-03-11" in client.get("/expenses").data
+    client.post(f"/expenses/{expense.id}/delete")
+    assert repo.list_expenses(conn) == []
+
+
+def test_expense_validation(client, db_path):
+    page = _expense(client, category="capex").data
+    assert b"required" in page and b'value="wifi"' in page
+    assert b"greater than zero" in _expense(client, category="capex", useful_life_days="0").data
+    assert b"required" in _expense(client, category="per_booking").data
+    assert b"greater than zero" in _expense(client, amount="0").data
+    assert b"choose one" in _expense(client, category="bogus").data
+    assert repo.list_expenses(_db(db_path)) == []
+
+
+def test_expense_fields_ignored_for_other_categories(client, db_path):
+    conn = _db(db_path)
+    bid = repo.create_booking(conn, Booking(date(2026, 3, 1), date(2026, 3, 3)), 1)
+    assert _expense(client, booking_id=str(bid), useful_life_days="x").status_code == 302
+    (expense,) = repo.list_expenses(conn)
+    assert expense.booking_id is None and expense.useful_life_days is None
+    assert _expense(client, category="per_booking", booking_id=str(bid)).status_code == 302
+    assert (
+        _expense(client, category="capex", useful_life_days="1095", booking_id=str(bid)).status_code
+        == 302
+    )
+    by_cat = {e.category: e for e in repo.list_expenses(conn)}
+    assert (
+        by_cat["per_booking"].booking_id == bid and by_cat["per_booking"].useful_life_days is None
+    )
+    assert by_cat["capex"].booking_id is None and by_cat["capex"].useful_life_days == 1095
+
+
+def test_expense_filter(client):
+    _expense(client, date="2026-03-10", description="march-fixed")
+    _expense(client, date="2026-04-10", description="april-fixed")
+    _expense(client, date="2026-04-12", category="tax", description="april-tax")
+    page = client.get("/expenses?from=2026-04-01&to=2026-04-30&category=tax").data
+    assert b"april-tax" in page and b"april-fixed" not in page and b"march-fixed" not in page
+    page = client.get("/expenses?from=2026-04-01").data
+    assert b"april-fixed" in page and b"march-fixed" not in page
+    assert b"enter a date" in client.get("/expenses?from=bogus").data
+
+
+def _template(client, **over):
+    data = {
+        "description": "rent",
+        "amount": "1.000.000",
+        "category": "fixed",
+        "start_month": "2026-08",
+    }
+    data.update(over)
+    return client.post("/recurring/new", data=data)
+
+
+def test_recurring_create_generates_due_months(client, db_path):
+    response = _template(client)
+    assert response.status_code == 302
+    conn = _db(db_path)
+    (item,) = repo.list_recurring_expenses(conn)
+    generated = repo.list_expenses_of_recurring(conn, item.id)
+    months = (date.today().year * 12 + date.today().month) - (2026 * 12 + 8) + 1
+    assert len(generated) == months and generated[0].date == date(2026, 8, 1)
+    page = client.get(response.headers["Location"]).data
+    assert b"2026-08-01" in page and b"generated" in page
+    assert b"rent" in client.get("/recurring").data
+
+
+def test_recurring_edit_keeps_generated_rows_and_delete_keeps_them(client, db_path):
+    _template(client)
+    conn = _db(db_path)
+    (item,) = repo.list_recurring_expenses(conn)
+    before = repo.list_expenses_of_recurring(conn, item.id)
+    data = {
+        "description": "rent2",
+        "amount": "2000000",
+        "category": "fixed",
+        "start_month": "2026-08",
+    }
+    assert client.post(f"/recurring/{item.id}", data=data).status_code == 302
+    assert repo.get_recurring_expense(conn, item.id).amount == 2000000
+    assert [e.amount for e in repo.list_expenses_of_recurring(conn, item.id)] == [
+        e.amount for e in before
+    ]
+    client.post(f"/recurring/{item.id}/delete")
+    assert repo.list_recurring_expenses(conn) == []
+    assert len(repo.list_expenses(conn)) == len(before)
+
+
+def test_recurring_validation(client, db_path):
+    page = _template(client, end_month="2026-07").data
+    assert b"must not be before" in page and b'value="rent"' in page
+    assert b"required" in _template(client, description="").data
+    assert b"greater than zero" in _template(client, amount="0").data
+    assert b"choose one" in _template(client, category="capex").data
+    assert repo.list_recurring_expenses(_db(db_path)) == []
