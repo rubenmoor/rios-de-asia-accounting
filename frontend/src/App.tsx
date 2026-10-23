@@ -9,10 +9,20 @@ import {
   BookingList,
   BookingNew,
 } from "./pages/Bookings";
+import {
+  ExpenseEdit,
+  ExpenseList,
+  ExpenseNew,
+  RecurringEdit,
+  RecurringList,
+  RecurringNew,
+} from "./pages/Expenses";
 import { NotFound } from "./pages/NotFound";
 import { Placeholder } from "./pages/Placeholder";
 import { Stopped } from "./pages/Stopped";
 import { TimeEdit, TimeList, TimeNew } from "./pages/Time";
+
+const IMPLEMENTED = ["/bookings", "/time", "/expenses", "/recurring"];
 
 export function App() {
   const quit = useMutation({ mutationFn: () => api("POST", "/api/quit") });
@@ -26,16 +36,7 @@ export function App() {
           rios-de-asia-accounting
         </NavLink>
         <ul className="menu menu-horizontal flex-1 gap-1">
-          <Route path="/bookings" element={<BookingList />} />
-          <Route path="/bookings/new" element={<BookingNew />} />
-          <Route path="/bookings/:id" element={<BookingDetail />} />
-          <Route path="/bookings/:id/edit" element={<BookingEdit />} />
-          <Route path="/time" element={<TimeList />} />
-          <Route path="/time/new" element={<TimeNew />} />
-          <Route path="/time/:id/edit" element={<TimeEdit />} />
-          {NAV.filter(
-            (entry) => entry.path !== "/time" && entry.path !== "/bookings",
-          ).map((entry) => (
+          {NAV.map((entry) => (
             <li key={entry.path}>
               <NavLink
                 to={entry.path}
@@ -64,18 +65,28 @@ export function App() {
         <Notices />
         <Routes>
           <Route path="/" element={<Placeholder title="Dashboard" />} />
+          <Route path="/bookings" element={<BookingList />} />
+          <Route path="/bookings/new" element={<BookingNew />} />
+          <Route path="/bookings/:id" element={<BookingDetail />} />
+          <Route path="/bookings/:id/edit" element={<BookingEdit />} />
           <Route path="/time" element={<TimeList />} />
           <Route path="/time/new" element={<TimeNew />} />
           <Route path="/time/:id/edit" element={<TimeEdit />} />
-          {NAV.filter(
-            (entry) => entry.path !== "/time" && entry.path !== "/bookings",
-          ).map((entry) => (
-            <Route
-              key={entry.path}
-              path={entry.path}
-              element={<Placeholder title={entry.label} />}
-            />
-          ))}
+          <Route path="/expenses" element={<ExpenseList />} />
+          <Route path="/expenses/new" element={<ExpenseNew />} />
+          <Route path="/expenses/:id/edit" element={<ExpenseEdit />} />
+          <Route path="/recurring" element={<RecurringList />} />
+          <Route path="/recurring/new" element={<RecurringNew />} />
+          <Route path="/recurring/:id" element={<RecurringEdit />} />
+          {NAV.filter((entry) => !IMPLEMENTED.includes(entry.path)).map(
+            (entry) => (
+              <Route
+                key={entry.path}
+                path={entry.path}
+                element={<Placeholder title={entry.label} />}
+              />
+            ),
+          )}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
