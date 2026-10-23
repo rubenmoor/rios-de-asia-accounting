@@ -2,7 +2,8 @@ from datetime import date
 
 import pytest
 
-from airbnb_books.model import Booking
+from airbnb_books.model import Booking, BookingLine, Expense, Settings
+from airbnb_books.storage import repo
 from airbnb_books.storage.db import connect, migrate
 from airbnb_books.web import forms
 from airbnb_books.web.app import NAV, create_app
@@ -151,3 +152,101 @@ def test_one_connection_per_request(db_path):
     assert seen[0] is not seen[1]
     with pytest.raises(Exception, match="closed"):
         seen[0].execute("SELECT 1")
+
+
+# --- bookings -------------------------------------------------------------------------------
+
+
+def _new_booking(client, **over):
+    data = {
+        "check_in": "2026-03-01",
+        "check_out": "2026-03-04",
+        "net_payout": "1.500.000",
+        "guest_name": "Ann",
+        "listing": "L1",
+    }
+    data.update(over)
+    return client.post("/bookings/new", data=data)
+
+
+def _db(db_path):
+    return connect(db_path)
+
+
+def test_booking_create_with_manual_line(client, db_path):
+    response = _new_booking(client, airbnb_code="ABC")
+    assert response.status_code == 302
+    conn = _db(db_path)
+    booking = repo.find_booking_by_code(conn, "ABC")
+    assert booking.net_payout == 1500000 and booking.nights == 3
+    assert [ln.type for ln in repo.list_lines(conn, booking.id)] == ["Manual"]
+    page = client.get(response.headers["Location"])
+    assert b"1.500.000" in page.data and b"Booking saved" in page.data
+    assert b"Ann" in client.get("/bookings").data
+    assert b"Ann" not in client.get("/bookings?listing=other").data
+
+
+def test_booking_new_form_presets_single_listing(client, db_path):
+    conn = _db(db_path)
+    repo.save_settings(conn, Settings(property_listings=["Only one"]))
+    assert b'value="Only one"' in client.get("/bookings/new").data
+
+
+def test_booking_edit_amount_changes_line(client, db_path):
+    _new_booking(client, airbnb_code="ABC")
+    conn = _db(db_path)
+    bid = repo.find_booking_by_code(conn, "ABC").id
+    assert b"1.500.000" in client.get(f"/bookings/{bid}/edit").data
+    data = {"check_in": "2026-03-01", "check_out": "2026-03-05", "net_payout": "2000000"}
+    assert client.post(f"/bookings/{bid}/edit", data=data).status_code == 302
+    booking = repo.get_booking(conn, bid)
+    assert booking.net_payout == 2000000 and booking.nights == 4
+    assert len(repo.list_lines(conn, bid)) == 1
+
+
+def test_booking_validation(client):
+    page = _new_booking(client, check_out="2026-03-01").data
+    assert b"check-out must be after check-in" in page and b'value="Ann"' in page
+    assert b"required" in _new_booking(client, net_payout="").data
+    assert b"whole pesos" in _new_booking(client, net_payout="12,5").data
+    assert b"greater than zero" in _new_booking(client, guests="0").data
+    _new_booking(client, airbnb_code="DUP")
+    assert b"already exists" in _new_booking(client, airbnb_code="DUP").data
+
+
+def test_imported_booking_only_guests_and_notes(client, db_path):
+    conn = _db(db_path)
+    bid = repo.create_booking(
+        conn, Booking(date(2026, 4, 1), date(2026, 4, 3), airbnb_code="IMP", guest_name="Bob")
+    )
+    repo.add_line(conn, BookingLine(bid, "Reservation", date(2026, 4, 1), "COP", 100000000))
+    page = client.get(f"/bookings/{bid}/edit").data
+    assert b'name="check_in"' not in page and b"re-import brings it back" in page
+    data = {"check_in": "2030-01-01", "guest_name": "Eve", "guests": "2", "notes": "hi"}
+    assert client.post(f"/bookings/{bid}/edit", data=data).status_code == 302
+    booking = repo.get_booking(conn, bid)
+    assert (booking.check_in, booking.guest_name) == (date(2026, 4, 1), "Bob")
+    assert (booking.guests, booking.notes) == (2, "hi")
+    assert booking.net_payout == 1000000
+
+
+def test_booking_overlap_warns(client):
+    _new_booking(client)
+    response = _new_booking(client, check_in="2026-03-03", check_out="2026-03-06")
+    assert response.status_code == 302
+    assert b"overlaps another booking" in client.get(response.headers["Location"]).data
+
+
+def test_booking_delete(client, db_path):
+    conn = _db(db_path)
+    bid = repo.create_booking(
+        conn, Booking(date(2026, 4, 1), date(2026, 4, 3)), manual_amount_cop=5
+    )
+    repo.create_expense(conn, Expense(date(2026, 4, 2), 100, "per_booking", booking_id=bid))
+    response = client.post(f"/bookings/{bid}/delete")
+    assert b"not deleted" in client.get(response.headers["Location"]).data
+    assert repo.get_booking(conn, bid) is not None
+    conn.execute("DELETE FROM expenses")
+    client.post(f"/bookings/{bid}/delete")
+    assert repo.get_booking(conn, bid) is None
+    assert client.get(f"/bookings/{bid}").status_code == 404
