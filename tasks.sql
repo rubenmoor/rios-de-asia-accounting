@@ -492,13 +492,13 @@ task''s result (in this plan or another, in any work tree) requires it: `pm task
 `pm task requires <task id> <prerequisite id>` for an existing one; priority is only a hint and orders nothing across
 work trees. When you drop an open task that others require and add one in its place, drop it with
 `--replaced-by <new task id>`.', '2026-10-23T19:30:52Z', '2026-10-23T19:41:40Z', 4, 0, NULL, NULL);
-INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (15, 4, 'create tasks for plan 4: database schema and storage', 'split', 'open', 1000, NULL, 'Split `plan 4: database schema and storage` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (15, 4, 'create tasks for plan 4: database schema and storage', 'split', 'done', 1000, '2026-10-23, tasks 19 20 21 22', 'Split `plan 4: database schema and storage` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
 done and dropped ones stay as they are (pm refuses to change them): drop the open ones that no longer fit and add
 tasks for what the plan asks beyond them. A task that writes a plan gets `--kind plan`. A task that needs another
 task''s result (in this plan or another, in any work tree) requires it: `pm task add … --requires <task id>`, or
 `pm task requires <task id> <prerequisite id>` for an existing one; priority is only a hint and orders nothing across
 work trees. When you drop an open task that others require and add one in its place, drop it with
-`--replaced-by <new task id>`.', '2026-10-23T19:32:15Z', NULL, 5, 0, NULL, NULL);
+`--replaced-by <new task id>`.', '2026-10-23T19:32:15Z', '2026-10-23T19:42:16Z', 5, 0, NULL, NULL);
 INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (16, 5, 'create tasks for plan 5: daily allocation engine', 'split', 'open', 1000, NULL, 'Split `plan 5: daily allocation engine` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
 done and dropped ones stay as they are (pm refuses to change them): drop the open ones that no longer fit and add
 tasks for what the plan asks beyond them. A task that writes a plan gets `--kind plan`. A task that needs another
@@ -531,6 +531,64 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 - Out of scope: NixOS / home-manager module and backup (a later part of the masterplan).
 
 Done when `nix build` succeeds (tests run in it), `nix flake check` passes, and `nix run . -- --no-browser` serves the page on localhost (check with `curl`, then stop it by PID).', '2026-10-23T19:41:36Z', NULL, 14, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (19, 4, 'Paths, connection and migrations runner', 'work', 'open', NULL, NULL, 'Part 1 of `plan 4: database schema and storage`: where the database file lives, how it is opened, and how it is created/upgraded. Follows `architecture-spec.md` sections 3, 5, 6, 7 (`decision 3: approve the architecture`). Builds on the skeleton of `task 17: Python project skeleton`.
+
+- `src/airbnb_books/config.py`:
+  - DB path: `--db`, else env `AIRBNB_BOOKS_DB`, else `$XDG_DATA_HOME/airbnb-books/books.db` (`~/.local/share/airbnb-books/books.db` when unset); creates the parent directory.
+  - Refuses, with a clear error, a DB path inside any directory named `Dropbox` (the live DB must not be synced; only backups go there).
+  - Backup dir: `--backup-dir`, else env `AIRBNB_BOOKS_BACKUP_DIR`, else `~/Dropbox/airbnb-books` (only resolved here; the backup itself comes later).
+- `src/airbnb_books/storage/db.py`:
+  - `connect(path)`: `PRAGMA foreign_keys = ON`, `row_factory = sqlite3.Row`, dates as ISO text (no implicit converters).
+  - `migrate(conn, before_migrate=None)`: applies the numbered files `storage/migrations/NNNN_*.sql` above `PRAGMA user_version`, in order, each in one transaction that also sets `user_version`. Calls `before_migrate(path)` once, before the first one, only when the DB already existed (user_version > 0) and something is pending; the backup step will pass a hook here.
+  - Migration files are package data in `pyproject.toml` so `nix build` ships them.
+- Placeholder `storage/migrations/0001_init.sql` with one trivial `STRICT` table, so the runner is testable; the next task replaces it with the real schema.
+- `cli.py`: global `--db`; new subcommand `migrate`; `serve` migrates before starting.
+- Only `storage/` contains SQL.
+- Tests `tests/test_storage.py` (all with `tmp_path`, never the real DB):
+  - new DB gets all migrations; second run applies nothing;
+  - a failing migration rolls back and leaves `user_version` unchanged;
+  - hook called only for an existing DB with pending migrations;
+  - path resolution order (flag > env > XDG > home default); Dropbox refusal.
+- Done when `pytest`, `ruff check`, `ruff format --check` pass and `airbnb-books --db /tmp/x.db migrate` (or `PYTHONPATH=src python -m airbnb_books.cli …`) creates the file; delete `/tmp/x.db` afterwards.', '2026-10-23T19:42:16Z', NULL, 15, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (20, 4, 'Initial database schema', 'work', 'open', NULL, NULL, 'Part 2 of `plan 4: database schema and storage`: replace the placeholder `src/airbnb_books/storage/migrations/0001_init.sql` with the real schema. The full column list is in the plan body (section "Schema"); read it with `pm show p4`.
+
+Ground rules (from the plan):
+- All tables `STRICT`; money `INTEGER` whole COP; foreign amounts `INTEGER` minor units; rates `INTEGER` COP per unit in hundredths (4123.45 → 412345); dates ISO `TEXT` with `CHECK (date(x) IS x)`; months `YYYY-MM`; check-out exclusive.
+- Own time in whole minutes (`decision 6: own time is stored in whole minutes`).
+- Booking totals are not stored; the view `booking_totals` derives them from `booking_lines`, hand-entered stays get one `Manual` line (`decision 5: booking money totals are derived from booking lines, not stored`).
+- Unique `(recurring_expense_id, date)` on `expenses`: generated monthly rows are dated the 1st and a deleted one is recreated (`decision 9: monthly expenses generated from templates are dated the 1st and come back if deleted`), so this key is what makes generation idempotent.
+
+Contents:
+- Tables `bookings`, `booking_lines`, `exchange_rates`, `expenses`, `recurring_expenses`, `blocked_days`, `time_log`, `settings` with the constraints of the plan (categories/reasons/types as `CHECK … IN (…)`, `ON DELETE` behaviours, uniques).
+- View `booking_totals`: per booking `net_payout`, `cohost_cost` (positive), `gross`, `airbnb_fee`, `needs_rate`, `nights`.
+- Indexes on `booking_lines(booking_id)`, `expenses(date)`, `time_log(date)`.
+
+Tests (raw SQL, `tmp_path`), one per constraint: bad date, `check_out <= check_in`, duplicate Airbnb code, capex without useful life, per-booking expense without booking, unknown category/reason/type, float or text in a money column, deleting a booking with expenses fails, its lines cascade, duplicate line rejected, duplicate recurring month rejected. `booking_totals` on a small hand-checked example: a COP line, a USD line with rate, a co-host line, a line without rate → `needs_rate`.
+
+Done when the tests, `ruff check` and `ruff format --check` pass.', '2026-10-23T19:42:16Z', NULL, 15, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (21, 4, 'Model and repository: bookings, lines, exchange rates', 'work', 'open', NULL, NULL, 'Part 3 of `plan 4: database schema and storage`: the Python side for stays and currency conversion, so no code outside `storage/` writes SQL.
+
+- `src/airbnb_books/model.py`: dataclasses `Booking` (incl. the totals from the `booking_totals` view and `needs_rate`), `BookingLine`, `ExchangeRate`.
+- `src/airbnb_books/money.py`: `to_cop(amount_minor, rate) -> int` = amount_minor × rate / 10 000, rounded half away from zero, integer arithmetic only (no floats).
+- `src/airbnb_books/storage/repo.py`:
+  - bookings: create / get / list (by date range, by listing) / update / delete; find by Airbnb code;
+  - a hand-entered booking is created together with its `Manual` line (amount in COP, rate 100); editing its amount edits that line;
+  - add lines for the import, ignoring duplicates (the unique dedup key) and returning whether the line was new;
+  - exchange rates CRUD; `rate_for(currency, date)` = latest rate on or before that date;
+  - `recompute_lines()`: fills or updates `rate` / `amount_cop` of every non-COP line from `exchange_rates`; call it after any rate change.
+- Tests (`tmp_path`): CRUD round trips, totals, rate lookup on/before the date, recompute after adding and after changing a rate, `to_cop` rounding incl. negatives and exact halves.
+- Done when `pytest`, `ruff check`, `ruff format --check` pass.', '2026-10-23T19:42:16Z', NULL, 15, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (22, 4, 'Repository: expenses, recurring expenses, blocked days, time log, settings', 'work', 'open', NULL, NULL, 'Part 4 of `plan 4: database schema and storage`: the remaining tables in Python, plus one loader that hands the allocation engine everything it needs.
+
+- `src/airbnb_books/model.py`: `Expense`, `RecurringExpense`, `BlockedDay`, `TimeEntry` (minutes, `decision 6: own time is stored in whole minutes`), `Settings` with typed fields and defaults: `hourly_value_cop` 0, `long_term_rent_cop_per_month` 0, `currency` "COP", `per_booking_allocation` "check_in" (or "spread"), `property_listings` [] , `backup_keep` 30.
+- `src/airbnb_books/storage/repo.py`:
+  - CRUD for each; list by date range;
+  - `insert_generated_expense(...)`: inserts unless `(recurring_expense_id, date)` exists (for generating monthly rows, see `decision 9: monthly expenses generated from templates are dated the 1st and come back if deleted`; the generation itself is a later part);
+  - `load_settings()` / `save_settings()`: defaults in code for missing keys, `property_listings` stored as JSON;
+  - `load_inputs(conn)`: bookings with totals and co-host cost, expenses, blocked days, time log, settings, all as dataclasses.
+- Constraint violations (`sqlite3.IntegrityError`) surface as one `ValidationError` with a readable message, for the screens later.
+- Tests (`tmp_path`): CRUD round trips, settings defaults and round trip, generated-expense dedup, a constraint violation becomes `ValidationError`, `load_inputs` on a small DB.
+- Done when `pytest`, `ruff check`, `ruff format --check` pass.', '2026-10-23T19:42:16Z', NULL, 15, 0, NULL, 'main');
 
 INSERT INTO decision (id, subject, status, options, body, intro, answer, reason, created_at, closed_at, created_by_task, signoff, kind, decided_by_task, consequences) VALUES (1, 'Sign off the masterplan of milestone 1: first version build', 'answered', '["approve"]', '', 'This is the overall roadmap for building the first working version of a small, private bookkeeping app for one Airbnb apartment. The app turns every booking and every cost into amounts per calendar day, so it can answer whether hosting pays off, whether prices are set well, and how things are trending. The roadmap splits the build into parts, starting with a short architecture document the owner approves before anything else is built, and ending with a check against the real Airbnb export.
 
@@ -567,6 +625,7 @@ INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, b
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (9, 6, '2026-10-23T19:35:06Z', '2026-10-23T19:36:53Z', 'done', NULL, 0, 'd28c4c716bb75498d9928ba2cf2c00cebbafe1bf', 'main', 'claude-opus-5-5', '2949abf9-e80f-4898-9528-6a9ed7e06b29', NULL, 8, 16, 8563, 312392, 43878, 0.5848264, 56408, 60, 1460586);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (10, 7, '2026-10-23T19:41:23Z', NULL, 'running', NULL, NULL, '8e1b463123b617d25b65d9c12fceae8d0d7586ca', 'main', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (11, 14, '2026-10-23T19:41:23Z', '2026-10-23T19:41:44Z', 'done', NULL, 0, '8e1b463123b617d25b65d9c12fceae8d0d7586ca', NULL, 'claude-opus-5-5', '7f9419d8-f86c-4ed0-b810-59070d227c1a', NULL, 4, 8, 2241, 96301, 19679, 0.2215442, 31832, 60, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (12, 15, '2026-10-23T19:41:44Z', '2026-10-23T19:42:21Z', 'done', NULL, 0, '3a2623f7867eb0c18873799205de4e255470d830', NULL, 'claude-opus-5-5', 'c47d5de1-9425-4e8b-a177-ecaec82f9d8a', NULL, 4, 8, 4104, 109688, 27639, 0.3251616, 39925, 60, 1465683);
 
 INSERT INTO task_decision (task_id, decision_id) VALUES (2, 1);
 INSERT INTO task_decision (task_id, decision_id) VALUES (4, 2);
@@ -592,3 +651,7 @@ INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (9, 8);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (10, 9);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (11, 10);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (18, 17);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (19, 17);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (20, 19);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (21, 20);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (22, 21);
