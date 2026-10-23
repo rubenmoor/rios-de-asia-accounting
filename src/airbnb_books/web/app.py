@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 from flask import Flask, abort, g, render_template, request
 
 from airbnb_books import __version__
-from airbnb_books.web import blocked, bookings, expenses, settings, timelog
+from airbnb_books.web import blocked, bookings, expenses, importing, settings, timelog
 from airbnb_books.web.app_db import get_db  # noqa: F401  (re-exported)
 from airbnb_books.web.forms import format_money, format_rate
 
@@ -69,6 +69,7 @@ def create_app(db_path: str | Path) -> Flask:
     blocked.register(app)
     timelog.register(app)
     settings.register(app)
+    importing.register(app)
     for endpoint, url, title in NAV:
         if endpoint not in app.view_functions:
             register_stub(endpoint, url, title)

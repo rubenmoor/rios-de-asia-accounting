@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Import preview · airbnb-books{% endblock %}
+{% block content %}
+<h1>Import preview</h1>
+{% if error %}<div class="error">{{ error }}</div>{% endif %}
+<form method="post" action="{{ url_for('import_apply') }}">
+  <input type="hidden" name="token" value="{{ token }}">
+  {% if plan.needs_listing_choice %}
+  <p>No listings of this property are chosen yet. Tick the ones to import; the choice is saved in the settings. Nothing is imported until you press Import.</p>
+  {% for name, n in plan.listings_found.most_common() %}
+  <label><input type="checkbox" name="listings" value="{{ name }}"> {{ name }} <span class="hint">({{ n }} row(s))</span></label>
+  {% endfor %}
+  <label>Another listing name <input name="other_listing" size="40"></label>
+  {% else %}
+  <p>Listings imported: {{ plan.listings | join(', ') }}</p>
+  <h2>{{ plan.new | length }} new booking(s)</h2>
+  {% if plan.new %}
+  <table>
+    <tr><th>Code</th><th>Check-in – check-out</th><th>Guest</th><th>Listing</th><th class="num">Lines</th></tr>
+    {% for p in plan.new %}
+    <tr><td>{{ p.code }}</td><td>{{ p.check_in }} – {{ p.check_out }}</td><td>{{ p.guest }}</td><td>{{ p.listing }}</td><td class="num">{{ p.lines | length }}</td></tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+  <h2>{{ plan.updated | length }} updated booking(s)</h2>
+  {% if plan.updated %}
+  <table>
+    <tr><th>Code</th><th>Change</th><th class="num">New lines</th></tr>
+    {% for p in plan.updated %}
+    <tr>
+      <td>{{ p.code }}</td>
+      <td>{% for c in p.changes %}{{ c.field }}: {{ c.old or '-' }} → {{ c.new }}{% if not loop.last %}<br>{% endif %}{% else %}new lines only{% endfor %}</td>
+      <td class="num">{{ p.lines | length }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+  <h2>Skipped</h2>
+  <ul>
+    <li>{{ plan.skipped_payouts }} payout row(s)</li>
+    <li>{{ plan.skipped_known_lines }} line(s) already imported</li>
+    <li>{{ plan.skipped_listings.values() | sum }} row(s) of other listings{% for name, n in plan.skipped_listings.most_common() %}<br>{{ n }} row(s): {{ name }}{% endfor %}</li>
+  </ul>
+  {% endif %}
+  {% if plan.problems %}
+  <h2>{{ plan.problems | length }} problem(s)</h2>
+  <ul>{% for p in plan.problems %}<li class="error">line {{ p.line }}: {{ p.message }}</li>{% endfor %}</ul>
+  {% endif %}
+  {% if plan.warnings %}
+  <h2>Warnings</h2>
+  <ul>{% for w in plan.warnings %}<li>{{ w }}</li>{% endfor %}</ul>
+  {% endif %}
+  <button>Import</button>
+</form>
+<form method="post" action="{{ url_for('import_cancel') }}">
+  <input type="hidden" name="token" value="{{ token }}">
+  <button>Cancel</button>
+</form>
+{% endblock %}
