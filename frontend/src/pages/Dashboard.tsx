@@ -2,6 +2,8 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { api, type Notice } from "../api";
+import { BarChart } from "../charts/BarChart";
+import { LineChart } from "../charts/LineChart";
 import { Field } from "../components/Field";
 import { DateInput, MonthInput } from "../components/inputs";
 import { DASH, formatMoney } from "../format";
@@ -220,13 +222,49 @@ function DashboardBody({ data }: { data: Dashboard }) {
           {data.rolling_90.every((p) => p.adr === null && p.revpar === null) ? (
             <p>Nothing to chart.</p>
           ) : (
-            <div data-chart="money" />
+            <LineChart
+              series={[
+                {
+                  label: "ADR",
+                  points: data.rolling_90.map((p) => ({
+                    date: p.date,
+                    value: p.adr,
+                  })),
+                },
+                {
+                  label: "RevPAR",
+                  points: data.rolling_90.map((p) => ({
+                    date: p.date,
+                    value: p.revpar,
+                  })),
+                },
+              ]}
+              yFormat={(v) => formatMoney(Math.round(v))}
+              yMin={0}
+              width={800}
+              height={280}
+            />
           )}
           <h3 className="font-bold mt-4">Occupancy</h3>
           {data.rolling_90.every((p) => p.occupancy === null) ? (
             <p>Nothing to chart.</p>
           ) : (
-            <div data-chart="occupancy" />
+            <LineChart
+              series={[
+                {
+                  label: "Occupancy",
+                  points: data.rolling_90.map((p) => ({
+                    date: p.date,
+                    value: p.occupancy,
+                  })),
+                },
+              ]}
+              yFormat={(v) => `${(v * 100).toFixed(0)} %`}
+              yMin={0}
+              yMax={1}
+              width={800}
+              height={220}
+            />
           )}
         </>
       )}
@@ -243,7 +281,13 @@ function DashboardBody({ data }: { data: Dashboard }) {
             <p>No costs in this period.</p>
           ) : (
             <>
-              <div data-chart="breakdown" />
+              <BarChart
+                items={breakdown.items.map((i) => ({
+                  label: i.label,
+                  value: i.amount,
+                }))}
+                valueFormat={(v) => formatMoney(Math.round(v))}
+              />
               <table className="table w-auto">
                 <thead>
                   <tr>
