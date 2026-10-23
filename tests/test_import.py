@@ -5,8 +5,17 @@ from pathlib import Path
 
 import pytest
 
-from airbnb_books.importer.airbnb_csv import REQUIRED_COLUMNS, FileError, parse
+from airbnb_books.importer.airbnb_csv import (
+    REQUIRED_COLUMNS,
+    FileError,
+    apply_import,
+    parse,
+    plan_import,
+)
+from airbnb_books.model import ExchangeRate
 from airbnb_books.money import parse_minor
+from airbnb_books.storage import repo
+from airbnb_books.storage.db import connect, migrate
 
 FIXTURE = Path(__file__).parent / "fixtures" / "airbnb_sample.csv"
 HEADER = (
@@ -164,3 +173,181 @@ def test_parse_minor(text, minor):
 def test_parse_minor_rejects(text):
     with pytest.raises(ValueError):
         parse_minor(text)
+
+
+# --- plan and apply ---------------------------------------------------------------------------
+
+MASTER = "Master bedroom in beautiful neighbourhood"
+LARGE = "Large 4 bed 3 bath apartment near Provenza Poblado"
+ALL_LISTINGS = [
+    MASTER,
+    LARGE,
+    "Spacious luxury apartment surrounded by fresh air",
+    "Enjoy a luxurious apartment in prime location",
+    "nothing",
+]
+EXTRA_ROW = (
+    "10/09/2026,,Adjustment,HMECDBYSMK,07/27/2026,10/07/2026,10/12/2026,5,Guest 2,"
+    f"{LARGE},,,USD,-5.00,,,,0.00,,0.00,2026\n"
+)
+OVERLAP_ROW = (
+    "10/09/2026,,Reservation,HMOVERLAP1,10/01/2026,10/09/2026,10/15/2026,6,Guest 9,"
+    f"{MASTER},,,COP,600000.00,,20000.00,,0.00,620000.00,0.00,2026\n"
+)
+
+
+@pytest.fixture
+def conn(tmp_path):
+    c = connect(tmp_path / "t.db")
+    migrate(c)
+    return c
+
+
+def fixture_text():
+    return FIXTURE.read_text(encoding="utf-8-sig")
+
+
+def run(conn, text=None, listings=ALL_LISTINGS):
+    parsed = parse_text(text) if text is not None else parse(FIXTURE)
+    return apply_import(conn, plan_import(conn, parsed, listings))
+
+
+def test_first_import_creates_bookings_and_lines(conn):
+    s = run(conn)
+    assert (s.new, s.updated, s.lines_added) == (7, 0, 28)
+    assert s.skipped_payouts == 3 and not s.problems
+    assert len(repo.list_bookings(conn)) == 7
+    b = repo.find_booking_by_code(conn, "HMECDBYSMK")
+    assert (b.listing, b.guest_name) == (LARGE, "Guest 2")
+    assert (b.check_in, b.check_out, b.nights) == (date(2026, 10, 7), date(2026, 10, 12), 5)
+    assert b.guests is None and b.notes is None
+    types = sorted(line.type for line in repo.list_lines(conn, b.id))
+    assert types == ["Co-Host payout", "Reservation"]
+
+
+def test_long_cop_stay_totals(conn):
+    run(conn)
+    b = repo.find_booking_by_code(conn, "HMMNWHZ252")
+    assert b.nights == 266
+    # 9 monthly reservations + 2 resolution payouts, each line rounded to whole pesos
+    assert b.net_payout == 43_254_544
+    assert not b.needs_rate and b.cohost_cost == 0
+
+
+def test_usd_stay_totals_with_rate(conn):
+    repo.set_exchange_rate(conn, ExchangeRate(date(2026, 10, 1), "USD", 400_000))  # 4000.00
+    s = run(conn)
+    b = repo.find_booking_by_code(conn, "HMECDBYSMK")
+    assert b.net_payout == 4_374_080  # 1093.52 * 4000
+    assert b.cohost_cost == 859_800  # 214.95 * 4000
+    assert b.gross == 4_536_000  # 1134.00 * 4000
+    assert b.airbnb_fee == 161_920  # 40.48 * 4000
+    assert not b.needs_rate
+    assert s.needing_rate > 0  # the older USD stays predate the rate
+
+
+def test_second_import_changes_nothing(conn):
+    run(conn)
+    plan = plan_import(conn, parse(FIXTURE), ALL_LISTINGS)
+    assert plan.new == [] and plan.updated == []
+    assert plan.skipped_known_lines == 28
+    s = apply_import(conn, plan)
+    assert (s.new, s.updated, s.lines_added) == (0, 0, 0)
+
+
+def test_extra_row_updates_one_booking(conn):
+    run(conn)
+    plan = plan_import(conn, parse_text(fixture_text() + EXTRA_ROW), ALL_LISTINGS)
+    assert plan.new == [] and [u.code for u in plan.updated] == ["HMECDBYSMK"]
+    assert plan.updated[0].changes == []
+    s = apply_import(conn, plan)
+    assert (s.new, s.updated, s.lines_added) == (0, 1, 1)
+    b = repo.find_booking_by_code(conn, "HMECDBYSMK")
+    assert len(repo.list_lines(conn, b.id)) == 3
+
+
+def test_changed_guest_name_is_reported_and_updated(conn):
+    run(conn)
+    text = fixture_text().replace(",Guest 1,", ",Guest One,")
+    plan = plan_import(conn, parse_text(text), ALL_LISTINGS)
+    assert [u.code for u in plan.updated] == ["HMNDSJTM25"]
+    assert [str(c) for c in plan.updated[0].changes] == ["guest name: Guest 1 -> Guest One"]
+    s = apply_import(conn, plan)
+    assert s.updated == 1 and s.lines_added == 0
+    assert repo.find_booking_by_code(conn, "HMNDSJTM25").guest_name == "Guest One"
+
+
+def test_booking_fields_follow_latest_reservation_row(conn):
+    run(conn)
+    # a later reservation row of the long stay with a shifted check-out wins
+    row = (
+        "08/22/2023,,Reservation,HMMNWHZ252,,11/20/2022,08/14/2023,267,Guest 5,"
+        f"{ALL_LISTINGS[3]},,,COP,1000.00,,0.00,,0.00,1000.00,0.00,2023\n"
+    )
+    plan = plan_import(conn, parse_text(fixture_text() + row), ALL_LISTINGS)
+    (u,) = plan.updated
+    assert [c.field for c in u.changes] == ["check-out"]
+    apply_import(conn, plan)
+    assert repo.find_booking_by_code(conn, "HMMNWHZ252").check_out == date(2023, 8, 14)
+
+
+def test_other_listing_is_skipped_and_counted(conn):
+    s = run(conn, listings=[MASTER])
+    assert s.new == 2  # HMNDSJTM25 and HMSEA9YJ3R
+    assert s.skipped_listings[LARGE] == 2
+    assert repo.find_booking_by_code(conn, "HMECDBYSMK") is None
+
+
+def test_empty_setting_needs_a_choice_then_saves_it(conn):
+    plan = plan_import(conn, parse(FIXTURE))
+    assert plan.needs_listing_choice and set(plan.listings_found) == set(ALL_LISTINGS)
+    s = apply_import(conn, plan)
+    assert s.new == 0 and repo.list_bookings(conn) == []
+    assert repo.load_settings(conn).property_listings == []
+
+    s = apply_import(conn, plan_import(conn, parse(FIXTURE), [MASTER, LARGE]))
+    assert s.new == 3
+    assert repo.load_settings(conn).property_listings == [MASTER, LARGE]
+    # later imports use the saved setting
+    plan = plan_import(conn, parse(FIXTURE))
+    assert not plan.needs_listing_choice and plan.new == []
+
+
+def test_user_edits_survive_reimport(conn):
+    run(conn)
+    b = repo.find_booking_by_code(conn, "HMECDBYSMK")
+    b.guests, b.notes = 2, "arrives late"
+    repo.update_booking(conn, b)
+    text = fixture_text().replace(",Guest 2,", ",Guest Two,") + EXTRA_ROW.replace(
+        "Guest 2", "Guest Two"
+    )
+    run(conn, text)
+    b = repo.find_booking_by_code(conn, "HMECDBYSMK")
+    assert (b.guests, b.notes, b.guest_name) == (2, "arrives late", "Guest Two")
+
+
+def test_usd_stay_without_rate_is_flagged_then_filled(conn):
+    plan = plan_import(conn, parse(FIXTURE), ALL_LISTINGS)
+    assert any("HMECDBYSMK" in w and "USD" in w for w in plan.warnings)
+    s = apply_import(conn, plan)
+    assert s.needing_rate == 3  # the three USD stays
+    b = repo.find_booking_by_code(conn, "HMECDBYSMK")
+    assert b.needs_rate and b.net_payout == 0
+    repo.set_exchange_rate(conn, ExchangeRate(date(2024, 1, 1), "USD", 400_000))
+    b = repo.find_booking_by_code(conn, "HMECDBYSMK")
+    assert not b.needs_rate and b.net_payout == 4_374_080
+
+
+def test_overlap_warning(conn):
+    plan = plan_import(conn, parse_text(fixture_text() + OVERLAP_ROW), ALL_LISTINGS)
+    overlaps = [w for w in plan.warnings if w.startswith("overlapping") and "HMOVERLAP1" in w]
+    assert len(overlaps) == 1
+    assert "HMECDBYSMK" in overlaps[0] and "HMOVERLAP1" in overlaps[0]
+    assert len(plan.new) == 8
+    assert apply_import(conn, plan).new == 8  # warnings do not block
+
+
+def test_zero_night_stay_is_a_problem(conn):
+    text = HEADER + one(End="01/01/2025", Nights="0")
+    plan = plan_import(conn, parse_text(text), ["Flat A"])
+    assert plan.new == [] and len(plan.problems) == 1
