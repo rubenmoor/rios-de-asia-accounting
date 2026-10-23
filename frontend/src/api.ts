@@ -49,3 +49,11 @@ export async function api<T>(
   if (!response.ok) throw parseError(response.status, parsed);
   return parsed as T;
 }
+
+// A multipart upload: no Content-Type header, the browser sets the boundary.
+export async function postFile<T>(path: string, body: FormData): Promise<T> {
+  const response = await fetch(path, { method: "POST", body });
+  const parsed: unknown = await response.json().catch(() => null);
+  if (!response.ok) throw parseError(response.status, parsed);
+  return parsed as T;
+}
