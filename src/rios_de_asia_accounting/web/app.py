@@ -3,7 +3,8 @@ from collections.abc import Callable
 from pathlib import Path
 from urllib.parse import urlparse
 
-from flask import Flask, abort, g, render_template, request
+from flask import Flask, abort, g, render_template, request, send_from_directory
+from werkzeug.exceptions import NotFound
 
 from rios_de_asia_accounting.web import (
     api,
@@ -30,6 +31,9 @@ NAV = [
 ]
 
 
+DIST = Path(__file__).parent / "dist"
+
+
 def _same_origin() -> bool:
     for header in ("Origin", "Referer"):
         value = request.headers.get(header)
@@ -39,7 +43,7 @@ def _same_origin() -> bool:
 
 
 def create_app(db_path: str | Path, shutdown: Callable[[], None] | None = None) -> Flask:
-    app = Flask(__name__)
+    app = Flask(__name__, static_folder=DIST / "assets", static_url_path="/assets")
     app.secret_key = os.urandom(24)  # only signs flash messages of this run
     app.config["DB_PATH"] = str(db_path)
     app.config["SHUTDOWN"] = shutdown
@@ -80,5 +84,16 @@ def create_app(db_path: str | Path, shutdown: Callable[[], None] | None = None) 
     importing.register(app)
     api.register(app)
     api.common.register_errors(app)
+
+    @app.errorhandler(NotFound)
+    def not_found(exc: NotFound):
+        # a client-side route: the app shell; /api keeps its JSON 404
+        if request.path == "/api" or request.path.startswith("/api/"):
+            return api.common._json_error(exc)
+        if request.method != "GET" or request.path.startswith("/assets/"):
+            return exc
+        if not (DIST / "index.html").is_file():
+            return "frontend not built\n", 404, {"Content-Type": "text/plain; charset=utf-8"}
+        return send_from_directory(DIST, "index.html")
 
     return app
