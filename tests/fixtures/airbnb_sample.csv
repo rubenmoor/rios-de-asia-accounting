@@ -1,0 +1,32 @@
+﻿Date,Arriving by date,Type,Confirmation code,Booking date,Start date,End date,Nights,Guest,Listing,Details,Reference code,Currency,Amount,Paid out,Service fee,Fast pay fee,Cleaning fee,Gross earnings,Airbnb remitted tax,Earnings year
+10/22/2026,,Reservation,HMNDSJTM25,10/21/2026,10/21/2026,11/21/2026,31,Guest 1,Master bedroom in beautiful neighbourhood,,,COP,1476880.34,,334039.66,,30000.00,1810920.00,0.00,2026
+10/22/2026,10/29/2026,Payout,,,,,,,,"Transfer to Jane Doe, IBAN 0000 (EUR)",M-TPQEZFTJEPWRYPHKKYEINQWV2OS2ZURH,EUR,,411.27,,,,,,
+10/08/2026,,Reservation,HMECDBYSMK,07/27/2026,10/07/2026,10/12/2026,5,Guest 2,Large 4 bed 3 bath apartment near Provenza Poblado,,,USD,1093.52,,40.48,,35.00,1134.00,0.00,2026
+10/08/2026,,Co-Host payout,HMECDBYSMK,07/27/2026,10/07/2026,10/12/2026,5,Guest 2,Large 4 bed 3 bath apartment near Provenza Poblado,,,USD,-214.95,,,,0.00,,,2026
+10/08/2026,10/16/2026,Payout,,,,,,,,"Transfer to Jane Doe, IBAN 0000 (EUR)",M-Q224K3TQD5H26LSW3F6ZQPZO5VZOFF5D,EUR,,784.38,,,,,,
+03/10/2025,,Reservation,HM9DCZPD4E,08/09/2024,09/09/2024,03/16/2025,188,Guest 3,Spacious luxury apartment surrounded by fresh air,,,USD,270.01,,9.99,,0.00,280.00,0.00,2025
+02/10/2025,,Reservation,HM9DCZPD4E,08/09/2024,09/09/2024,03/16/2025,188,Guest 3,Spacious luxury apartment surrounded by fresh air,,,USD,1080.01,,39.99,,0.00,1120.00,0.00,2025
+01/10/2025,,Reservation,HM9DCZPD4E,08/09/2024,09/09/2024,03/16/2025,188,Guest 3,Spacious luxury apartment surrounded by fresh air,,,USD,1195.73,,44.27,,0.00,1240.00,0.00,2025
+12/10/2024,,Reservation,HM9DCZPD4E,08/09/2024,09/09/2024,03/16/2025,188,Guest 3,Spacious luxury apartment surrounded by fresh air,,,USD,1195.73,,44.27,,0.00,1240.00,0.00,2024
+11/10/2024,,Reservation,HM9DCZPD4E,08/09/2024,09/09/2024,03/16/2025,188,Guest 3,Spacious luxury apartment surrounded by fresh air,,,USD,1157.16,,42.84,,0.00,1200.00,0.00,2024
+10/10/2024,,Reservation,HM9DCZPD4E,08/09/2024,09/09/2024,03/16/2025,188,Guest 3,Spacious luxury apartment surrounded by fresh air,,,USD,1195.73,,44.27,,0.00,1240.00,0.00,2024
+09/27/2024,,Reservation,HM9DCZPD4E,08/09/2024,09/09/2024,03/16/2025,188,Guest 3,Spacious luxury apartment surrounded by fresh air,,,USD,1157.16,,42.84,,0.00,1200.00,0.00,2024
+10/18/2023,,Adjustment,HMTSQB258Q,09/03/2023,09/08/2023,10/20/2023,42,Guest 4,Enjoy a luxurious apartment in prime location,,,USD,-0.01,,-0.00,,0.00,,0.00,2023
+10/18/2023,,Reservation,HMTSQB258Q,09/03/2023,09/08/2023,10/20/2023,42,Guest 4,Enjoy a luxurious apartment in prime location,,,USD,52.08,,1.93,,0.00,54.01,0.00,2023
+09/10/2023,,Reservation,HMTSQB258Q,09/03/2023,09/08/2023,10/20/2023,42,Guest 4,Enjoy a luxurious apartment in prime location,,,USD,1046.27,,38.73,,0.00,1085.00,0.00,2023
+09/10/2023,,Resolution Payout,HMMNWHZ252,,11/20/2022,08/13/2023,266,Guest 5,Enjoy a luxurious apartment in prime location,AirCover damage reimbursement for resolution CLSF-02069112,,COP,401377.30,,,,,401377.30,,2023
+09/03/2023,,Resolution Payout,HMMNWHZ252,,11/20/2022,08/13/2023,266,Guest 5,Enjoy a luxurious apartment in prime location,AirCover damage reimbursement for resolution CLSF-02069112,,COP,50000.00,,,,,50000.00,,2023
+07/22/2023,,Reservation,HMMNWHZ252,11/03/2022,11/20/2022,08/13/2023,266,Guest 5,Enjoy a luxurious apartment in prime location,,,COP,3936196.83,,145725.37,,0.00,4081922.20,0.00,2023
+06/22/2023,,Reservation,HMMNWHZ252,11/03/2022,11/20/2022,08/13/2023,266,Guest 5,Enjoy a luxurious apartment in prime location,,,COP,4920258.54,,182157.17,,0.00,5102415.71,0.00,2023
+05/22/2023,,Reservation,HMMNWHZ252,11/03/2022,11/20/2022,08/13/2023,266,Guest 5,Enjoy a luxurious apartment in prime location,,,COP,5084235.48,,188227.91,,0.00,5272463.39,0.00,2023
+04/22/2023,,Reservation,HMMNWHZ252,11/03/2022,11/20/2022,08/13/2023,266,Guest 5,Enjoy a luxurious apartment in prime location,,,COP,4836942.86,,179072.67,,0.00,5016015.53,0.00,2023
+03/22/2023,,Reservation,HMMNWHZ252,11/03/2022,11/20/2022,08/13/2023,266,Guest 5,Enjoy a luxurious apartment in prime location,,,COP,4932386.32,,182606.17,,0.00,5114992.49,0.00,2023
+02/22/2023,,Reservation,HMMNWHZ252,11/03/2022,11/20/2022,08/13/2023,266,Guest 5,Enjoy a luxurious apartment in prime location,,,COP,4455087.66,,164935.68,,0.00,4620023.34,0.00,2023
+02/06/2023,,Reservation,HMBYBENB5A,02/04/2023,02/04/2023,02/05/2023,1,Guest 6,nothing,,,COP,48215.00,,"1,785.00",,0.00,50000.00,0.00,2023
+01/22/2023,,Reservation,HMMNWHZ252,11/03/2022,11/20/2022,08/13/2023,266,Guest 5,Enjoy a luxurious apartment in prime location,,,COP,4875009.40,,180481.97,,0.00,5055491.37,0.00,2023
+12/22/2022,,Reservation,HMMNWHZ252,11/03/2022,11/20/2022,08/13/2023,266,Guest 5,Enjoy a luxurious apartment in prime location,,,COP,4961550.00,,183685.86,,0.00,5145235.86,0.00,2022
+11/22/2022,,Reservation,HMMNWHZ252,11/03/2022,11/20/2022,08/13/2023,266,Guest 5,Enjoy a luxurious apartment in prime location,,,COP,4801500.00,,177760.51,,0.00,4979260.51,0.00,2022
+07/02/2022,,Adjustment,HMSEA9YJ3R,06/20/2022,06/21/2022,06/28/2022,7,Guest 7,Master bedroom in beautiful neighbourhood,,,COP,-263103.79,,"9,741.14",,-30695.48,,0.00,2022
+07/02/2022,,Resolution Adjustment,HMSEA9YJ3R,,06/21/2022,06/28/2022,7,Guest 7,Master bedroom in beautiful neighbourhood,Resolution adjustment for resolution 27371376,,COP,-167308.33,,,,,-167308.33,,2022
+06/23/2022,,Reservation,HMSEA9YJ3R,06/20/2022,06/21/2022,06/28/2022,7,Guest 7,Master bedroom in beautiful neighbourhood,,,COP,477389.22,,"17,674.83",,55695.48,495021.45,0.00,2022
+03/07/2022,03/07/2022,Payout,,,,,,,,Transfer to PayPal: j••••e@example.com (USD),1GA878163Y806573T,USD,,352.28,,,,,,
