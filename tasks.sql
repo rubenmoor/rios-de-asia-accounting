@@ -187,6 +187,10 @@ INSERT INTO milestone (id, subject, status, body, created_at, implemented_at, qu
 
 * create an architecture-spec.md early on and have me decide on it before continuing
 * apart from that, keep human decisions minimal, follow your own recommendations', '2026-10-23T19:11:39Z', '2026-10-23T20:31:38Z', 0);
+INSERT INTO milestone (id, subject, status, body, created_at, implemented_at, queue_index) VALUES (2, 'visual design update', 'open', 'use daisy ui and tailwind css to make everything look more visually appealing. add playful elements that refer to bookkeeping and accounting; where possible re-create a spreadsheet feel.
+
+* don''t change functionality
+* add a favicon', '2026-10-23T22:34:21Z', NULL, 0);
 
 INSERT INTO plan (id, milestone_id, subject, priority, body, intro, created_at, created_by_task) VALUES (1, 1, 'masterplan', 1000, 'Build the first version of the app described in `airbnb-bookkeeping-spec.md`: a local, single-user, single-property bookkeeping tool that allocates all income and costs per calendar day, imports the Airbnb transaction CSV (`airbnb_.csv` is a real sample), and shows a dashboard with metrics, a rolling 90-day chart and an expense breakdown. Only the spec''s "v1" features are in scope; its "Later" list is not.
 
@@ -601,6 +605,7 @@ Already provided by earlier parts (use, don''t rebuild):
 - Then: Quit, check the backup file, restore it per the README and see the same dashboard.
 - Make it repeatable: `tests/test_e2e.py` does the same on `tests/fixtures/airbnb_sample.csv` (no real guest names in the repo) and asserts the hand-checked numbers for one month.
 - Every mismatch or bug found is a follow-up task in the plan it belongs to, not fixed here; done note lists the month checked and the result.', 'The bookkeeping database lives only on the owner''s computer, so it needs regular copies in a Dropbox folder: each time the app closes and once a day, keeping the last month of copies. This part adds those backups, a ready-made setting for the owner''s Nix system that runs the daily copy, a short guide for installing, using, backing up and restoring the app, and a final run-through of the whole app with real data where one month''s numbers are checked by hand.', '2026-10-23T19:49:14Z', 11);
+INSERT INTO plan (id, milestone_id, subject, priority, body, intro, created_at, created_by_task) VALUES (11, 2, 'masterplan', 1000, 'tbd.', '', '2026-10-23T22:34:21Z', NULL);
 
 INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (1, 1, 'write the masterplan of milestone 1: first version build', 'masterplan', 'done', NULL, '2026-10-23, plan 1 body and intro (no files)', 'Write `plan 1: masterplan`, the masterplan of `milestone 1: first version build`: expand on everything that needs to be done to achieve it,
 divided into parts, with an intro in plain English (`pm plan edit 1 --intro "…" --body -`). State in the masterplan that its own tasks are not implementation work: each of them writes the
@@ -1140,6 +1145,9 @@ Record the new name with `pm decision record` so later tasks don''t bring the ol
 - No compatibility with the old paths or env vars: no real data exists under the old names yet.
 - Done when `grep -rI "airbnb.books\|AIRBNB_BOOKS"` (excluding `tasks.sql`, `.git`, `airbnb-bookkeeping-spec.md`)
   finds nothing, `nix flake check` passes and `nix run . -- --no-browser --port 8002` serves the app.', '2026-10-23T21:28:25Z', '2026-10-23T21:29:28Z', NULL, 0, NULL, NULL);
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (55, 11, 'write the masterplan of milestone 2: visual design update', 'masterplan', 'open', NULL, NULL, 'Write `plan 11: masterplan`, the masterplan of `milestone 2: visual design update`: expand on everything that needs to be done to achieve it,
+divided into parts, with an intro in plain English (`pm plan edit 11 --intro "…" --body -`). State in the masterplan that its own tasks are not implementation work: each of them writes the
+plan for one part.', '2026-10-23T22:34:21Z', NULL, NULL, 0, NULL, NULL);
 
 INSERT INTO decision (id, subject, status, options, body, intro, answer, reason, created_at, closed_at, created_by_task, signoff, kind, decided_by_task, consequences) VALUES (1, 'Sign off the masterplan of milestone 1: first version build', 'answered', '["approve"]', '', 'This is the overall roadmap for building the first working version of a small, private bookkeeping app for one Airbnb apartment. The app turns every booking and every cost into amounts per calendar day, so it can answer whether hosting pays off, whether prices are set well, and how things are trending. The roadmap splits the build into parts, starting with a short architecture document the owner approves before anything else is built, and ending with a check against the real Airbnb export.
 
