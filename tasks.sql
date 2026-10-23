@@ -994,7 +994,7 @@ task''s result (in this plan or another, in any work tree) requires it: `pm task
 `pm task requires <task id> <prerequisite id>` for an existing one; priority is only a hint and orders nothing across
 work trees. When you drop an open task that others require and add one in its place, drop it with
 `--replaced-by <new task id>`.', '2026-10-23T19:47:43Z', '2026-10-23T19:48:28Z', 10, 0, NULL, NULL);
-INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (43, 9, 'SVG chart module', 'work', 'open', NULL, NULL, 'Part of `plan 9: dashboard and charts`. Our own small chart drawer, used by the dashboard: inline SVG, no JavaScript, no chart library, no CDN (`architecture-spec.md`, `decision 3: approve the architecture`).
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (43, 9, 'SVG chart module', 'work', 'done', NULL, '2026-10-23, src/airbnb_books/web/charts.py, tests/test_charts.py', 'Part of `plan 9: dashboard and charts`. Our own small chart drawer, used by the dashboard: inline SVG, no JavaScript, no chart library, no CDN (`architecture-spec.md`, `decision 3: approve the architecture`).
 
 **What**
 - New `web/charts.py` with pure functions returning `markupsafe.Markup` SVG strings:
@@ -1012,7 +1012,7 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 - bar widths proportional to values
 - zero values and empty inputs don''t divide by zero
 
-**Done when** `pytest`, `ruff check` and `ruff format --check` pass.', '2026-10-23T19:48:11Z', NULL, 42, 0, NULL, 'main');
+**Done when** `pytest`, `ruff check` and `ruff format --check` pass.', '2026-10-23T19:48:11Z', '2026-10-23T20:15:12Z', 42, 0, NULL, 'main');
 INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (44, 9, 'Dashboard: rolling chart and expense breakdown', 'work', 'open', NULL, NULL, 'Part of `plan 9: dashboard and charts` (read its Layout section). Adds the charts and the capex row to the dashboard built by `task 45: Dashboard: metrics table and period form`, using `web/charts.py` and `metrics.rolling_90`, `metrics.expense_breakdown`, `metrics.capex_book_value`.
 
 **What**
@@ -1174,6 +1174,7 @@ INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, b
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (42, 39, '2026-10-23T20:10:16Z', '2026-10-23T20:11:51Z', 'done', NULL, 0, '669f99349856a91ec0702ea663cbf313e3b59d31', 'main', 'claude-sonnet-5-5', '41b11f89-d445-43a7-85c2-9719f2ddf251', NULL, 12, 24, 9986, 520591, 43926, 0.3276711, 56338, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (43, 40, '2026-10-23T20:11:51Z', '2026-10-23T20:12:56Z', 'done', NULL, 0, 'cb9d895746c8c718b0a0db307c0012c7653a5741', 'main', 'claude-sonnet-5-5', '41b11f89-d445-43a7-85c2-9719f2ddf251', 42, 7, 14, 8590, 473007, 21881, 0.5484238, 78349, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (44, 41, '2026-10-23T20:12:56Z', '2026-10-23T20:14:25Z', 'done', NULL, 0, '710b529cf864f99a56fafb680e38e76e0c5e8f32', 'main', 'claude-sonnet-5-5', '41b11f89-d445-43a7-85c2-9719f2ddf251', 43, 9, 18, 10796, 824945, 25441, 0.8406783000000001, 103807, 60, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (45, 43, '2026-10-23T20:14:26Z', '2026-10-23T20:15:17Z', 'done', NULL, 0, 'e89b14444ab69cc1e36071f063c3026457bff27c', 'main', 'claude-sonnet-5-5', '4307fc5d-d4e2-4248-8092-db70125dfae2', NULL, 8, 16, 5631, 236702, 24405, 0.1776322, 36772, 60, 1465683);
 
 INSERT INTO task_decision (task_id, decision_id) VALUES (2, 1);
 INSERT INTO task_decision (task_id, decision_id) VALUES (4, 2);
