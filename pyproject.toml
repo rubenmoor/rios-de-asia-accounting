@@ -16,7 +16,7 @@ airbnb-books = "airbnb_books.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-airbnb_books = ["web/templates/*.html"]
+airbnb_books = ["web/templates/*.html", "storage/migrations/*.sql"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
