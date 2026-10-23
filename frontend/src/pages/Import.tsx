@@ -1,7 +1,13 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
 import { Link } from "react-router";
-import { ApiError, api, postFile, type Written } from "../api";
+import {
+  ApiError,
+  api,
+  type FieldErrors,
+  postFile,
+  type Written,
+} from "../api";
 import { Field } from "../components/Field";
 import { useNotices } from "../components/Notices";
 
@@ -400,6 +406,102 @@ function SummaryStep({ summary }: { summary: Summary }) {
   );
 }
 
+type RatesResult = {
+  added: number;
+  changed: number;
+  lines_recomputed: number;
+  needing_rate: number;
+  problems: Problem[];
+};
+
+function RatesSection() {
+  const queryClient = useQueryClient();
+  const [currency, setCurrency] = useState("USD");
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [done, setDone] = useState<{
+    currency: string;
+    result: RatesResult;
+  } | null>(null);
+
+  const load = useMutation({
+    mutationFn: (body: FormData) =>
+      postFile<Written<RatesResult>>("/api/import/rates", body),
+    onSuccess: async (result, body) => {
+      setErrors({});
+      setDone({ currency: String(body.get("currency")), result: result.data });
+      await queryClient.invalidateQueries();
+    },
+    onError: (e) => {
+      setDone(null);
+      setErrors(
+        e instanceof ApiError && e.status === 422
+          ? e.fieldErrors
+          : { "": e.message },
+      );
+    },
+  });
+
+  const submit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const body = new FormData(e.currentTarget);
+    const file = body.get("file");
+    if (!(file instanceof File) || !file.name) {
+      setDone(null);
+      setErrors({ file: "choose the exchange-rate CSV file" });
+      return;
+    }
+    load.mutate(body);
+  };
+
+  return (
+    <section className="mt-8">
+      <h2 className="text-xl font-bold mb-2">Exchange rates (TRM)</h2>
+      <p className="opacity-70 mb-2">
+        CSV from datos.gov.co with the columns VALOR and VIGENCIADESDE.
+      </p>
+      {errors[""] && <Alert>{errors[""]}</Alert>}
+      <form onSubmit={submit} className="flex flex-wrap items-start gap-2">
+        <Field label="CSV file" error={errors.file}>
+          <input
+            type="file"
+            name="file"
+            accept=".csv,text/csv"
+            className="file-input"
+          />
+        </Field>
+        <Field label="Currency" error={errors.currency}>
+          <input
+            className="input"
+            name="currency"
+            size={4}
+            maxLength={3}
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value)}
+          />
+        </Field>
+        <button
+          type="submit"
+          className="btn btn-primary mt-8"
+          disabled={load.isPending}
+        >
+          Load rates
+        </button>
+      </form>
+      {done && (
+        <div className="mt-4">
+          <div role="alert" className="alert alert-success">
+            {done.currency} rates: {done.result.added} added,{" "}
+            {done.result.changed} changed; {done.result.lines_recomputed}{" "}
+            line(s) recomputed; {done.result.needing_rate} booking(s) still need
+            an exchange rate.
+          </div>
+          <ProblemsAndWarnings problems={done.result.problems} warnings={[]} />
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function ImportPage() {
   const [preview, setPreview] = useState<Preview | null>(null);
   const [summary, setSummary] = useState<Summary | null>(null);
@@ -422,6 +524,7 @@ export function ImportPage() {
     <div>
       <h1 className="text-2xl font-bold mb-4">Import</h1>
       <UploadStep error={error} onPreview={setPreview} />
+      <RatesSection />
     </div>
   );
 }
