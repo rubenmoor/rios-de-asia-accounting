@@ -230,6 +230,18 @@ Endpoints (method, path, request → response):
   `hours` as typed (`1.5`, `1,5` or `1:30`, `decision 15: data entry forms: how money and hours are typed`)
   → `{data: <item>, notices: ["Time entry saved."]}`.
 - `DELETE /api/time/<id>` — → `{data: null, notices: ["Time entry deleted."]}`.
+- `GET /api/rates?currency=` — optional currency filter (bad value → `422`) → list of
+  `{date, currency, rate}` (`rate` the stored integer, COP × 100).
+- `POST /api/rates` — `{date, currency, rate}` (`rate` as typed, up to 2 decimals) →
+  `{data: <item>, notices: ["Exchange rate saved. N booking(s) still need an exchange rate."]}`
+  (or "… No booking needs an exchange rate.").
+- `PUT /api/rates/<YYYY-MM-DD>/<currency>` — `{rate}` → same response as `POST`.
+- `DELETE /api/rates/<YYYY-MM-DD>/<currency>` — → `{data: null, notices: ["Exchange rate deleted. …"]}`.
+- `GET /api/settings` — `{hourly_value_cop, long_term_rent_cop_per_month,
+  per_booking_allocation, backup_keep, listings}` (`listings` array of strings, integers as pesos / counts).
+- `GET /api/settings/options` — `{"allocations": ["check_in", "spread"], "listings": [names known from bookings]}`.
+- `PUT /api/settings` — `{hourly_value_cop, long_term_rent_cop_per_month, per_booking_allocation,
+  backup_keep, listings: [..]}` → `{data: <settings>, notices: ["Settings saved."]}`.
 
 ## 4. Tests
 

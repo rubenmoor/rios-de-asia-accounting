@@ -5,7 +5,7 @@ from datetime import date
 from flask import Flask, abort, flash, redirect, render_template, request, url_for
 from werkzeug.wrappers import Response
 
-from rios_de_asia_accounting.model import ExchangeRate
+from rios_de_asia_accounting.model import ExchangeRate, Settings
 from rios_de_asia_accounting.storage import repo
 from rios_de_asia_accounting.web.app_db import get_db
 from rios_de_asia_accounting.web.bookings import _listing_names
@@ -29,6 +29,14 @@ def _needs_rate_message(conn, saved: str) -> str:
     if missing:
         return f"{saved} {missing} booking(s) still need an exchange rate."
     return f"{saved} No booking needs an exchange rate."
+
+
+def read_settings(form: Form, current: Settings) -> None:
+    """Parse the settings fields into `current` (errors land in the form)."""
+    current.hourly_value_cop = form.money("hourly_value_cop", required=True)
+    current.long_term_rent_cop_per_month = form.money("long_term_rent_cop_per_month", required=True)
+    current.per_booking_allocation = form.choice("per_booking_allocation", ALLOCATIONS)
+    current.backup_keep = form.whole("backup_keep", required=True, minimum=1)
 
 
 def _rate_page(conn, existing: ExchangeRate | None, form: Form) -> str:
@@ -59,12 +67,7 @@ def register(app: Flask) -> None:
             return _settings_page(conn, form)
         form = Form(request.form, lists={"listings": request.form.getlist("listings")})
         current = repo.load_settings(conn)
-        current.hourly_value_cop = form.money("hourly_value_cop", required=True)
-        current.long_term_rent_cop_per_month = form.money(
-            "long_term_rent_cop_per_month", required=True
-        )
-        current.per_booking_allocation = form.choice("per_booking_allocation", ALLOCATIONS)
-        current.backup_keep = form.whole("backup_keep", required=True, minimum=1)
+        read_settings(form, current)
         extra = form.text("other_listing")
         if form.ok:
             names = form.raw_list("listings")
