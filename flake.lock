@@ -1,0 +1,48 @@
+{
+  "nodes": {
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1792502884,
+        "narHash": "sha256-IoNisKcGbUjdd45qCqywGMCYmZ5EnkxezvLII0FWwNA=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "02c087f3fe673c9e317f206a627cb6b910336dbe",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "pm": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1792765530,
+        "narHash": "sha256-uQ/ZQQNqbn5KvTom1xDodE1ZHs05FF5m+2fkWwTrJVU=",
+        "owner": "rubenmoor",
+        "repo": "project-manager",
+        "rev": "3fd49ecd00a6fe042015610a63f1ed245f570e60",
+        "type": "github"
+      },
+      "original": {
+        "owner": "rubenmoor",
+        "repo": "project-manager",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "nixpkgs": "nixpkgs",
+        "pm": "pm"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
