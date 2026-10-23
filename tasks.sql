@@ -521,6 +521,43 @@ Out of scope: the dashboard and charts on `/` (part 8, `plan` written by task 10
 
 ### 6. Import screen (requires task 1, `task 32: Airbnb import plan and apply` and `task 34: Exchange-rate (TRM) import`)
 - As above. Tests with `tests/fixtures/airbnb_sample.csv`: upload on an empty DB asks for listings and imports nothing; choosing listings then applying creates the bookings; uploading the same file again previews nothing new; a broken file shows the file error; the temp file is gone after apply; TRM fixture upload shows its summary.', 'The owner needs to type in and correct everything the app counts: stays, costs, regular monthly costs, days the place was not for rent, hours of own work, exchange rates and a few settings, and to load the Airbnb export from the browser. This part builds those plain browser forms and lists, with checks that catch mistakes such as a large purchase without a useful life or a cost that belongs to a stay but names none. It does not build the dashboard, which comes next and reads what these screens store.', '2026-10-23T19:46:33Z', 9);
+INSERT INTO plan (id, milestone_id, subject, priority, body, intro, created_at, created_by_task) VALUES (9, 1, 'dashboard and charts', 400, 'Part 8 of `plan 1: masterplan`. Builds the dashboard on `/` and `web/charts.py` as fixed in `architecture-spec.md` (approved, `decision 3: approve the architecture`): server-rendered Jinja2, charts as inline SVG drawn by our own module, no JavaScript, no chart library, no CDN. The page only calls `recurring.load_days`, `metrics` and `repo` (never SQL).
+
+Builds on `plan 6: metrics` (`task 27: Metrics: date ranges and per-range summary`, `task 28: Metrics: rolling 90-day series, expense breakdown, capex book value`), `task 26: Recurring expense generation and load_days entry point` of `plan 5: daily allocation engine`, and the web frame of `plan 8: data entry screens` (its task "Web frame: layout, form helpers, app on a real DB": `base.html`, navigation, `web/forms.py` money formatting, test fixture). Out of scope: Quit button and backup (part 9), any visual polish.
+
+## Layout (`decision 18: dashboard layout: which periods are shown and which period the cost breakdown uses`)
+
+- **Metrics table:** one column per period: all-time, last 90 days, last 30 days, this month, a chosen month (`?month=YYYY-MM`, default last month), custom (`?from=…&to=…`, column only when set). Column headers show the period''s dates.
+- **Rows:** available nights, occupied nights, occupancy %, ADR, RevPAR, income, total cost, profit, variable cost per night, break-even occupancy %, long-term rental benchmark, profit vs. long-term rental, hours, profit per hour, profit after own time; then remaining capex book value at the period''s end.
+- **Formatting:** money with thousands dots and "COP" in the header, not per cell (`web/forms.py` formatter); ratios as `57.3 %` (one decimal; break-even above 100 % shown as it is); hours with one decimal; `None` as a dash (`decision 10: a figure that cannot be computed is shown as empty, not as zero`). Negative profit marked (minus sign, plain red text is enough).
+- **Period form:** one GET form at the top (month input, from/to date inputs, Apply, Reset link). Invalid input (bad date, from > to) → the table without that column and one message, never a 500.
+- **Rolling chart:** two stacked line charts sharing the date axis: money (ADR and RevPAR, COP) and occupancy (0–100 %); one point per day from `metrics.rolling_90`; `None` breaks the line; fewer than 90 days → the text "the 90-day chart starts once 90 days of history exist" (`decision 13: the rolling 90-day chart starts once 90 days of history exist`).
+- **Expense breakdown:** for the custom range if set, else the chosen month: horizontal bar chart plus a small table (category, amount, share %), the six categories in `metrics.expense_breakdown`''s order; all zero → "no costs in this period".
+- **Notices:** above everything, when any booking needs an exchange rate: "N bookings need an exchange rate" linking to the rates screen; an empty DB shows a short "nothing here yet: import the Airbnb CSV or add a booking" with links instead of a table of dashes.
+- `today` comes from one place (`date.today()` in the route, overridable in tests through the app config) and is passed to `load_days` and `metrics`.
+
+## Charts module (`web/charts.py`)
+
+- Pure functions returning SVG markup strings (`markupsafe.Markup`): `line_chart(series, *, y_format, y_min=None, y_max=None, width, height)` with `series = [(label, [(date, value|None), …])]`, and `bar_chart(items, *, value_format)` with `items = [(label, value)]`.
+- Fixed size via `viewBox` (scales to the page width), a few y-axis gridlines with labels at round values, x-axis labels at month starts, a legend, one colour per series from a fixed small palette (readable in print and for colour-blind users: different line dashes too), `<title>` elements so hovering shows the value.
+- Labels escaped; empty input → an empty-state SVG or `None` the template handles; all values None → same.
+
+## Tasks (all in work tree `main`)
+
+### 1. SVG chart module
+- Requires `task 17: Python project skeleton` only (no data dependency).
+- `web/charts.py` as above. Tests in `tests/test_charts.py`: output parses as XML (`xml.etree`), one `<polyline>`/`<path>` segment per run of non-None values (a None in the middle gives two segments), y labels at round values for a sample range, a label with `<&>` is escaped, bar widths proportional to values, zero and empty inputs don''t divide by zero.
+
+### 2. Dashboard: metrics table and period form
+- Requires task 1 of this plan, `task 27: Metrics: date ranges and per-range summary`, `task 26: Recurring expense generation and load_days entry point`, and the "Web frame" task of `plan 8: data entry screens`.
+- Route `/` replaces the placeholder: period parsing, the metrics table, notices, empty state, as above.
+- Tests in `tests/test_web.py` on a temp DB with a booking, a fixed expense and a time entry (hand-checked numbers): all standard columns present, `?month=` and `?from/to` add/change columns, invalid custom range shows the message and status 200, a booking with a USD line without rate shows the notice, empty DB shows the empty state, None shown as a dash.
+
+### 3. Dashboard: rolling chart and expense breakdown
+- Requires task 2 of this plan and `task 28: Metrics: rolling 90-day series, expense breakdown, capex book value`.
+- Add the two rolling charts, the breakdown chart and table, and the capex book value row.
+- Tests: with fewer than 90 days the message appears and no chart; with 120 days of data the page contains two `<svg>` charts with the series labels; breakdown follows the custom range when given, else the chosen month; capex row matches `capex_book_value` at the period end.
+- Done when `pytest`, `ruff check` and `ruff format --check` pass and the dashboard works in the browser on a DB with `airbnb_.csv` imported (`airbnb-books --db /tmp/x.db --no-browser`, checked with `curl`, stopped by PID).', 'The dashboard is the page the owner opens to see whether hosting pays off, whether prices are right and where things are heading. It shows the key figures for several periods side by side, a chart of how the average nightly price, the revenue per available night and the occupancy developed over the last 90 days, and how the costs of a chosen period split by kind. Everything is plain and readable, drawn on the owner''s own computer without any online service.', '2026-10-23T19:47:43Z', 10);
 
 INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (1, 1, 'write the masterplan of milestone 1: first version build', 'masterplan', 'done', NULL, '2026-10-23, plan 1 body and intro (no files)', 'Write `plan 1: masterplan`, the masterplan of `milestone 1: first version build`: expand on everything that needs to be done to achieve it,
 divided into parts, with an intro in plain English (`pm plan edit 1 --intro "…" --body -`). State in the masterplan that its own tasks are not implementation work: each of them writes the
@@ -907,6 +944,13 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 - Tests with `tests/fixtures/airbnb_sample.csv`: upload on an empty DB asks for listings and imports nothing; choosing listings then applying creates the bookings; uploading the same file again previews nothing new; a broken file shows the file error; the temp file is gone after apply; the TRM fixture upload shows its summary.
 
 Done when `pytest`, `ruff check`, `ruff format --check` pass and the page works against a running `airbnb-books --db /tmp/x.db --no-browser` (checked with `curl -F`, stopped by PID).', '2026-10-23T19:47:16Z', NULL, 35, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (42, 9, 'create tasks for plan 9: dashboard and charts', 'split', 'open', 1000, NULL, 'Split `plan 9: dashboard and charts` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
+done and dropped ones stay as they are (pm refuses to change them): drop the open ones that no longer fit and add
+tasks for what the plan asks beyond them. A task that writes a plan gets `--kind plan`. A task that needs another
+task''s result (in this plan or another, in any work tree) requires it: `pm task add … --requires <task id>`, or
+`pm task requires <task id> <prerequisite id>` for an existing one; priority is only a hint and orders nothing across
+work trees. When you drop an open task that others require and add one in its place, drop it with
+`--replaced-by <new task id>`.', '2026-10-23T19:47:43Z', NULL, 10, 0, NULL, NULL);
 
 INSERT INTO decision (id, subject, status, options, body, intro, answer, reason, created_at, closed_at, created_by_task, signoff, kind, decided_by_task, consequences) VALUES (1, 'Sign off the masterplan of milestone 1: first version build', 'answered', '["approve"]', '', 'This is the overall roadmap for building the first working version of a small, private bookkeeping app for one Airbnb apartment. The app turns every booking and every cost into amounts per calendar day, so it can answer whether hosting pays off, whether prices are set well, and how things are trending. The roadmap splits the build into parts, starting with a short architecture document the owner approves before anything else is built, and ending with a check against the real Airbnb export.
 
