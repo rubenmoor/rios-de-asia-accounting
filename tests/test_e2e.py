@@ -14,7 +14,6 @@ October 2026, listings "Large 4 bed …" and "Master bedroom …":
   09-15, 23 days of 6.576 = 151.248; maintenance 180.000; 4 hours logged
 """
 
-import io
 import re
 import shutil
 from datetime import date
@@ -30,11 +29,6 @@ LISTINGS = [
     "Master bedroom in beautiful neighbourhood",
 ]
 TODAY = date(2026, 10, 23)
-TRM = (
-    "VALOR,UNIDAD,VIGENCIADESDE,VIGENCIAHASTA\n"
-    "3900.00,COP,09/10/2026,09/10/2026\n"  # after the line date: must not be used
-    "3850.25,COP,08/10/2026,08/10/2026\n"
-)
 
 OCTOBER = {
     "Available nights": "22",
@@ -104,10 +98,8 @@ def _enter_everything(client):
     done = client.post("/import/airbnb/apply", data={"token": token, "listings": LISTINGS}).data
     assert b"Import done" in done
 
-    # rates through the TRM file: typed rates on the Rates page are stored at the wrong scale
-    data = {"file": (io.BytesIO(TRM.encode()), "trm.csv"), "currency": "USD"}
-    page = client.post("/import/rates", data=data, content_type="multipart/form-data").data
-    assert b"2 added" in page
+    for day, rate in (("2026-10-08", "3850.25"), ("2026-10-09", "3900.00")):
+        _ok(client.post("/rates/new", data={"date": day, "currency": "USD", "rate": rate}))
 
     _ok(
         client.post(

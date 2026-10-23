@@ -79,9 +79,9 @@ def test_format_hours():
 
 
 def test_rates_dates_months():
-    assert forms.parse_rate("4100.5") == 41005000
-    assert forms.format_rate(41005000) == "4100.50"
-    assert forms.format_rate(41000000) == "4100"
+    assert forms.parse_rate("4100.5") == 410050
+    assert forms.format_rate(410050) == "4100.50"
+    assert forms.format_rate(410000) == "4100"
     with pytest.raises(ValueError):
         forms.parse_rate("4100.123")
     assert forms.parse_date("2026-03-05") == date(2026, 3, 5)
@@ -506,7 +506,7 @@ def test_rates_create_recompute_edit_delete(client, db_path):
     )
     assert response.status_code == 302
     (rate,) = repo.list_exchange_rates(conn)
-    assert (rate.currency, rate.rate) == ("USD", 40_005_000)
+    assert (rate.currency, rate.rate) == ("USD", 400_050)
     first = repo.get_booking(conn, bid)
     assert not first.needs_rate and first.net_payout > 0
     page = client.get("/rates").data
@@ -592,6 +592,17 @@ def test_import_rates_file(client, db_path):
     assert b"USD rates:" in page and b"added" in page
     assert repo.list_exchange_rates(_db(db_path))
     assert b"3-letter" in _upload(client, "trm_sample.csv", "/import/rates", currency="x").data
+
+
+def test_typed_rate_equals_trm_imported_rate(client, db_path):
+    _upload(client, "trm_sample.csv", "/import/rates", currency="usd")
+    conn = _db(db_path)
+    (imported,) = [r for r in repo.list_exchange_rates(conn) if r.date == date(2026, 10, 6)]
+    assert imported.rate == 320_978
+    assert b"3209.78" in client.get("/rates").data
+    client.post("/rates/new", data={"date": "2026-10-07", "currency": "USD", "rate": "3209.78"})
+    (typed,) = [r for r in repo.list_exchange_rates(conn) if r.date == date(2026, 10, 7)]
+    assert typed.rate == imported.rate
 
 
 # --- dashboard ------------------------------------------------------------------------------

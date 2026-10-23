@@ -7,7 +7,6 @@ from decimal import Decimal
 from typing import Any
 
 from airbnb_books.model import Booking
-from airbnb_books.money import RATE_SCALE
 from airbnb_books.storage.repo import ValidationError
 
 _MONEY = re.compile(r"\d+|\d{1,3}(?:[.,  ]\d{3})+")
@@ -50,11 +49,11 @@ def parse_rate(text: str) -> int:
     cleaned = text.strip().replace(",", "")
     if not _RATE.fullmatch(cleaned):
         raise ValueError("enter a rate with up to 2 decimals after a dot, e.g. 4100.50")
-    return int(Decimal(cleaned) * RATE_SCALE)
+    return int(Decimal(cleaned) * 100)
 
 
 def format_rate(rate: int) -> str:
-    text = f"{Decimal(rate) / RATE_SCALE:.2f}"
+    text = f"{Decimal(rate) / 100:.2f}"
     return text[:-3] if text.endswith(".00") else text
 
 
