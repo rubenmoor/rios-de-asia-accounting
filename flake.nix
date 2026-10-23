@@ -91,6 +91,7 @@
             pkgs.git
             pkgs.ruff
             pkgs.sqlite
+            pkgs.nodejs
           ];
         };
       });
