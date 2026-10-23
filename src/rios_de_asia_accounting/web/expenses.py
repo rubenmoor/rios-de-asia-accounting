@@ -85,6 +85,13 @@ def _fill_recurring(form: Form, item: RecurringExpense) -> None:
     item.end_month = end.isoformat()[:7] if end else None
 
 
+def _recurring_saved(created: int) -> str:
+    return f"Recurring expense saved; {created} expense(s) generated."
+
+
+RECURRING_DELETED = "Recurring expense deleted; the expenses it generated are kept."
+
+
 def register(app: Flask) -> None:
     def expenses() -> str:
         conn = get_db()
@@ -164,7 +171,7 @@ def register(app: Flask) -> None:
         if not form.ok:
             return None
         created = generate_recurring(conn, date.today())
-        flash(f"Recurring expense saved; {created} expense(s) generated.")
+        flash(_recurring_saved(created))
         return redirect(url_for("recurring_edit", item_id=item.id))
 
     def recurring_new() -> str | Response:
@@ -208,7 +215,7 @@ def register(app: Flask) -> None:
 
     def recurring_delete(item_id: int) -> Response:
         repo.delete_recurring_expense(get_db(), item_id)
-        flash("Recurring expense deleted; the expenses it generated are kept.")
+        flash(RECURRING_DELETED)
         return redirect(url_for("recurring"))
 
     app.add_url_rule("/expenses", "expenses", expenses)

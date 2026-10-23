@@ -194,6 +194,26 @@ Endpoints (method, path, request → response):
   → as `POST`.
 - `DELETE /api/bookings/<id>` — → `{data: null, notices: ["Booking deleted."]}`; blocked
   by expenses → `422 {"errors": {"": "Booking not deleted: …. Delete its expenses first."}}`.
+- `GET /api/expenses?from=&to=&category=` — filters optional (bad value → `422`) → list,
+  newest first, of `{id, date, amount, category, booking_id, useful_life_days,
+  description, recurring_expense_id}` (`amount` integer pesos).
+- `GET /api/expenses/<id>` — one such item.
+- `GET /api/expenses/options` — `{"categories": ["fixed", …], "bookings": [{"id", "label"}]}`
+  (newest booking first).
+- `POST /api/expenses`, `PUT /api/expenses/<id>` — `{date, amount, category, description?,
+  booking_id? (per_booking, required there), useful_life_days? (capex, required there)}`
+  → `{data: <item>, notices: ["Expense saved."]}`.
+- `DELETE /api/expenses/<id>` — → `{data: null, notices: ["Expense deleted."]}`.
+- `GET /api/recurring` — list of `{id, description, amount, category, start_month,
+  end_month}` (months `YYYY-MM`, `end_month` may be `null`).
+- `GET /api/recurring/options` — `{"categories": [...]}`.
+- `GET /api/recurring/<id>` — the item plus `generated`: its expenses (expense items, newest first).
+- `POST /api/recurring`, `PUT /api/recurring/<id>` — `{description, amount, category,
+  start_month, end_month?}` → `{data: <item with generated>, notices: ["Recurring expense
+  saved; N expense(s) generated."]}`; only months not yet generated are affected
+  (`decision 16: changing a recurring expense template only affects months not yet generated`).
+- `DELETE /api/recurring/<id>` — → `{data: null, notices: ["Recurring expense deleted;
+  the expenses it generated are kept."]}`.
 
 ## 4. Tests
 
