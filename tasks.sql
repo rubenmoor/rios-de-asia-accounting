@@ -191,7 +191,7 @@ INSERT INTO milestone (id, subject, status, body, created_at, implemented_at, qu
 
 * don''t change functionality
 * add a favicon', '2026-10-23T22:34:21Z', NULL, 0);
-INSERT INTO milestone (id, subject, status, body, created_at, implemented_at, queue_index) VALUES (3, 'add a proper client-side framework', 'open', 'the architecture spec are terrible. we want a proper client-side framework. your choice. we totally can have build steps. this becomes a classic web app, only that its server runs locally on my pc.', '2026-10-23T22:40:12Z', NULL, 0);
+INSERT INTO milestone (id, subject, status, body, created_at, implemented_at, queue_index) VALUES (3, 'add a proper client-side framework', 'implemented', 'the architecture spec are terrible. we want a proper client-side framework. your choice. we totally can have build steps. this becomes a classic web app, only that its server runs locally on my pc.', '2026-10-23T22:40:12Z', '2026-10-23T23:25:52Z', 0);
 
 INSERT INTO plan (id, milestone_id, subject, priority, body, intro, created_at, created_by_task) VALUES (1, 1, 'masterplan', 1000, 'Build the first version of the app described in `airbnb-bookkeeping-spec.md`: a local, single-user, single-property bookkeeping tool that allocates all income and costs per calendar day, imports the Airbnb transaction CSV (`airbnb_.csv` is a real sample), and shows a dashboard with metrics, a rolling 90-day chart and an expense breakdown. Only the spec''s "v1" features are in scope; its "Later" list is not.
 
