@@ -39,8 +39,6 @@
             mkdir -p src/rios_de_asia_accounting/web/dist
             cp -r --no-preserve=mode ${self.packages.${system}.frontend}/. src/rios_de_asia_accounting/web/dist/
           '';
-          # the tests assume no bundle (an unknown page is a plain 404): drop it once the wheel is built
-          postBuild = "rm -rf src/rios_de_asia_accounting/web/dist";
           build-system = [ pkgs.python3Packages.setuptools ];
           dependencies = with pkgs.python3Packages; [ flask jinja2 waitress ];
           nativeCheckInputs = [ pkgs.python3Packages.pytestCheckHook ];
