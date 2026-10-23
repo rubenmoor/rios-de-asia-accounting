@@ -4,8 +4,7 @@ from urllib.parse import urlparse
 
 from flask import Flask, abort, g, render_template, request
 
-from airbnb_books import __version__
-from airbnb_books.web import blocked, bookings, expenses, importing, settings, timelog
+from airbnb_books.web import blocked, bookings, dashboard, expenses, importing, settings, timelog
 from airbnb_books.web.app_db import get_db  # noqa: F401  (re-exported)
 from airbnb_books.web.forms import format_money, format_rate
 
@@ -54,16 +53,13 @@ def create_app(db_path: str | Path) -> Flask:
         active = next((e for e, url, _ in NAV if request.path.startswith(url)), None)
         return {"nav": NAV, "active": active}
 
-    @app.route("/")
-    def index() -> str:
-        return render_template("index.html", version=__version__)
-
     def register_stub(endpoint: str, url: str, title: str) -> None:
         def view() -> str:
             return render_template("stub.html", title=title)
 
         app.add_url_rule(url, endpoint, view)
 
+    dashboard.register(app)
     bookings.register(app)
     expenses.register(app)
     blocked.register(app)

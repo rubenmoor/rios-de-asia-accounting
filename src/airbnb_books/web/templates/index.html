@@ -1,5 +1,32 @@
 {% extends "base.html" %}
+{% block title %}Dashboard · airbnb-books{% endblock %}
 {% block content %}
-<h1>airbnb-books</h1>
-<p>Version {{ version }}</p>
+<h1>Dashboard</h1>
+{% if needing %}
+<div class="flash warning"><a href="{{ url_for('rates') }}">{{ needing }} booking{{ '' if needing == 1 else 's' }} need{{ 's' if needing == 1 else '' }} an exchange rate</a></div>
+{% endif %}
+<form method="get">
+  <label>Month <input type="month" name="month" value="{{ form.month }}"></label>
+  <label>From <input type="date" name="from" value="{{ form['from'] }}"></label>
+  <label>To <input type="date" name="to" value="{{ form['to'] }}"></label>
+  {% for message in messages %}<div class="error">{{ message }}</div>{% endfor %}
+  <button>Apply</button>
+  <a class="button" href="{{ url_for('index') }}">Reset</a>
+</form>
+{% if empty %}
+<p>Nothing here yet: <a href="{{ url_for('import') }}">import the Airbnb CSV</a> or <a href="{{ url_for('booking_new') }}">add a booking</a>.</p>
+{% else %}
+<table>
+  <tr>
+    <th>COP unless stated</th>
+    {% for label, dates in heads %}<th class="num">{{ label }}<br><span class="hint">{{ dates }}</span></th>{% endfor %}
+  </tr>
+  {% for label, cells in rows %}
+  <tr>
+    <td>{{ label }}</td>
+    {% for text, negative in cells %}<td class="num"{% if negative %} style="color:#b00020"{% endif %}>{{ text }}</td>{% endfor %}
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
 {% endblock %}

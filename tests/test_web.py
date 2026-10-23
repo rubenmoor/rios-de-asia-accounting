@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from airbnb_books.model import Booking, BookingLine, Expense, Settings
+from airbnb_books.model import Booking, BookingLine, Expense, Settings, TimeEntry
 from airbnb_books.storage import repo
 from airbnb_books.storage.db import connect, migrate
 from airbnb_books.web import forms
@@ -35,7 +35,8 @@ def test_index(client):
 
 @pytest.mark.parametrize("url", [url for _, url, _ in NAV])
 def test_nav_links_render(client, url):
-    assert client.get("/").data.count(f'href="{url}"'.encode()) == 1
+    nav = client.get("/").data.split(b"</nav>")[0]
+    assert nav.count(f'href="{url}"'.encode()) == 1
     assert client.get(url).status_code == 200
 
 
@@ -590,3 +591,65 @@ def test_import_rates_file(client, db_path):
     assert b"USD rates:" in page and b"added" in page
     assert repo.list_exchange_rates(_db(db_path))
     assert b"3-letter" in _upload(client, "trm_sample.csv", "/import/rates", currency="x").data
+
+
+# --- dashboard ------------------------------------------------------------------------------
+
+
+def _dash_app(db_path, today=date(2026, 3, 10)):
+    app = create_app(db_path)
+    app.config["TODAY"] = today
+    return app.test_client()
+
+
+def _seed_dashboard(db_path):
+    conn = _db(db_path)
+    repo.create_booking(
+        conn, Booking(date(2026, 3, 1), date(2026, 3, 4), airbnb_code="A"), 1_500_000
+    )
+    repo.create_expense(conn, Expense(date(2026, 3, 1), 310_000, "fixed"))
+    repo.create_time_entry(conn, TimeEntry(date(2026, 3, 2), 90))
+
+
+def test_dashboard_empty(db_path):
+    page = _dash_app(db_path).get("/").data
+    assert b"Nothing here yet" in page and b"<table" not in page
+
+
+def test_dashboard_standard_columns(db_path):
+    _seed_dashboard(db_path)
+    page = _dash_app(db_path).get("/").data.decode()
+    for head in ("All time", "Last 90 days", "Last 30 days", "This month", "Month 2026-02"):
+        assert head in page
+    assert "Custom" not in page
+    # March 1-10: 10 nights, 3 occupied, income 1.500.000, fixed cost 100.000, 1.5 hours
+    assert "30.0 %" in page and "500.000" in page and "1.400.000" in page
+    assert "933.333" in page  # profit per hour
+    assert ">1.5<" in page
+    assert "–" in page  # February has no days: ratios are dashes
+
+
+def test_dashboard_month_and_custom(db_path):
+    _seed_dashboard(db_path)
+    page = _dash_app(db_path).get("/?month=2026-03&from=2026-03-02&to=2026-03-03").data.decode()
+    assert "Month 2026-03" in page and "Custom" in page and "2026-03-02 – 2026-03-03" in page
+
+
+def test_dashboard_invalid_input(db_path):
+    _seed_dashboard(db_path)
+    client = _dash_app(db_path)
+    page = client.get("/?from=2026-03-05&to=2026-03-01")
+    assert page.status_code == 200 and b"must not be after" in page.data
+    assert b"Custom" not in page.data
+    page = client.get("/?month=nope&from=x&to=y")
+    assert page.status_code == 200 and b"YYYY-MM" in page.data and b"YYYY-MM-DD" in page.data
+    assert b"Month 20" not in page.data
+
+
+def test_dashboard_needs_rate_notice(db_path):
+    _seed_dashboard(db_path)
+    conn = _db(db_path)
+    bid = repo.create_booking(conn, Booking(date(2026, 3, 6), date(2026, 3, 8)))
+    repo.add_line(conn, BookingLine(bid, "Reservation", date(2026, 3, 6), "USD", 10000))
+    page = _dash_app(db_path).get("/").data
+    assert b"1 booking needs an exchange rate" in page
