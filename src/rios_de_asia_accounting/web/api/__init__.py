@@ -7,6 +7,7 @@ from rios_de_asia_accounting.web.api import (  # noqa: F401  (register their rou
     bookings,
     dashboard,
     expenses,
+    importing,
     rates,
     settings,
     system,
