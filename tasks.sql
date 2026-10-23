@@ -1497,10 +1497,10 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 - Build on the plans of parts 1 and 2 (written by the tasks this one requires); the plan''s tasks name which of their implementation tasks they need.
 - Waits for `decision 25: In which order do the visual design update and the new client-side framework happen, and does the design work move onto the new screens?`.
 - Of the plan-writing tasks waiting for `decision 25`, whichever finishes last (pm show tells) records its consequences with `pm decision consequences 25 "…"`: what happens to `plan 11: masterplan` and its tasks, and to `decision 23: How do Tailwind CSS and daisyUI get into an app that promised no build step and no network?`. If the answer means milestone 2 changes, raise a decision for the human rather than editing it.', '2026-10-23T22:43:05Z', '2026-10-23T22:50:13Z', 62, 0, NULL, 'main');
-INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (68, 12, 'write the plan for part 6: retire the server-rendered pages', 'plan', 'open', 1000, NULL, 'Write the plan for part 6 of `plan 12: masterplan` ("Retire the server-rendered pages"): `pm plan add 3 "retire the server-rendered pages" --priority 400 --intro "…"` with the full body.
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (68, 12, 'write the plan for part 6: retire the server-rendered pages', 'plan', 'done', 1000, '2026-10-23, plan 18: retire the server-rendered pages (priority 400)', 'Write the plan for part 6 of `plan 12: masterplan` ("Retire the server-rendered pages"): `pm plan add 3 "retire the server-rendered pages" --priority 400 --intro "…"` with the full body.
 
 - Scope as in the masterplan''s part 6: delete Jinja templates, HTML routes, `web/charts.py` if fully ported, unused Jinja filters; update `pyproject.toml` package data; reduce `tests/test_web.py`/`tests/test_e2e.py` to API tests; README (run, develop, build) and `architecture-spec.md` final; an end-to-end check with the real `airbnb_.csv` through the running app.
-- Its tasks `--requires` the implementation tasks of parts 3–5 (data screens, dashboard and charts, import flow), whose plans the required tasks wrote.', '2026-10-23T22:43:05Z', NULL, 62, 0, NULL, 'main');
+- Its tasks `--requires` the implementation tasks of parts 3–5 (data screens, dashboard and charts, import flow), whose plans the required tasks wrote.', '2026-10-23T22:43:05Z', '2026-10-23T22:51:29Z', 62, 0, NULL, 'main');
 INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (69, 13, 'create tasks for plan 13: JSON API', 'split', 'done', 1000, '2026-10-23, tasks 70-76', 'Split `plan 13: JSON API` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
 done and dropped ones stay as they are (pm refuses to change them): drop the open ones that no longer fit and add
 tasks for what the plan asks beyond them. A task that writes a plan gets `--kind plan`. A task that needs another
@@ -1590,7 +1590,7 @@ task''s result (in this plan or another, in any work tree) requires it: `pm task
 `pm task requires <task id> <prerequisite id>` for an existing one; priority is only a hint and orders nothing across
 work trees. When you drop an open task that others require and add one in its place, drop it with
 `--replaced-by <new task id>`.', '2026-10-23T22:45:48Z', '2026-10-23T22:45:51Z', 63, 0, NULL, NULL);
-INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (79, 14, 'Rewrite architecture-spec.md sections 1-3 for React + Vite + Flask JSON API', 'work', 'open', NULL, NULL, 'Rewrite the stack part of `architecture-spec.md` so it describes the new architecture of milestone 3 (see `plan 14: architecture and client toolchain`, "Choices this plan makes").
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (79, 14, 'Rewrite architecture-spec.md sections 1-3 for React + Vite + Flask JSON API', 'work', 'done', NULL, '2026-10-23, architecture-spec.md', 'Rewrite the stack part of `architecture-spec.md` so it describes the new architecture of milestone 3 (see `plan 14: architecture and client toolchain`, "Choices this plan makes").
 
 - **Section 1 (tech stack and UI)**: per `decision 24: client-side framework: React with TypeScript, built by Vite, on top of a JSON API from the existing Python server`: React 19 + TS (strict) SPA, React Router (today''s URLs: `/` and the `NAV` paths of `web/app.py`, plus a not-found page), TanStack Query, Tailwind v4 + daisyUI 5 with plain daisyUI defaults (`decision 25`: no custom theme yet, only daisyUI component classes), Biome, Vitest for pure helpers; Flask stays the authoritative backend with a JSON API under `/api` (point to the "JSON API" section `plan 13: JSON API` adds); offline (no CDN, no network fonts); same-origin guard for writes; Quit button → `POST /api/quit` → "stopped" screen.
 - **Section 2 (Nix packaging)**: `frontend` derivation with `buildNpmPackage` + `importNpmLock` from `package-lock.json`, its `dist` copied into `src/rios_de_asia_accounting/web/dist` before the Python build; dev shell adds `nodejs`; check `frontend-lint` (`biome check`, `tsc --noEmit`, `vitest run`) next to the existing ones.
@@ -1598,7 +1598,7 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 - Sections 4–7: keep; only where they name Jinja, HTML templates or `charts.py`, mark those as "until part 6" (they go when the HTML routes are deleted).
 - Docs only, no code. Checks: none beyond reading the result; `pytest` still green.
 
-Done when: sections 1–3 describe the new architecture with the choices above and nothing in 4–7 contradicts it.', '2026-10-23T22:46:24Z', NULL, 77, 0, NULL, 'main');
+Done when: sections 1–3 describe the new architecture with the choices above and nothing in 4–7 contradicts it.', '2026-10-23T22:46:24Z', '2026-10-23T22:52:05Z', 77, 0, NULL, 'main');
 INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (80, 14, 'Frontend skeleton and app shell in frontend/', 'work', 'open', NULL, NULL, 'Create the client project and the empty app frame (`plan 14: architecture and client toolchain`, "Choices this plan makes"; stack from `decision 24: client-side framework: React with TypeScript, built by Vite, on top of a JSON API from the existing Python server`).
 
 - `frontend/` at the repo root: `package.json` + `package-lock.json` (commit both), Vite, React 19, TypeScript strict, React Router, TanStack Query, Tailwind v4 + daisyUI 5, Biome, Vitest. Scripts: `dev`, `build`, `typecheck` (`tsc --noEmit`), `lint` (`biome check`), `test` (`vitest run`).
@@ -1755,13 +1755,65 @@ What:
 API gaps → follow-up task in `plan 13: JSON API`, no client workaround.
 
 Done when: in `frontend/` `npm run build`, `npm run typecheck`, `npm run lint`, `npm test` are green; with the server (`--no-browser --port 8080`) on a **copy** of the real database plus the Vite dev server, loading a TRM fixture from `tests/fixtures` shows the same counts as the Jinja page, and a bad currency shows the field error with the typed text kept.', '2026-10-23T22:50:21Z', NULL, 91, 0, NULL, 'main');
-INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (94, 18, 'create tasks for plan 18: retire the server-rendered pages', 'split', 'open', 1000, NULL, 'Split `plan 18: retire the server-rendered pages` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (94, 18, 'create tasks for plan 18: retire the server-rendered pages', 'split', 'done', 1000, '2026-10-23, tasks 97, 98, 95, 96', 'Split `plan 18: retire the server-rendered pages` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
 done and dropped ones stay as they are (pm refuses to change them): drop the open ones that no longer fit and add
 tasks for what the plan asks beyond them. A task that writes a plan gets `--kind plan`. A task that needs another
 task''s result (in this plan or another, in any work tree) requires it: `pm task add … --requires <task id>`, or
 `pm task requires <task id> <prerequisite id>` for an existing one; priority is only a hint and orders nothing across
 work trees. When you drop an open task that others require and add one in its place, drop it with
-`--replaced-by <new task id>`.', '2026-10-23T22:51:21Z', NULL, 68, 0, NULL, NULL);
+`--replaced-by <new task id>`.', '2026-10-23T22:51:21Z', '2026-10-23T22:52:29Z', 68, 0, NULL, NULL);
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (95, 18, 'README and architecture spec describe the final app', 'work', 'open', NULL, NULL, 'Bring the docs in line with the app after the server-rendered pages are gone (`plan 18: retire the server-rendered pages`).
+
+- `README.md`: sections Install, Run and quit, Import, Exchange rates kept, but checked against the React screens (names of buttons, menu entries, URLs). Keep "Develop" (from `task 81: Flask serves the built frontend; Vite dev proxy; README Develop section`); add a "Build" section: `nix build`, `npm run build` for a local bundle, and which checks run where (pytest/ruff vs. `npm run …` vs. `nix flake check`).
+- `architecture-spec.md`: remove every "until part 6" mark and every mention of Jinja, `charts.py` or HTML routes; check the "JSON API" section against the actual endpoints under `web/api/` and fix differences in the spec (not the code).
+- Code differences you find that look like bugs: follow-up task, not a fix here.
+
+Checks: `pytest`, `ruff check src tests`, `ruff format --check src tests`.
+
+Done when both documents describe the app as it is.', '2026-10-23T22:52:01Z', NULL, 94, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (96, 18, 'End-to-end check of the built app with the real Airbnb export', 'work', 'open', NULL, NULL, 'Manual run-through of the finished app with the real export, to confirm nothing was lost in milestone 3 (`plan 18: retire the server-rendered pages`). No code fixes here.
+
+- `nix build`, run the built app with `--no-browser --port …` on a fresh database in a temp dir (point XDG_DATA_HOME there; don''t touch the real database or the Dropbox backups).
+- Through a headless browser (ad-hoc screenshots fine): import `airbnb_.csv` with the listing choice; load a TRM file or type a rate; add an expense, a recurring template, a blocked day, a time entry; edit settings; dashboard for a month and a custom range, both charts; reload bookmark-style URLs (`/bookings/<id>`, `/?month=…`); Quit.
+- Compare dashboard numbers with the pre-deletion app (checkout of the commit before `task 98: Delete the server-rendered pages, templates and charts.py`, in a separate git worktree) on the same file and inputs.
+- Anything wrong: a follow-up task in the plan it belongs to (`plan 13: JSON API`, `plan 15: data screens`, `plan 16: dashboard and charts`, `plan 17: import flow`, or this plan), with what, where, done when.
+- Delete temp dirs, screenshots and worktrees afterwards.
+
+Done when every screen worked or has a follow-up task, and the findings are in the task''s done note.', '2026-10-23T22:52:01Z', NULL, 94, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (97, 18, 'End-to-end test through the JSON API', 'work', 'open', 410, NULL, 'Rewrite `tests/test_e2e.py` so it drives the app through `/api` instead of scraping HTML, before the HTML pages are deleted (`plan 18: retire the server-rendered pages`).
+
+- Same scenario, same hand-computed October 2026 numbers; the docstring stays the reference and is not changed.
+- Steps via the JSON API: Airbnb import with the listing choice, exchange rates, expenses, time entries, dashboard JSON values, `POST /api/quit`, then backup and restore.
+- Assertions on the numbers stay the same (compare JSON values, not formatted strings, unless the API returns formatted ones). Per `decision 10: a figure that cannot be computed is shown as empty, not as zero`, uncomputable ratios are `null`.
+- Don''t touch the HTML routes or other tests; this only needs the JSON API.
+
+Checks: `pytest`, `ruff check src tests`, `ruff format --check src tests`.
+
+Done when the rewritten e2e test passes and uses no HTML route.', '2026-10-23T22:52:21Z', NULL, 94, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (98, 18, 'Delete the server-rendered pages, templates and charts.py', 'work', 'open', 410, NULL, 'Remove the Jinja side of the Flask app so it is only the JSON API plus the built React bundle (`decision 24: client-side framework: React with TypeScript, built by Vite, on top of a JSON API from the existing Python server`). No functional change: every URL of today must open the React screen via the index.html fallback. Details in `plan 18: retire the server-rendered pages`, sections "What goes, what stays" and "Tests".
+
+**Delete**
+- `web/templates/` (all templates incl. `stopped.html`).
+- HTML view functions and their `register(app)` calls in `web/dashboard.py`, `bookings.py`, `expenses.py`, `blocked.py`, `timelog.py`, `settings.py`, `importing.py`; `POST /quit` (keep `POST /api/quit`).
+- In `web/app.py`: Jinja filters `money`, `rate`, `hours`, the `nav` context processor, `NAV` if nothing reads it, `app.secret_key`/`flash` if unused.
+- `web/charts.py` and `tests/test_charts.py` (first check nothing in `web/api/` imports it).
+
+**Move**
+- Helpers the API still uses from those modules (`_overlaps`, `_needs_rate_message`, dashboard period handling, import token/temp-file handling, `booking_options`, …) go next to their API module or into one plain helper module in `web/`. No module may remain that only existed for deleted pages. Drop the leading underscore where they become cross-module. No behaviour change.
+
+**Keep**: `web/forms.py`, `web/app_db.py`, the same-origin guard, bundle serving and fallback.
+
+**Packaging**: `pyproject.toml` package data without `web/templates/*.html` (keep `web/dist/**/*` and migrations); drop the explicit `jinja2` dependency from `pyproject.toml` and `flake.nix`.
+
+**Tests** (AGENTS.md: sparse)
+- `tests/test_web.py`: keep parser/helper tests (`parse_money`, `parse_hours`, `format_*`, `Form`, `booking_options`, one connection per request); rename to `tests/test_forms.py` if only those remain; delete HTML route tests.
+- Before deleting a route test, check its rule is covered by a `tests/test_api_<resource>.py` test; port only uncovered ones as API tests (likely: typed rate equals TRM-imported rate, expense fields ignored for other categories, recurring edit keeps generated rows).
+
+**Verify** with a built bundle: `GET /`, `/bookings/<id>`, `/rates/<day>/<currency>` answer 200 with `index.html`; unknown `/api/...` stays a JSON 404; `/assets/...` load.
+
+Checks: `pytest`, `ruff check src tests`, `ruff format --check src tests`; in `frontend/`: `npm run build`, `npm run typecheck`, `npm run lint`, `npm test`; `nix flake check`.
+
+Done when no template, HTML route or `charts.py` is left and all checks are green.', '2026-10-23T22:52:21Z', NULL, 94, 0, 'opus', 'main');
 
 INSERT INTO decision (id, subject, status, options, body, intro, answer, reason, created_at, closed_at, created_by_task, signoff, kind, decided_by_task, consequences) VALUES (1, 'Sign off the masterplan of milestone 1: first version build', 'answered', '["approve"]', '', 'This is the overall roadmap for building the first working version of a small, private bookkeeping app for one Airbnb apartment. The app turns every booking and every cost into amounts per calendar day, so it can answer whether hosting pays off, whether prices are set well, and how things are trending. The roadmap splits the build into parts, starting with a short architecture document the owner approves before anything else is built, and ending with a check against the real Airbnb export.
 
@@ -1876,7 +1928,10 @@ INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, b
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (67, 88, '2026-10-23T22:48:38Z', '2026-10-23T22:49:20Z', 'done', NULL, 0, 'aa3d0dd29506453a93b149b264707e1d1b32aaac', NULL, 'claude-opus-5-5', 'ad16137b-2b98-4053-98b7-888c31a2b73c', NULL, 9, 18, 3358, 261218, 23736, 0.3093636, 35610, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (68, 67, '2026-10-23T22:48:52Z', '2026-10-23T22:50:23Z', 'done', NULL, 0, 'aa3d0dd29506453a93b149b264707e1d1b32aaac', 'main', 'claude-opus-5-5', 'b45cb0e4-6f1a-4a27-a7f1-1a41f91ac4b0', NULL, 11, 22, 6883, 566408, 59449, 0.7266216, 71320, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (69, 91, '2026-10-23T22:49:56Z', '2026-10-23T22:50:31Z', 'done', NULL, 0, 'fd1f04c2eb8a9146a1c95f31c04d042aea00e878', NULL, 'claude-opus-5-5', '8079d8fe-b645-40ab-84d3-363baf255dcc', NULL, 5, 10, 2393, 127332, 20550, 0.23776640000000002, 32702, 60, 1465683);
-INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (70, 68, '2026-10-23T22:50:23Z', NULL, 'running', NULL, NULL, 'fd1f04c2eb8a9146a1c95f31c04d042aea00e878', 'main', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (70, 68, '2026-10-23T22:50:23Z', '2026-10-23T22:51:37Z', 'done', NULL, 0, 'fd1f04c2eb8a9146a1c95f31c04d042aea00e878', 'main', 'claude-opus-5-5', '82404eb4-aabf-4849-9fe0-3743bb3aea10', NULL, 11, 22, 6948, 473000, 46618, 0.606592, 59220, 60, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (71, 94, '2026-10-23T22:51:23Z', '2026-10-23T22:52:35Z', 'done', NULL, 0, 'a7c0f2b322431a1f436f4af0c7738dc83068f5fe', NULL, 'claude-opus-5-5', '79f4b6a7-0dfb-4548-91f9-885df33b913c', NULL, 11, 22, 6830, 401954, 34360, 0.49195880000000003, 46720, 60, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (72, 79, '2026-10-23T22:51:37Z', '2026-10-23T22:52:11Z', 'done', NULL, 0, 'a7c0f2b322431a1f436f4af0c7738dc83068f5fe', 'main', 'claude-sonnet-5-5', 'b8654fde-9001-40ac-b4b0-185849fef2c5', NULL, 5, 10, 4424, 128141, 38696, 0.2118581, 39287, 60, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (73, 80, '2026-10-23T22:52:11Z', NULL, 'running', NULL, NULL, '1947d8645de1c70eac18e5c157e1c54e809f0a84', 'main', NULL, NULL, 72, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1465683);
 
 INSERT INTO task_decision (task_id, decision_id) VALUES (2, 1);
 INSERT INTO task_decision (task_id, decision_id) VALUES (4, 2);
@@ -2000,3 +2055,25 @@ INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (92, 80);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (92, 81);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (92, 84);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (93, 92);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (95, 79);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (95, 98);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (96, 95);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (96, 98);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (97, 70);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (97, 71);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (97, 72);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (97, 73);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (97, 74);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (97, 75);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (97, 76);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (98, 81);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (98, 82);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (98, 84);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (98, 85);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (98, 86);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (98, 87);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (98, 89);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (98, 90);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (98, 92);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (98, 93);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (98, 97);
