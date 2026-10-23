@@ -141,6 +141,41 @@ Dev workflow:
 - Frontend scripts: `dev`, `build`, `typecheck` (`tsc --noEmit`), `lint`
   (`biome check`), `test` (`vitest run`).
 
+### JSON API
+
+Code: package `web/api/`, one Flask blueprint at `/api`, one module per resource;
+helpers in `web/api/common.py`. The API reuses the parsers of `web/forms.py` and the
+helpers of the HTML routes; it never duplicates their logic. Each endpoint task adds
+its lines to the list at the end of this section; part 3's TypeScript types mirror it.
+
+- **Input:** a write request sends a JSON object of strings exactly as typed
+  (`{"net_payout": "1.234.567", "check_in": "2026-01-05"}`), multi-value fields as
+  arrays of strings. It is read by `read_form()` into `Form(data, lists)`, so the
+  parsers and messages are today's. A body that is not such an object → `400`.
+  File uploads are `multipart/form-data`.
+- **Output values:** money as integer pesos, minutes as integer minutes, exchange
+  rates as the stored integer (COP × 100), dates `YYYY-MM-DD`, months `YYYY-MM`,
+  ratios as plain numbers (0.42, not 42 %). A figure that cannot be computed is
+  `null`, never `0` (`decision 10: a figure that cannot be computed is shown as empty, not as zero`).
+  Display formatting is the client's.
+- **Reads (`GET`):** return the resource JSON directly. Options a form needs come
+  with a small `GET /api/<resource>/options`.
+- **Writes (`POST` create, `PUT` update, `DELETE`):** `200 {"data": <saved item or null>, "notices": [...]}`
+  (`ok(data, notices)`).
+- **Notices** (today's flash messages): `{"level": "info" | "warning" | "error", "text": "…"}`
+  with today's texts.
+- **Errors:** invalid input → `422 {"errors": {"<field>": "<message>"}}`, one message
+  per field from the parsers, form-level errors (repo `ValidationError`) under key `""`
+  (`invalid(form, exc)`). Everything else under `/api` is `{"error": "<text>"}`:
+  `400` bad body, `403` cross-origin write, `404` unknown path or id, `405` bad method.
+  HTML routes keep their pages.
+- **Same-origin guard:** applies to every non-`GET` method, HTML and API alike.
+
+Endpoints (method, path, request → response):
+
+- `POST /api/quit` — no body → `200 {"data": null, "notices": []}`; the server shuts
+  down after the response.
+
 ## 4. Tests
 
 - **pytest**, run by `pytest` in the dev shell and by `nix build` / `nix flake check`.

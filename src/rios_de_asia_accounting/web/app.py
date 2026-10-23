@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 from flask import Flask, abort, g, render_template, request
 
 from rios_de_asia_accounting.web import (
+    api,
     blocked,
     bookings,
     dashboard,
@@ -41,11 +42,12 @@ def create_app(db_path: str | Path, shutdown: Callable[[], None] | None = None) 
     app = Flask(__name__)
     app.secret_key = os.urandom(24)  # only signs flash messages of this run
     app.config["DB_PATH"] = str(db_path)
+    app.config["SHUTDOWN"] = shutdown
 
     @app.before_request
     def guard() -> None:
         g.app_db_path = app.config["DB_PATH"]
-        if request.method == "POST" and not _same_origin():
+        if request.method != "GET" and not _same_origin():
             abort(403)
 
     @app.teardown_appcontext
@@ -76,5 +78,7 @@ def create_app(db_path: str | Path, shutdown: Callable[[], None] | None = None) 
     timelog.register(app)
     settings.register(app)
     importing.register(app)
+    api.register(app)
+    api.common.register_errors(app)
 
     return app
