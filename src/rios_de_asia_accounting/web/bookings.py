@@ -27,11 +27,22 @@ def _overlaps(conn, booking: Booking) -> list[Booking]:
     ]
 
 
-def _warn_overlap(conn, booking: Booking) -> None:
+def _overlap_message(conn, booking: Booking) -> str | None:
     others = _overlaps(conn, booking)
-    if others:
-        names = ", ".join(f"{b.check_in} – {b.check_out} ({b.guest_name or '-'})" for b in others)
-        flash(f"This stay overlaps another booking: {names}.", "warning")
+    if not others:
+        return None
+    names = ", ".join(f"{b.check_in} – {b.check_out} ({b.guest_name or '-'})" for b in others)
+    return f"This stay overlaps another booking: {names}."
+
+
+def _warn_overlap(conn, booking: Booking) -> None:
+    message = _overlap_message(conn, booking)
+    if message:
+        flash(message, "warning")
+
+
+def _delete_refused(reason: str) -> str:
+    return f"Booking not deleted: {reason}. Delete its expenses first."
 
 
 def _listing_names(conn) -> list[str]:
@@ -173,7 +184,7 @@ def register(app: Flask) -> None:
         if form.ok:
             flash("Booking deleted.")
             return redirect(url_for("bookings"))
-        flash(f"Booking not deleted: {form.errors['']}. Delete its expenses first.", "error")
+        flash(_delete_refused(form.errors[""]), "error")
         return redirect(url_for("booking_detail", booking_id=booking_id))
 
     app.add_url_rule("/bookings", "bookings", bookings)
