@@ -18,9 +18,13 @@
       devShells = forAll (system: pkgs: {
         default = pkgs.mkShell {
           packages = [
+            # first, so `python` is the one with the libraries, not a bare one pulled in by pm
+            (pkgs.python3.withPackages (ps: [ ps.flask ps.jinja2 ps.waitress ps.pytest ]))
             pm.packages.${system}.default
             pm.packages.${system}.dashboard
             pkgs.git
+            pkgs.ruff
+            pkgs.sqlite
           ];
         };
       });
