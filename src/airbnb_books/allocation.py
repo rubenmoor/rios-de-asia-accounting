@@ -7,7 +7,7 @@ full span with `split`, so the days sum exactly to it; only days up to today are
 import calendar
 from datetime import date, timedelta
 
-from airbnb_books.model import Day, Inputs
+from airbnb_books.model import Booking, Day, Expense, Inputs
 
 
 def split(amount: int, n: int) -> list[int]:
@@ -50,20 +50,74 @@ def _spread(days: dict[date, Day], dates: list[date], amount: int, column: str) 
             setattr(days[day], column, getattr(days[day], column) + part)
 
 
-def _earliest(inputs: Inputs) -> date | None:
-    dates = [
-        *(b.check_in for b in inputs.bookings),
-        *(e.date for e in inputs.expenses),
-        *(b.date for b in inputs.blocked_days),
-        *(t.date for t in inputs.time_log),
-    ]
-    return min(dates, default=None)
+COLUMNS = {
+    "fixed": "cost_fixed",
+    "per_night": "cost_per_night",
+    "per_booking": "cost_per_booking",
+    "maintenance": "cost_maintenance",
+    "capex": "cost_capex",
+    "tax": "cost_tax",
+}
+
+
+def _nights(booking: Booking) -> list[date]:
+    return date_range(booking.check_in, booking.check_out - timedelta(days=1))
+
+
+def _booking_cost_span(booking: Booking, mode: str) -> list[date]:
+    """Days a per-booking cost is spread over: the check-in day, or the booking's nights."""
+    return (mode == "spread" and _nights(booking)) or [booking.check_in]
+
+
+def _expense_span(
+    expense: Expense, bookings: dict[int, Booking], booked: set[date], mode: str
+) -> list[date]:
+    """The days an expense is split over, by its category (future days included)."""
+    match expense.category:
+        case "fixed":
+            return month_days(expense.date)
+        case "per_night":
+            month = month_days(expense.date)
+            return [d for d in month if d in booked] or month
+        case "per_booking" if expense.booking_id in bookings:
+            return _booking_cost_span(bookings[expense.booking_id], mode)
+        case "capex":
+            return date_range(
+                expense.date, expense.date + timedelta(days=(expense.useful_life_days or 1) - 1)
+            )
+        case _:
+            return [expense.date]
 
 
 def allocate(inputs: Inputs, today: date, start: date | None = None) -> list[Day]:
-    """One Day per date from `start` (default: earliest input date) to `today` inclusive."""
+    """One Day per date from `start` to `today` inclusive.
+
+    The default start is the earliest day any input touches: a check-in, a blocked day, a
+    time entry, or the first day an expense is spread over (the 1st of its month for a
+    fixed or per-night cost).
+    """
+    bookings = {b.id: b for b in inputs.bookings if b.id is not None}
+    booked = {night for b in inputs.bookings for night in _nights(b)}
+    mode = inputs.settings.per_booking_allocation
+    items = [
+        (COLUMNS[e.category], _expense_span(e, bookings, booked, mode), e.amount)
+        for e in inputs.expenses
+    ] + [
+        ("cost_per_booking", _booking_cost_span(b, mode), b.cohost_cost)
+        for b in inputs.bookings
+        if b.cohost_cost
+    ]
+
     if start is None:
-        start = _earliest(inputs)
+        start = min(
+            [
+                *(b.check_in for b in inputs.bookings),
+                *(span[0] for _, span, _ in items),
+                *(b.date for b in inputs.blocked_days),
+                *(t.date for t in inputs.time_log),
+            ],
+            default=None,
+        )
         if start is None:
             return []
     days = {d: Day(date=d) for d in date_range(start, today)}
@@ -73,7 +127,7 @@ def allocate(inputs: Inputs, today: date, start: date | None = None) -> list[Day
             days[blocked.date].available = False
 
     for booking in inputs.bookings:
-        nights = date_range(booking.check_in, booking.check_out - timedelta(days=1))
+        nights = _nights(booking)
         if not nights:
             continue
         for night in nights:
@@ -81,6 +135,9 @@ def allocate(inputs: Inputs, today: date, start: date | None = None) -> list[Day
                 days[night].occupied = True
                 days[night].available = True
         _spread(days, nights, booking.net_payout, "income")
+
+    for column, span, amount in items:
+        _spread(days, span, amount, column)
 
     for entry in inputs.time_log:
         if entry.date in days:
