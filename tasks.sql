@@ -485,13 +485,13 @@ Then:
 4. Record lasting choices that are not part of the owner''s approval with `pm decision record`, if any.
 
 Done when `architecture-spec.md` is staged, the decision exists, and the open masterplan tasks are pending on it.', '2026-10-23T19:21:39Z', '2026-10-23T19:24:06Z', 12, 0, 'opus', 'main');
-INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (14, 3, 'create tasks for plan 3: project skeleton and Nix packaging', 'split', 'open', 1000, NULL, 'Split `plan 3: project skeleton and Nix packaging` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (14, 3, 'create tasks for plan 3: project skeleton and Nix packaging', 'split', 'done', 1000, '2026-10-23, tasks 17, 18', 'Split `plan 3: project skeleton and Nix packaging` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
 done and dropped ones stay as they are (pm refuses to change them): drop the open ones that no longer fit and add
 tasks for what the plan asks beyond them. A task that writes a plan gets `--kind plan`. A task that needs another
 task''s result (in this plan or another, in any work tree) requires it: `pm task add … --requires <task id>`, or
 `pm task requires <task id> <prerequisite id>` for an existing one; priority is only a hint and orders nothing across
 work trees. When you drop an open task that others require and add one in its place, drop it with
-`--replaced-by <new task id>`.', '2026-10-23T19:30:52Z', NULL, 4, 0, NULL, NULL);
+`--replaced-by <new task id>`.', '2026-10-23T19:30:52Z', '2026-10-23T19:41:40Z', 4, 0, NULL, NULL);
 INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (15, 4, 'create tasks for plan 4: database schema and storage', 'split', 'open', 1000, NULL, 'Split `plan 4: database schema and storage` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
 done and dropped ones stay as they are (pm refuses to change them): drop the open ones that no longer fit and add
 tasks for what the plan asks beyond them. A task that writes a plan gets `--kind plan`. A task that needs another
@@ -506,6 +506,31 @@ task''s result (in this plan or another, in any work tree) requires it: `pm task
 `pm task requires <task id> <prerequisite id>` for an existing one; priority is only a hint and orders nothing across
 work trees. When you drop an open task that others require and add one in its place, drop it with
 `--replaced-by <new task id>`.', '2026-10-23T19:36:41Z', NULL, 6, 0, NULL, NULL);
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (17, 3, 'Python project skeleton', 'work', 'open', NULL, NULL, 'Builds the empty app frame from `architecture-spec.md` (`decision 3: approve the architecture`): Python 3, Flask + Jinja2 + waitress, pytest, ruff. No DB, no config paths, no real pages yet.
+
+- `pyproject.toml` (setuptools build backend, `src/` layout):
+  - package `airbnb_books`, dependencies `flask`, `jinja2`, `waitress`
+  - console script `airbnb-books = airbnb_books.cli:main`
+  - pytest: `testpaths = ["tests"]`, `pythonpath = ["src"]` (so tests import the package without installing it)
+  - ruff: line length 100, rules `E,F,I,UP,B`, ruff format
+- `src/airbnb_books/__init__.py` (with `__version__`), `cli.py`, `web/__init__.py`, `web/app.py`, `web/templates/index.html`:
+  - `web/app.py`: `create_app()` factory, one route `/` rendering a placeholder page showing "airbnb-books" and the version
+  - `cli.py`: `argparse` with subcommand `serve` (default when none given): waitress on `127.0.0.1`, a free port unless `--port`, prints the URL, opens the browser unless `--no-browser`; Ctrl-C stops cleanly. No `backup` / `import` / `migrate` yet.
+- `tests/test_web.py`: Flask test client, `GET /` → 200 and contains "airbnb-books".
+- `flake.nix` dev shell: keep `pm`, the pm dashboard and git; add `python3.withPackages` (flask, jinja2, waitress, pytest), `ruff`, `sqlite`.
+- `.gitignore`: `__pycache__/`, `*.egg-info/`, `.pytest_cache/`, `.ruff_cache/`, `result`.
+
+Done when, inside `nix develop`: `pytest` passes, `ruff check` and `ruff format --check` are clean, and `PYTHONPATH=src python -m airbnb_books.cli --no-browser` serves the page on localhost (check with `curl`, then stop it by PID).', '2026-10-23T19:41:36Z', NULL, 14, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (18, 3, 'Nix package, app and flake checks', 'work', 'open', NULL, NULL, 'Packages the skeleton from `task 17: Python project skeleton` with Nix so it can be built, run and checked with the owner''s Nix setup.
+
+- `flake.nix`, for all listed systems:
+  - `packages.default` = `python3Packages.buildPythonApplication` from `pyproject.toml` (`pyproject = true`, `build-system = [ setuptools ]`, dependencies from nixpkgs, `nativeCheckInputs = [ pytestCheckHook ]` so the tests run in the build)
+  - `apps.default` runs `bin/airbnb-books`
+  - `checks.default` = the package; plus a ruff check derivation running `ruff check` and `ruff format --check` over the source, so `nix flake check` runs tests and lint
+  - keep the existing `devShells.default` unchanged
+- Out of scope: NixOS / home-manager module and backup (a later part of the masterplan).
+
+Done when `nix build` succeeds (tests run in it), `nix flake check` passes, and `nix run . -- --no-browser` serves the page on localhost (check with `curl`, then stop it by PID).', '2026-10-23T19:41:36Z', NULL, 14, 0, NULL, 'main');
 
 INSERT INTO decision (id, subject, status, options, body, intro, answer, reason, created_at, closed_at, created_by_task, signoff, kind, decided_by_task, consequences) VALUES (1, 'Sign off the masterplan of milestone 1: first version build', 'answered', '["approve"]', '', 'This is the overall roadmap for building the first working version of a small, private bookkeeping app for one Airbnb apartment. The app turns every booking and every cost into amounts per calendar day, so it can answer whether hosting pays off, whether prices are set well, and how things are trending. The roadmap splits the build into parts, starting with a short architecture document the owner approves before anything else is built, and ending with a check against the real Airbnb export.
 
@@ -540,6 +565,8 @@ INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, b
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (7, 4, '2026-10-23T19:30:27Z', '2026-10-23T19:31:01Z', 'done', NULL, 0, '0766499f96e5ec1095e40bd31fac6b92b64ec68f', 'main', 'claude-opus-5-5', '869dd62e-2f9b-49dc-b80d-1f809d81f989', NULL, 5, 10, 2761, 142842, 26526, 0.2960364, 38881, 60, 1445179);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (8, 5, '2026-10-23T19:31:01Z', '2026-10-23T19:32:33Z', 'done', NULL, 0, '0b54e9390ae721fdc3a528419ebceb7f0a4c7cc1', 'main', 'claude-opus-5-5', 'd772841c-911f-47dd-91bf-deee0dd412b6', NULL, 10, 16, 8834, 289545, 36949, 0.530245, 48826, 60, 1445179);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (9, 6, '2026-10-23T19:35:06Z', '2026-10-23T19:36:53Z', 'done', NULL, 0, 'd28c4c716bb75498d9928ba2cf2c00cebbafe1bf', 'main', 'claude-opus-5-5', '2949abf9-e80f-4898-9528-6a9ed7e06b29', NULL, 8, 16, 8563, 312392, 43878, 0.5848264, 56408, 60, 1460586);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (10, 7, '2026-10-23T19:41:23Z', NULL, 'running', NULL, NULL, '8e1b463123b617d25b65d9c12fceae8d0d7586ca', 'main', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (11, 14, '2026-10-23T19:41:23Z', '2026-10-23T19:41:44Z', 'done', NULL, 0, '8e1b463123b617d25b65d9c12fceae8d0d7586ca', NULL, 'claude-opus-5-5', '7f9419d8-f86c-4ed0-b810-59070d227c1a', NULL, 4, 8, 2241, 96301, 19679, 0.2215442, 31832, 60, 1465683);
 
 INSERT INTO task_decision (task_id, decision_id) VALUES (2, 1);
 INSERT INTO task_decision (task_id, decision_id) VALUES (4, 2);
@@ -564,3 +591,4 @@ INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (8, 7);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (9, 8);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (10, 9);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (11, 10);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (18, 17);
