@@ -18,12 +18,12 @@ Binding: `decision 24: client-side framework: React with TypeScript, built by Vi
 - **UI: a single-page app in the normal browser.** `rios-de-asia-accounting` starts the
   server on a free port and opens the browser tab. The app is a classic web app whose
   server happens to run locally. A "Quit" button in the header sends `POST /api/quit`
-  and the app then shows a "stopped" screen (same text as today's stopped page);
+  and the app then shows a "stopped" screen;
   Ctrl-C also stops the server.
 - **Client stack** (in `frontend/`, built by Vite):
   - React 19 with TypeScript in strict mode;
-  - React Router, with today's URLs: `/` (dashboard) and the `NAV` paths of
-    `web/app.py` (`/bookings`, `/expenses`, `/recurring`, `/blocked-days`, `/time`,
+  - React Router, with the app's URLs: `/` (dashboard) and the `NAV` paths of
+    `frontend/src/nav.ts` (`/bookings`, `/expenses`, `/recurring`, `/blocked-days`, `/time`,
     `/rates`, `/import`, `/settings`), plus a not-found page;
   - TanStack Query for server data; `frontend/src/api.ts` is the only place that calls
     `fetch` (relative URLs, JSON in and out, an `ApiError` carrying status, field
@@ -76,7 +76,10 @@ frontend/
   src/
     main.tsx        entry: QueryClient, router, mount
     api.ts          fetch wrapper, API types, ApiError
-    pages/          one component per screen (placeholders first)
+    nav.ts          the navigation entries
+    pages/          one component per screen
+    components/     shared form kit, notices
+    charts/         chart maths and the SVG line and bar charts
 src/rios_de_asia_accounting/
   cli.py            entry point: `serve` (default), `backup`, `import <csv>`, `migrate`
   config.py         paths: DB, backup dir (env vars and flags)
@@ -92,15 +95,16 @@ src/rios_de_asia_accounting/
     airbnb_csv.py   parse the CSV → import plan; apply it through repo
   backup.py         SQLite online backup + pruning
   web/
-    app.py          Flask: JSON API under /api, bundle serving; until part 6 also
-                    the HTML routes (CRUD screens, import, dashboard)
+    app.py          Flask: same-origin guard, JSON API under /api, bundle serving
+    app_db.py       one DB connection per request
+    forms.py        parsers and messages for typed input (`Form`, `parse_*`, `format_*`)
+    api/            the JSON API: one blueprint, one module per resource
     dist/           built client bundle: git-ignored, package data (`web/dist/**/*`)
-    charts.py       SVG line and bar charts (until part 6)
-    templates/      Jinja2 templates (until part 6)
 tests/
   fixtures/airbnb_sample.csv
   test_allocation.py  test_metrics.py  test_money.py  test_import.py
-  test_storage.py     test_backup.py   test_web.py
+  test_storage.py     test_backup.py   test_forms.py   test_api_<resource>.py
+  test_e2e.py         test_frontend_serving.py
 nix/
   module.nix        shared by the home-manager and the NixOS module
 ```
@@ -116,17 +120,14 @@ Boundaries:
   first `amount % n` days get one more, so the days always sum to the exact amount.
 - `importer` turns a file into a plan (new / updated / skipped / problems), shown to
   the user before it is applied.
-- `web` only calls `repo`, `allocation`, `metrics`, `importer` (and, until part 6,
-  `charts`). The client talks to the server only through `/api`.
+- `web` only calls `repo`, `allocation`, `metrics`, `importer`. The client talks to the server only through `/api`.
 
 Serving the bundle (Flask, in `web/app.py`):
 
 - Assets are served at `/assets/…` from `web/dist`.
 - Every `GET` that no Flask route matches and that is not under `/api` gets
   `web/dist/index.html` (a 404 handler, not a catch-all route), so the client router
-  handles the screen URLs. While the Jinja pages still exist (until part 6) they keep
-  their URLs; the built app takes them over when those routes are deleted. Unknown
-  `/api` paths stay a JSON 404.
+  handles the screen URLs. Unknown `/api` paths stay a JSON 404.
 - Without a built bundle (pytest, Python-only work) the fallback answers a short
   plain 404 "frontend not built"; tests never need the bundle.
 
@@ -144,14 +145,13 @@ Dev workflow:
 ### JSON API
 
 Code: package `web/api/`, one Flask blueprint at `/api`, one module per resource;
-helpers in `web/api/common.py`. The API reuses the parsers of `web/forms.py` and the
-helpers of the HTML routes; it never duplicates their logic. Each endpoint task adds
-its lines to the list at the end of this section; part 3's TypeScript types mirror it.
+helpers in `web/api/common.py`. The API reuses the parsers of `web/forms.py`; the
+client's TypeScript types mirror the endpoint list at the end of this section.
 
 - **Input:** a write request sends a JSON object of strings exactly as typed
   (`{"net_payout": "1.234.567", "check_in": "2026-01-05"}`), multi-value fields as
   arrays of strings. It is read by `read_form()` into `Form(data, lists)`, so the
-  parsers and messages are today's. A body that is not such an object → `400`.
+  parsers and messages are the server's. A body that is not such an object → `400`.
   File uploads are `multipart/form-data`.
 - **Output values:** money as integer pesos, minutes as integer minutes, exchange
   rates as the stored integer (COP × 100), dates `YYYY-MM-DD`, months `YYYY-MM`,
@@ -162,14 +162,13 @@ its lines to the list at the end of this section; part 3's TypeScript types mirr
   with a small `GET /api/<resource>/options`.
 - **Writes (`POST` create, `PUT` update, `DELETE`):** `200 {"data": <saved item or null>, "notices": [...]}`
   (`ok(data, notices)`).
-- **Notices** (today's flash messages): `{"level": "info" | "warning" | "error", "text": "…"}`
-  with today's texts.
+- **Notices** (short messages shown above the screen): `{"level": "info" | "warning" | "error", "text": "…"}`
+  with the server's texts.
 - **Errors:** invalid input → `422 {"errors": {"<field>": "<message>"}}`, one message
   per field from the parsers, form-level errors (repo `ValidationError`) under key `""`
   (`invalid(form, exc)`). Everything else under `/api` is `{"error": "<text>"}`:
   `400` bad body, `403` cross-origin write, `404` unknown path or id, `405` bad method.
-  HTML routes keep their pages.
-- **Same-origin guard:** applies to every non-`GET` method, HTML and API alike.
+- **Same-origin guard:** applies to every non-`GET` method.
 
 Endpoints (method, path, request → response):
 
@@ -242,7 +241,7 @@ Endpoints (method, path, request → response):
 - `GET /api/settings/options` — `{"allocations": ["check_in", "spread"], "listings": [names known from bookings]}`.
 - `PUT /api/settings` — `{hourly_value_cop, long_term_rent_cop_per_month, per_booking_allocation,
   backup_keep, listings: [..]}` → `{data: <settings>, notices: ["Settings saved."]}`.
-- `GET /api/dashboard?month=&from=&to=` — same parameters and messages as the HTML page
+- `GET /api/dashboard?month=&from=&to=` — periods chosen by query parameters
   (`decision 18: dashboard layout: which periods are shown and which period the cost breakdown uses`)
   → `{form: {month, from, to}, needing_rate, empty, columns: [{label, start, end}],
   rows: [{key, label, kind: int|pct|money|minutes, values}], rolling_90: [{date, adr, revpar, occupancy}],
@@ -276,8 +275,9 @@ Endpoints (method, path, request → response):
   that keeps one example of every case below (BOM, monthly rows of a long stay,
   co-host payout, adjustment, resolution rows, payout rows, COP and USD, `1,785.00`).
   Guest names in the fixture are replaced with fake ones.
-- Web: a few smoke tests with Flask's test client (each page renders, a form posts;
-  the HTML ones until part 6, then the JSON API ones, plus the bundle fallback).
+- Web: a few tests with Flask's test client on the JSON API (one file per resource),
+  the bundle fallback, and an end-to-end scenario with hand-computed numbers
+  (`tests/test_e2e.py`), all driven through `/api`.
 - Frontend: `npm run typecheck`, `npm run lint` and `npm test` (Vitest, only pure
   helpers such as the API error parsing) in `frontend/`; run by the `frontend-lint`
   check in `nix flake check`.
