@@ -780,6 +780,48 @@ Checks per task, in `frontend/`: `npm run build`, `npm run typecheck`, `npm run 
 Gaps in the API found while building a screen (a missing field or option): follow-up task in `plan 13: JSON API`, not a client-side workaround.
 
 Done when: every data screen of today works through the Vite dev server with the same fields, messages and navigation as the Jinja page it replaces, checks green.', 'The bookkeeping app is moving to screens that run in the browser. This part rebuilds every data entry screen there: the lists and forms for bookings, expenses, monthly recurring expenses, blocked days, logged hours, exchange rates and settings. They look plain for now and behave exactly as today: same fields, same messages, same pages after saving. The server keeps checking everything the user types, so no bookkeeping rule changes.', '2026-10-23T22:47:12Z', 65);
+INSERT INTO plan (id, milestone_id, subject, priority, body, intro, created_at, created_by_task) VALUES (16, 3, 'dashboard and charts', 490, 'Part 4 of `plan 12: masterplan`: the dashboard screen at `/` in React. It is built into the app shell of `plan 14: architecture and client toolchain` and reads `GET /api/dashboard` of `plan 13: JSON API`. The Jinja dashboard (`web/dashboard.py`, `templates/index.html`, `web/charts.py`) stays until part 6 and is the reference: same rows, numbers, texts and charts.
+
+Binding:
+- `decision 24: client-side framework: React with TypeScript, built by Vite, on top of a JSON API from the existing Python server`: the server does all period handling and metrics. The client only formats numbers and draws.
+- `decision 18: dashboard layout: which periods are shown and which period the cost breakdown uses`: one column per period (all-time, last 90, last 30, this month, chosen month, custom range when set). The breakdown uses the custom range, else the chosen month. Period choices live in the URL (`?month=&from=&to=`), so a view can be bookmarked.
+- `decision 10: a figure that cannot be computed is shown as empty, not as zero`: `null` → "–" in the table and a gap in the line chart.
+- `decision 13: the rolling 90-day chart starts once 90 days of history exist`: an empty series → today''s text.
+- `decision 25: In which order do the visual design update and the new client-side framework happen, and does the design work move onto the new screens?`: the design update waits until this milestone is done. So the dashboard uses plain daisyUI default classes (`table`, `input`, `btn`, `alert`), no custom theme.
+
+## Choices this plan makes
+
+- **No chart library.** There are only two simple charts, and `web/charts.py` already draws them by hand in about 170 lines. A port to React SVG keeps the same look, ticks and labels, adds no dependency and works offline. A library (Recharts, visx) would bring other ticks and a different look, which would be a functional change.
+- **Period controls**: a small form (Month `type="month"`, From and To `type="date"`, Apply, Reset) bound to `useSearchParams`.
+  - The inputs start from the `form` field of the API response (the effective month, which defaults to last month, plus `from` and `to`).
+  - Apply writes the non-empty values to the URL. Reset goes to `/` with no query. The TanStack Query key includes the query string.
+  - Parameter errors (API notices with level `error`, e.g. "enter both a from and a to date") show under the form, as today, not as global notices.
+- **Table**:
+  - Header cell "COP unless stated"; each column shows its label plus "start – end" as a hint.
+  - Values by kind: `pct` → `x*100` with 1 decimal + " %"; `minutes` → hours with 1 decimal; `money` → `format_money` with dot thousands, after truncating like today''s `int(value)`; negatives use "−" (U+2212) and red (`text-error`); `int` as is; `null` → "–".
+  - Reuse `frontend/src/format.ts` from `task 84: Form kit (format.ts, shared components, notices, useSave) and time log screens`. Don''t write a second money formatter.
+- **Texts as today**:
+  - The rate warning "N booking(s) need(s) an exchange rate" is a warning alert linking to `/rates`.
+  - Empty state: "Nothing here yet: import the Airbnb CSV or add a booking." (links to `/import` and `/bookings/new`).
+  - "Last 90 days, day by day" with "The 90-day chart starts once 90 days of history exist." before the history exists, and "Nothing to chart." for an all-null series.
+  - "Expense breakdown" with the range as a hint; "No costs in this period." when all amounts are 0; otherwise the bar chart plus a Category / COP / Share table (share `null` → "–").
+- **Chart port** (`frontend/src/charts/`):
+  - Pure helpers in `chartMath.ts`: `niceTicks(lo, hi, target=5)`; the y-range logic of `line_chart` (`y_min`/`y_max`, ticks clipped); month-start x labels with the first day labelled when it is not a 1st, thinned by `stride = ceil(n*48/plotWidth)`; splitting a series into runs at `null`.
+  - Components: `LineChart` (series, yFormat, yMin, yMax, width, height) and `BarChart` (items, valueFormat, width=600). They keep the same layout constants, Okabe-Ito palette and dash patterns, `<title>` tooltips on points and bars, the legend under the plot, `viewBox` with `width="100%"`.
+  - Dashboard charts as today: "ADR and RevPAR (COP)" (800×280, yMin 0, money labels) and "Occupancy" (800×220, 0..1, labels `x*100` with 0 decimals + " %").
+  - Dates: do day arithmetic on `YYYY-MM-DD` strings via UTC, so a timezone can''t shift a day. Month labels come from a fixed English list ("Jan 2026"), not from the locale.
+- Vitest only for `chartMath.ts`: a few cases whose expected values come from running the Python functions.
+
+## Tasks (in this order)
+
+1. **Dashboard screen without charts**: the route `/` with period controls, error messages, rate warning, empty state, metric table, and breakdown heading plus table. Leave placeholders where the two charts go. TS types for the dashboard response mirror the "JSON API" section of `architecture-spec.md`. Needs `task 80: Frontend skeleton and app shell in frontend/`, `task 75: JSON API: dashboard` and `task 84: Form kit (format.ts, shared components, notices, useSave) and time log screens`.
+2. **Charts**: `chartMath.ts` (+ Vitest), `LineChart`, `BarChart`, wired into the dashboard in place of the placeholders. Needs task 1.
+
+Checks per task, in `frontend/`: `npm run build`, `npm run typecheck`, `npm run lint`, `npm test`. Verify by running the server (`--no-browser --port 8080`) and the Vite dev server against a copy of the real database. Compare with the Jinja page at `http://127.0.0.1:8080/` for the default view, `?month=…`, `?from=…&to=…` and an invalid range: same numbers, texts and chart shapes. Ad-hoc headless screenshots are fine; no browser test suite.
+
+Gaps in the API found while building (a missing field): follow-up task in `plan 13: JSON API`, not a client-side workaround. Deleting `web/charts.py` and the Jinja dashboard belongs to part 6.
+
+Done when: the dashboard in the Vite dev server shows the same table, warnings, charts and breakdown as the Jinja page for the same URL, period choices are bookmarkable, and the checks are green.', 'The dashboard is the app''s overview page: a table that compares income, costs, occupancy and profit over several periods, a chart of the last 90 days and a chart of how costs split by kind. This part rebuilds that page as part of the new in-browser app, with the same figures, the same period choices that can be bookmarked, and the same two hand-drawn charts. It looks plain for now; a new look comes later.', '2026-10-23T22:48:37Z', 66);
 
 INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (1, 1, 'write the masterplan of milestone 1: first version build', 'masterplan', 'done', NULL, '2026-10-23, plan 1 body and intro (no files)', 'Write `plan 1: masterplan`, the masterplan of `milestone 1: first version build`: expand on everything that needs to be done to achieve it,
 divided into parts, with an intro in plain English (`pm plan edit 1 --intro "…" --body -`). State in the masterplan that its own tasks are not implementation work: each of them writes the
@@ -1585,6 +1627,13 @@ What (same fields, texts and navigation as the Jinja pages in `web/app.py` / `te
 API gaps: follow-up task in `plan 13: JSON API`, no client workaround.
 
 Done when: `npm run build`, `npm run typecheck`, `npm run lint`, `npm test` pass in `frontend/`; via `npm run dev` against the server on a copy of the real database: list, create, edit with an error and delete work like today for blocked days and rates; settings save and show an error like today.', '2026-10-23T22:47:50Z', NULL, 83, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (88, 16, 'create tasks for plan 16: dashboard and charts', 'split', 'open', 1000, NULL, 'Split `plan 16: dashboard and charts` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
+done and dropped ones stay as they are (pm refuses to change them): drop the open ones that no longer fit and add
+tasks for what the plan asks beyond them. A task that writes a plan gets `--kind plan`. A task that needs another
+task''s result (in this plan or another, in any work tree) requires it: `pm task add … --requires <task id>`, or
+`pm task requires <task id> <prerequisite id>` for an existing one; priority is only a hint and orders nothing across
+work trees. When you drop an open task that others require and add one in its place, drop it with
+`--replaced-by <new task id>`.', '2026-10-23T22:48:37Z', NULL, 66, 0, NULL, NULL);
 
 INSERT INTO decision (id, subject, status, options, body, intro, answer, reason, created_at, closed_at, created_by_task, signoff, kind, decided_by_task, consequences) VALUES (1, 'Sign off the masterplan of milestone 1: first version build', 'answered', '["approve"]', '', 'This is the overall roadmap for building the first working version of a small, private bookkeeping app for one Airbnb apartment. The app turns every booking and every cost into amounts per calendar day, so it can answer whether hosting pays off, whether prices are set well, and how things are trending. The roadmap splits the build into parts, starting with a short architecture document the owner approves before anything else is built, and ending with a check against the real Airbnb export.
 
