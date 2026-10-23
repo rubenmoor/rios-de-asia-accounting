@@ -19,6 +19,7 @@ import {
   RecurringList,
   RecurringNew,
 } from "./pages/Expenses";
+import { ImportPage } from "./pages/Import";
 import { NotFound } from "./pages/NotFound";
 import { Placeholder } from "./pages/Placeholder";
 import { RateEdit, RateList, RateNew } from "./pages/Rates";
@@ -35,6 +36,7 @@ const IMPLEMENTED = [
   "/blocked-days",
   "/rates",
   "/settings",
+  "/import",
 ];
 
 export function App() {
@@ -97,6 +99,7 @@ export function App() {
           <Route path="/rates" element={<RateList />} />
           <Route path="/rates/new" element={<RateNew />} />
           <Route path="/rates/:day/:currency" element={<RateEdit />} />
+          <Route path="/import" element={<ImportPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           {NAV.filter((entry) => !IMPLEMENTED.includes(entry.path)).map(
             (entry) => (
