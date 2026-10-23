@@ -6,19 +6,38 @@ command: **`rios-de-asia-accounting`**.
 
 ## 1. Tech stack and UI
 
-- **Language:** Python 3 (the `python3` of nixpkgs). Short code, `sqlite3` in the
-  standard library, every dependency already packaged in nixpkgs, easy to test.
-- **UI: a local web server on `127.0.0.1`**, opened in the normal browser.
-  `rios-de-asia-accounting` starts the server on a free port and opens the browser tab;
-  Ctrl-C (or closing via a "Quit" button) stops it. Forms and tables work best in a
-  browser; no GUI toolkit to package, no TUI limits for charts.
-- **Libraries:** Flask (routes), Jinja2 (HTML templates), waitress (the server).
-  Plain HTML forms and server-rendered pages; no JavaScript framework, no build
-  step, no CDN, no network access.
-- **Charts:** drawn by our own small module as **inline SVG** on the server (line
-  chart for the rolling 90-day series, bar chart for the expense breakdown). No
-  chart library, works offline.
-- **Lint/format:** ruff.
+Binding: `decision 24: client-side framework: React with TypeScript, built by Vite, on top of a JSON API from the existing Python server` and `decision 25: In which order do the visual design update and the new client-side framework happen, and does the design work move onto the new screens?`.
+
+- **Backend language:** Python 3 (the `python3` of nixpkgs). Short code, `sqlite3` in
+  the standard library, every dependency already packaged in nixpkgs, easy to test.
+- **Backend:** Flask (routes) served by waitress on `127.0.0.1`. It stays the
+  **authoritative** side: parsing, validation, money and date rules live in Python;
+  the client only shows data and sends what the user typed. It serves a **JSON API
+  under `/api`** (resources, shapes and errors are in the "JSON API" section added by
+  `plan 13: JSON API`) and the built client bundle.
+- **UI: a single-page app in the normal browser.** `rios-de-asia-accounting` starts the
+  server on a free port and opens the browser tab. The app is a classic web app whose
+  server happens to run locally. A "Quit" button in the header sends `POST /api/quit`
+  and the app then shows a "stopped" screen (same text as today's stopped page);
+  Ctrl-C also stops the server.
+- **Client stack** (in `frontend/`, built by Vite):
+  - React 19 with TypeScript in strict mode;
+  - React Router, with today's URLs: `/` (dashboard) and the `NAV` paths of
+    `web/app.py` (`/bookings`, `/expenses`, `/recurring`, `/blocked-days`, `/time`,
+    `/rates`, `/import`, `/settings`), plus a not-found page;
+  - TanStack Query for server data; `frontend/src/api.ts` is the only place that calls
+    `fetch` (relative URLs, JSON in and out, an `ApiError` carrying status, field
+    errors and text);
+  - Tailwind CSS v4 and daisyUI 5 for styling, with **plain daisyUI defaults**: one
+    built-in light theme, no custom theme, only daisyUI component classes, so a later
+    theme can be swapped in (`decision 25`);
+  - Biome for lint and format, Vitest for pure helpers (and the API error parsing).
+- **Charts:** drawn in the client from the data of the JSON API (the dashboard plan
+  picks the way to draw them); no network access needed.
+- **Offline:** no CDN, no network fonts; everything the page needs is in the bundle.
+- **Same-origin guard:** every write (`POST`, `PUT`, `PATCH`, `DELETE`) must come from
+  the app's own origin; the server rejects others. The client only uses relative URLs.
+- **Backend lint/format:** ruff.
 
 Alternative worth knowing: Haskell or Rust would give a single typed binary, at the
 cost of much more code for forms and charts. Not recommended for v1.
@@ -27,12 +46,19 @@ cost of much more code for forms and charts. Not recommended for v1.
 
 All in the existing `flake.nix`:
 
+- `frontend`: a `buildNpmPackage` derivation with `importNpmLock` from
+  `frontend/package-lock.json` (offline build, nothing fetched at build time beyond
+  the locked packages); it runs `npm run build` and its `dist` is the output.
 - `packages.default`: `python3Packages.buildPythonApplication` from `pyproject.toml`;
-  its check phase runs the tests (`pytestCheckHook`), so `nix build` and
-  `nix flake check` run them too.
-- `apps.default`: `nix run` starts the app.
+  the `frontend` `dist` is copied into `src/rios_de_asia_accounting/web/dist` before
+  the Python build, so the bundle ships as package data. Its check phase runs the
+  tests (`pytestCheckHook`), so `nix build` and `nix flake check` run them too.
+- `apps.default`: `nix run` starts the app with the bundle inside.
+- `checks`: the existing ones plus `frontend-lint` (`biome check`, `tsc --noEmit`,
+  `vitest run`).
 - `devShells.default`: keeps `pm`, the `pm` dashboard and git; adds Python with the
-  app's dependencies, pytest, ruff and `sqlite` (CLI, for poking at the DB).
+  app's dependencies, pytest, ruff, `sqlite` (CLI, for poking at the DB) and `nodejs`
+  (for `npm run dev` and the other frontend scripts).
 - `homeManagerModules.default` and `nixosModules.default` (same options; the NixOS
   one sets up a **systemd user** service for all users):
   `services.rios-de-asia-accounting-backup = { enable; backupDir; keep ? 30; dbPath ? <default>; onCalendar ? "daily"; }`
@@ -43,6 +69,14 @@ All in the existing `flake.nix`:
 
 ```
 pyproject.toml
+flake.nix  flake.lock
+frontend/
+  package.json  package-lock.json
+  vite.config.ts  tsconfig.json  biome.json
+  src/
+    main.tsx        entry: QueryClient, router, mount
+    api.ts          fetch wrapper, API types, ApiError
+    pages/          one component per screen (placeholders first)
 src/rios_de_asia_accounting/
   cli.py            entry point: `serve` (default), `backup`, `import <csv>`, `migrate`
   config.py         paths: DB, backup dir (env vars and flags)
@@ -58,9 +92,11 @@ src/rios_de_asia_accounting/
     airbnb_csv.py   parse the CSV → import plan; apply it through repo
   backup.py         SQLite online backup + pruning
   web/
-    app.py          Flask routes (CRUD screens, import, dashboard)
-    charts.py       SVG line and bar charts
-    templates/      Jinja2 templates
+    app.py          Flask: JSON API under /api, bundle serving; until part 6 also
+                    the HTML routes (CRUD screens, import, dashboard)
+    dist/           built client bundle: git-ignored, package data (`web/dist/**/*`)
+    charts.py       SVG line and bar charts (until part 6)
+    templates/      Jinja2 templates (until part 6)
 tests/
   fixtures/airbnb_sample.csv
   test_allocation.py  test_metrics.py  test_money.py  test_import.py
@@ -80,7 +116,30 @@ Boundaries:
   first `amount % n` days get one more, so the days always sum to the exact amount.
 - `importer` turns a file into a plan (new / updated / skipped / problems), shown to
   the user before it is applied.
-- `web` only calls `repo`, `allocation`, `metrics`, `importer`, `charts`.
+- `web` only calls `repo`, `allocation`, `metrics`, `importer` (and, until part 6,
+  `charts`). The client talks to the server only through `/api`.
+
+Serving the bundle (Flask, in `web/app.py`):
+
+- Assets are served at `/assets/…` from `web/dist`.
+- Every `GET` that no Flask route matches and that is not under `/api` gets
+  `web/dist/index.html` (a 404 handler, not a catch-all route), so the client router
+  handles the screen URLs. While the Jinja pages still exist (until part 6) they keep
+  their URLs; the built app takes them over when those routes are deleted. Unknown
+  `/api` paths stay a JSON 404.
+- Without a built bundle (pytest, Python-only work) the fallback answers a short
+  plain 404 "frontend not built"; tests never need the bundle.
+
+Dev workflow:
+
+- Two terminals: the server (`rios-de-asia-accounting --no-browser --port 8080`) and
+  `npm run dev` in `frontend/` (Vite dev server on port 5173, serves the app at every
+  URL).
+- Vite proxies `/api` to the server on 8080 and rewrites the `Origin` header to the
+  target so the same-origin guard passes; the guard is never weakened.
+- `npm run build` in `frontend/` writes `web/dist`, so Flask serves the bundle itself.
+- Frontend scripts: `dev`, `build`, `typecheck` (`tsc --noEmit`), `lint`
+  (`biome check`), `test` (`vitest run`).
 
 ## 4. Tests
 
@@ -93,7 +152,11 @@ Boundaries:
   that keeps one example of every case below (BOM, monthly rows of a long stay,
   co-host payout, adjustment, resolution rows, payout rows, COP and USD, `1,785.00`).
   Guest names in the fixture are replaced with fake ones.
-- Web: a few smoke tests with Flask's test client (each page renders, a form posts).
+- Web: a few smoke tests with Flask's test client (each page renders, a form posts;
+  the HTML ones until part 6, then the JSON API ones, plus the bundle fallback).
+- Frontend: `npm run typecheck`, `npm run lint` and `npm test` (Vitest, only pure
+  helpers such as the API error parsing) in `frontend/`; run by the `frontend-lint`
+  check in `nix flake check`.
 
 ## 5. Database location and migrations
 
