@@ -1181,13 +1181,39 @@ Record the new name with `pm decision record` so later tasks don''t bring the ol
 INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (55, 11, 'write the masterplan of milestone 2: visual design update', 'masterplan', 'done', NULL, '2026-10-23, plan 11 body and intro, decision 23', 'Write `plan 11: masterplan`, the masterplan of `milestone 2: visual design update`: expand on everything that needs to be done to achieve it,
 divided into parts, with an intro in plain English (`pm plan edit 11 --intro "…" --body -`). State in the masterplan that its own tasks are not implementation work: each of them writes the
 plan for one part.', '2026-10-23T22:34:21Z', '2026-10-23T22:35:37Z', NULL, 0, NULL, NULL);
-INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (56, 11, 'create tasks for plan 11: masterplan', 'split', 'open', 1000, NULL, 'Split `plan 11: masterplan` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (56, 11, 'create tasks for plan 11: masterplan', 'split', 'done', 1000, '2026-10-23, tasks 57 (part 1 plan, waits for decision 23), 58, 59 (parts 2, 3 plans, after 57), 60 (part 4 plan, after 58 and 59)', 'Split `plan 11: masterplan` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
 done and dropped ones stay as they are (pm refuses to change them): drop the open ones that no longer fit and add
 tasks for what the plan asks beyond them. A task that writes a plan gets `--kind plan`. A task that needs another
 task''s result (in this plan or another, in any work tree) requires it: `pm task add … --requires <task id>`, or
 `pm task requires <task id> <prerequisite id>` for an existing one; priority is only a hint and orders nothing across
 work trees. When you drop an open task that others require and add one in its place, drop it with
-`--replaced-by <new task id>`.', '2026-10-23T22:35:34Z', NULL, 55, 0, NULL, NULL);
+`--replaced-by <new task id>`.', '2026-10-23T22:35:34Z', '2026-10-23T22:36:14Z', 55, 0, NULL, NULL);
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (57, 11, 'write the plan for part 1: styling foundation', 'plan', 'open', 1000, NULL, 'Write the plan for part 1 of `plan 11: masterplan` (see its body): **Styling foundation**, `pm plan add 2 "styling foundation" --priority 350 --intro "…"`.
+
+- Covers: the CSS toolchain exactly as answered in `decision 23: How do Tailwind CSS and daisyUI get into an app that promised no build step and no network?`; a `web/static/` folder served by Flask and in `pyproject.toml` package data; Nix package, dev shell and (if the answer asks for it) a flake check updated.
+- A custom daisyUI "ledger" theme (paper background, ledger green/blue rules, red ink for negatives, tabular/monospace figures); decide light only vs. optional dark mode and record it with `pm decision record`.
+- `base.html` rebuilt: inline `<style>` replaced, nav as navbar or sheet tabs with the active page highlighted, Quit button, flash messages as alerts (categories `warning`/`error` kept), main area as a "sheet of paper" card.
+- Shared conventions for parts 2–4 (components/classes for tables, forms, buttons, hints, errors; Jinja macros or a README section), so the later plans can point at them.
+- Keep the masterplan''s ground rules in the plan body (no functional change, offline, checks).
+- Waits for the human''s answer to `decision 23`.', '2026-10-23T22:36:11Z', NULL, 56, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (58, 11, 'write the plan for part 2: spreadsheet-style tables and dashboard', 'plan', 'open', 1000, NULL, 'Write the plan for part 2 of `plan 11: masterplan` (see its body): **Spreadsheet-style tables and dashboard**, `pm plan add 2 "spreadsheet-style tables and dashboard" --priority 300 --intro "…"`.
+
+- Covers: every list table (bookings, expenses, blocked days, time log, rates, recurring expenses, import preview/summary, booking detail lines) and the dashboard metric table in spreadsheet style (grid lines, column-header row, optional A/B/C letters and row-number gutter, zebra rows, right-aligned tabular numbers, red negatives via a class instead of the inline style in `index.html`).
+- Dashboard period form as a compact "formula bar" toolbar; headings and the exchange-rate warning restyled; `web/charts.py` colours/fonts/grid aligned with the theme only.
+- Build on the conventions from part 1''s plan (`styling foundation`); its implementation tasks `--requires` the part 1 implementation tasks they need (look them up with `pm plan list` / `pm show`).
+- Keep the ground rules: no functional change (`decision 10`, `decision 18` formats and structure), tests keep passing, offline.', '2026-10-23T22:36:12Z', NULL, 56, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (59, 11, 'write the plan for part 3: forms and actions', 'plan', 'open', 1000, NULL, 'Write the plan for part 3 of `plan 11: masterplan` (see its body): **Forms and actions**, `pm plan add 2 "forms and actions" --priority 300 --intro "…"`.
+
+- Covers: every form (booking, expense, blocked days, time entry, rate, recurring expense, settings, CSV import upload) with daisyUI inputs, selects, labels, hints and errors; field names, order and validation unchanged (`decision 15: data entry forms: how money and hours are typed`).
+- Buttons: primary Save/Apply, secondary Cancel/Reset links, danger Delete with the confirm dialogs kept; a "journal entry slip" feel for form cards.
+- Build on the conventions from part 1''s plan (`styling foundation`); its implementation tasks `--requires` the part 1 implementation tasks they need.
+- Keep the ground rules: no functional change, tests keep passing, offline, no new JavaScript.', '2026-10-23T22:36:12Z', NULL, 56, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (60, 11, 'write the plan for part 4: playful bookkeeping touches and favicon', 'plan', 'open', 1000, NULL, 'Write the plan for part 4 of `plan 11: masterplan` (see its body): **Playful bookkeeping touches and favicon**, `pm plan add 2 "playful bookkeeping touches and favicon" --priority 200 --intro "…"`.
+
+- Covers: favicon (ledger/abacus/calculator motif as SVG plus PNG/ICO fallback in `web/static/`, linked from `base.html`); app title/logo in the navbar; inline-SVG section icons; friendly empty states; a styled "stopped" page after Quit; double underline under totals; a "balanced ✓" / rubber-stamp look on the import summary.
+- Only decorative wording may change; existing messages and labels stay.
+- It decorates finished pages: its implementation tasks `--requires` the implementation tasks of parts 2 and 3 (`spreadsheet-style tables and dashboard`, `forms and actions`) that touch the same templates.
+- Keep the ground rules: no functional change, offline (inline SVG / plain CSS only), readability first.', '2026-10-23T22:36:12Z', NULL, 56, 0, NULL, 'main');
 
 INSERT INTO decision (id, subject, status, options, body, intro, answer, reason, created_at, closed_at, created_by_task, signoff, kind, decided_by_task, consequences) VALUES (1, 'Sign off the masterplan of milestone 1: first version build', 'answered', '["approve"]', '', 'This is the overall roadmap for building the first working version of a small, private bookkeeping app for one Airbnb apartment. The app turns every booking and every cost into amounts per calendar day, so it can answer whether hosting pays off, whether prices are set well, and how things are trending. The roadmap splits the build into parts, starting with a short architecture document the owner approves before anything else is built, and ending with a check against the real Airbnb export.
 
@@ -1286,6 +1312,7 @@ INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, b
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (54, 53, '2026-10-23T20:31:05Z', '2026-10-23T20:31:38Z', 'done', NULL, 0, 'f687ca610bde7b564b394f3bdd29833f45d72428', NULL, 'claude-sonnet-5-5', 'a3520e7f-adff-4734-9e2a-94f04fab2c7f', NULL, 12, 22, 2262, 393626, 32375, 0.1915266, 44529, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (55, 54, '2026-10-23T21:28:28Z', '2026-10-23T21:29:32Z', 'done', NULL, 0, 'a6c36b2d356c81bd699f5087a2bf4744e8dcdd7f', NULL, 'claude-sonnet-5-5', 'f0e2794a-2c7d-4ef2-9ed5-aa5a0c4bd8f5', NULL, 11, 20, 2964, 283266, 23191, 0.15077059999999998, 35543, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (56, 55, '2026-10-23T22:34:23Z', '2026-10-23T22:35:47Z', 'done', NULL, 0, 'e72d436169d610d650d95683045afb96bdeaaac0', NULL, 'claude-opus-5-5', 'fb953c8b-92dc-474a-bd50-457f00298ca1', NULL, 10, 18, 6768, 283907, 45013, 0.55231740000000007, 45017, 60, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (57, 56, '2026-10-23T22:35:47Z', '2026-10-23T22:36:18Z', 'done', NULL, 0, '7faa97406f08108a46310f9871a10fc84dd865c2', NULL, 'claude-opus-5-5', 'bf51736c-943f-42e6-abcd-cf051af1b426', NULL, 5, 10, 3052, 144365, 26562, 0.30244899999999997, 38770, 60, 1465683);
 
 INSERT INTO task_decision (task_id, decision_id) VALUES (2, 1);
 INSERT INTO task_decision (task_id, decision_id) VALUES (4, 2);
@@ -1300,6 +1327,7 @@ INSERT INTO task_decision (task_id, decision_id) VALUES (11, 3);
 INSERT INTO task_decision (task_id, decision_id) VALUES (12, 2);
 INSERT INTO task_decision (task_id, decision_id) VALUES (14, 4);
 INSERT INTO task_decision (task_id, decision_id) VALUES (34, 20);
+INSERT INTO task_decision (task_id, decision_id) VALUES (57, 23);
 
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (4, 3);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (4, 12);
@@ -1361,3 +1389,7 @@ INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (51, 41);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (51, 44);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (51, 45);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (51, 50);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (58, 57);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (59, 57);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (60, 58);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (60, 59);
