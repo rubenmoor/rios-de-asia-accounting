@@ -3,6 +3,7 @@ import socket
 import sys
 import webbrowser
 from datetime import date
+from pathlib import Path
 
 from waitress import create_server
 
@@ -27,8 +28,8 @@ def _free_port() -> int:
         return s.getsockname()[1]
 
 
-def serve(port: int | None, open_browser: bool) -> None:
-    server = create_server(create_app(), host=HOST, port=port or _free_port())
+def serve(db_path: Path, port: int | None, open_browser: bool) -> None:
+    server = create_server(create_app(db_path), host=HOST, port=port or _free_port())
     url = f"http://{HOST}:{server.effective_port}/"
     print(f"airbnb-books running at {url} (Ctrl-C to stop)", flush=True)
     if open_browser:
@@ -131,12 +132,13 @@ def main(argv: list[str] | None = None) -> None:
                 sys.exit(code)
         else:
             run_migrate(args.db)
-            conn = connect(resolve_db_path(args.db))
+            db_path = resolve_db_path(args.db)
+            conn = connect(db_path)
             try:
                 generate_recurring(conn, date.today())
             finally:
                 conn.close()
-            serve(args.port, not args.no_browser)
+            serve(db_path, args.port, not args.no_browser)
     except (ConfigError, FileError, OSError) as e:
         parser.exit(2, f"airbnb-books: {e}\n")
 
