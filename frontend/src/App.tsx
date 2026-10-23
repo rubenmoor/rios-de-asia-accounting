@@ -3,6 +3,12 @@ import { NavLink, Route, Routes } from "react-router";
 import { api } from "./api";
 import { Notices, NoticesProvider } from "./components/Notices";
 import { NAV } from "./nav";
+import {
+  BookingDetail,
+  BookingEdit,
+  BookingList,
+  BookingNew,
+} from "./pages/Bookings";
 import { NotFound } from "./pages/NotFound";
 import { Placeholder } from "./pages/Placeholder";
 import { Stopped } from "./pages/Stopped";
@@ -20,10 +26,16 @@ export function App() {
           rios-de-asia-accounting
         </NavLink>
         <ul className="menu menu-horizontal flex-1 gap-1">
+          <Route path="/bookings" element={<BookingList />} />
+          <Route path="/bookings/new" element={<BookingNew />} />
+          <Route path="/bookings/:id" element={<BookingDetail />} />
+          <Route path="/bookings/:id/edit" element={<BookingEdit />} />
           <Route path="/time" element={<TimeList />} />
           <Route path="/time/new" element={<TimeNew />} />
           <Route path="/time/:id/edit" element={<TimeEdit />} />
-          {NAV.filter((entry) => entry.path !== "/time").map((entry) => (
+          {NAV.filter(
+            (entry) => entry.path !== "/time" && entry.path !== "/bookings",
+          ).map((entry) => (
             <li key={entry.path}>
               <NavLink
                 to={entry.path}
@@ -55,7 +67,9 @@ export function App() {
           <Route path="/time" element={<TimeList />} />
           <Route path="/time/new" element={<TimeNew />} />
           <Route path="/time/:id/edit" element={<TimeEdit />} />
-          {NAV.filter((entry) => entry.path !== "/time").map((entry) => (
+          {NAV.filter(
+            (entry) => entry.path !== "/time" && entry.path !== "/bookings",
+          ).map((entry) => (
             <Route
               key={entry.path}
               path={entry.path}
