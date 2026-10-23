@@ -252,6 +252,18 @@ Endpoints (method, path, request → response):
   `pct` is a ratio, `money` whole pesos, `minutes` whole minutes. Rows end with `capex_book_value`.
   `rolling_90` is empty before 90 days of history (`decision 13: the rolling 90-day chart starts once 90 days of history exist`);
   `empty` (no data at all) leaves `columns`, `rows` empty and `breakdown` `null`. Invalid periods are `error` notices, not `422`.
+- `POST /api/import/airbnb` — `multipart/form-data` with `file` → `{data: {token, needs_listing_choice,
+  listings_found: [{listing, rows}], listings, new: [booking], updated: [booking], skipped: {payouts,
+  known_lines, listings: [{listing, rows}]}, problems: [{line, message}], warnings}, notices: []}`, where
+  `booking` is `{code, listing, guest, check_in, check_out, lines, changes: [{field, old, new}]}`; no or
+  unreadable file → `422 {errors: {file}}`. Nothing is imported yet; the upload is kept under `token`.
+- `POST /api/import/airbnb/apply` — `{token, listings?: [..], other_listing?}` → `{data: {new, updated,
+  lines_added, needing_rate, skipped, problems, warnings}, notices: []}`; no listing chosen while one is
+  needed → `422 {errors: {listings}, preview: <the data of the upload step>}`; unknown or gone `token` →
+  `422 {errors: {token}}` (a malformed token is `404`).
+- `DELETE /api/import/airbnb/<token>` — drops the kept upload → `{data: null, notices: ["Import cancelled; nothing was changed."]}`.
+- `POST /api/import/rates` — `multipart/form-data` with `file` and `currency` → `{data: {added, changed,
+  lines_recomputed, needing_rate, problems: [{line, message}]}, notices: []}`; bad input → `422 {errors: {currency | file}}`.
 
 ## 4. Tests
 
