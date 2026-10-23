@@ -14,7 +14,9 @@ function TextInput({
   inputMode,
   type = "text",
   className = "",
+  list,
 }: InputProps & {
+  list?: string;
   inputMode?: "numeric" | "decimal";
   type?: "text" | "date";
   className?: string;
@@ -26,6 +28,7 @@ function TextInput({
       name={name}
       value={value}
       inputMode={inputMode}
+      list={list}
       onChange={(e) => onChange(e.target.value)}
     />
   );
@@ -39,9 +42,9 @@ export const RateInput = (p: InputProps) => (
   <TextInput {...p} inputMode="decimal" />
 );
 export const DateInput = (p: InputProps) => <TextInput {...p} type="date" />;
-export const TextField = (p: InputProps & { className?: string }) => (
-  <TextInput {...p} />
-);
+export const TextField = (
+  p: InputProps & { className?: string; list?: string },
+) => <TextInput {...p} />;
 
 export function Select({
   name,
@@ -58,5 +61,17 @@ export function Select({
     >
       {children}
     </select>
+  );
+}
+
+export function TextArea({ name, value, onChange }: InputProps) {
+  return (
+    <textarea
+      className="textarea w-full"
+      name={name}
+      rows={3}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    />
   );
 }
