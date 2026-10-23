@@ -7,6 +7,7 @@ from flask import Flask, render_template, request
 from airbnb_books import metrics
 from airbnb_books.recurring import load_days
 from airbnb_books.storage import repo
+from airbnb_books.web import charts
 from airbnb_books.web.app_db import get_db
 from airbnb_books.web.forms import format_money, parse_date, parse_month
 
@@ -42,6 +43,42 @@ def _cell(value: float | None, kind: str) -> tuple[str, bool]:
         text = format_money(int(value))
         return (text.replace("-", "−"), value < 0)
     return str(value), False
+
+
+COST_LABELS = {
+    "cost_fixed": "Fixed",
+    "cost_per_night": "Per night",
+    "cost_per_booking": "Per booking",
+    "cost_maintenance": "Maintenance",
+    "cost_capex": "Capex depreciation",
+    "cost_tax": "Tax",
+}
+
+
+def _rolling_charts(days: list) -> tuple[list, bool]:
+    """(charts, has_history); the charts are None where nothing can be drawn."""
+    points = metrics.rolling_90(days)
+    if not points:
+        return [], False
+    money = charts.line_chart(
+        [
+            ("ADR", [(p.date, p.adr) for p in points]),
+            ("RevPAR", [(p.date, p.revpar) for p in points]),
+        ],
+        y_format=lambda v: format_money(round(v)),
+        y_min=0,
+        width=800,
+        height=280,
+    )
+    occupancy = charts.line_chart(
+        [("Occupancy", [(p.date, p.occupancy) for p in points])],
+        y_format=lambda v: f"{v * 100:.0f} %",
+        y_min=0,
+        y_max=1,
+        width=800,
+        height=220,
+    )
+    return [("ADR and RevPAR (COP)", money), ("Occupancy", occupancy)], True
 
 
 def _last_month(today: date) -> date:
@@ -112,5 +149,33 @@ def register(app: Flask) -> None:
             (label, [_cell(getattr(m, attr), kind) for m in summaries])
             for label, attr, kind in ROWS
         ]
+        expenses = repo.list_expenses(conn)
+        capex = [
+            (_cell(metrics.capex_book_value(expenses, rng.end), "money")) for _, rng in columns
+        ]
+        rows.append(("Remaining capex book value", capex))
+        rolling, has_history = _rolling_charts(days)
+        breakdown_rng = custom or metrics.month_range(month.year, month.month)
+        breakdown = [
+            (COST_LABELS[column], amount, share)
+            for column, amount, share in metrics.expense_breakdown(days, breakdown_rng)
+        ]
+        bars = None
+        if any(amount for _, amount, _ in breakdown):
+            bars = charts.bar_chart(
+                [(label, amount) for label, amount, _ in breakdown],
+                value_format=lambda v: format_money(round(v)),
+            )
         heads = [(label, _header(rng)) for label, rng in columns]
-        return render_template("index.html", empty=False, heads=heads, rows=rows, **page)
+        return render_template(
+            "index.html",
+            empty=False,
+            heads=heads,
+            rows=rows,
+            rolling=rolling,
+            has_history=has_history,
+            breakdown=breakdown,
+            breakdown_head=_header(breakdown_rng),
+            bars=bars,
+            **page,
+        )
