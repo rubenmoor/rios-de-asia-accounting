@@ -287,6 +287,26 @@ Done when `architecture-spec.md` is staged, the decision exists, and the open ma
 ## Ordering (the split must do this)
 
 The other masterplan tasks have priority 1000 and would otherwise run before this plan''s work task. After creating the work task, the split must run `pm task requires 4 <work task id>` so `task 4: write the plan for part 2: project skeleton and Nix packaging` waits for it; tasks 5–11 already chain behind task 4.', 'Before any code is written, the owner needs a short document that fixes the big technical choices for the bookkeeping app: what it is built with, what the screen looks like, how it is installed, where the data file lives, and how the Airbnb export is read, including how bookings paid in dollars become pesos. Writing this down first, and having the owner approve it, means every later piece is built on choices the owner has agreed to, instead of being reworked afterwards.', '2026-10-23T19:20:02Z', 3);
+INSERT INTO plan (id, milestone_id, subject, priority, body, intro, created_at, created_by_task) VALUES (3, 1, 'project skeleton and Nix packaging', 920, 'Part 2 of `plan 1: masterplan`. Builds the empty frame of the app as fixed in `architecture-spec.md` (approved, `decision 3: approve the architecture`): Python 3, Flask + Jinja2 + waitress, pytest, ruff, everything from nixpkgs, app and command name `airbnb-books`.
+
+Out of scope here (later parts): DB, migrations, `config.py` paths (part 3), the backup command and the NixOS / home-manager module (part 9), real pages.
+
+## Task 1: Python project skeleton (work tree `main`)
+
+- `pyproject.toml` (setuptools build backend, `src/` layout): package `airbnb_books`, dependencies `flask`, `jinja2`, `waitress`; console script `airbnb-books = airbnb_books.cli:main`; pytest config (`testpaths = ["tests"]`); ruff config (line length 100, rules `E,F,I,UP,B`, ruff format).
+- `src/airbnb_books/__init__.py`, `cli.py`, `web/__init__.py`, `web/app.py`, `web/templates/index.html`:
+  - `web/app.py`: `create_app()` factory returning a Flask app with one route `/` that renders a placeholder page ("airbnb-books" and the version).
+  - `cli.py`: `argparse` with subcommand `serve` (the default when none is given): starts waitress on `127.0.0.1`, a free port unless `--port` is given, prints the URL, opens the browser unless `--no-browser`; Ctrl-C stops it cleanly. Other subcommands from the spec (`backup`, `import`, `migrate`) are not added yet.
+- `tests/test_web.py`: Flask test client, `GET /` returns 200 and contains "airbnb-books".
+- `flake.nix` dev shell: keep `pm`, the pm dashboard and git; add `python3.withPackages` (flask, jinja2, waitress, pytest), `ruff`, `sqlite`. The shell must let `pytest` import the package from `src/` without installing it (e.g. `pythonpath = ["src"]` in the pytest config).
+- `.gitignore`: `__pycache__/`, `*.egg-info/`, `.pytest_cache/`, `.ruff_cache/`, `result`.
+- Done when, inside `nix develop`: `pytest` passes, `ruff check` and `ruff format --check` are clean, and `python -m airbnb_books.cli --no-browser` (or `PYTHONPATH=src …`) serves the page on localhost (check with `curl`, then stop it by PID).
+
+## Task 2: Nix package and app (work tree `main`, requires task 1)
+
+- `flake.nix`: `packages.default` = `python3Packages.buildPythonApplication` from `pyproject.toml` (`pyproject = true`, `build-system = [ setuptools ]`, dependencies from nixpkgs, `nativeCheckInputs = [ pytestCheckHook ]` so the tests run in the build); `apps.default` runs `bin/airbnb-books`; `checks.default` = the package, plus a ruff check derivation (`ruff check` and `ruff format --check` over the source), so `nix flake check` runs tests and lint.
+- Keep the existing `devShells.default`; for all listed systems.
+- Done when `nix build` succeeds (tests run in it), `nix flake check` passes, and `nix run . -- --no-browser` serves the page on localhost (check with `curl`, then stop it by PID).', 'Before any bookkeeping feature is written, the app needs an empty but working frame: a place for the code, a way to run its tests and check its style, and a way to install and start it with the owner''s Nix setup. This part builds that frame with a tiny app that only starts and shows one page, and one test that passes. Every later part then just adds its own code and tests to it, instead of each one fighting with tooling.', '2026-10-23T19:30:52Z', 4);
 
 INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (1, 1, 'write the masterplan of milestone 1: first version build', 'masterplan', 'done', NULL, '2026-10-23, plan 1 body and intro (no files)', 'Write `plan 1: masterplan`, the masterplan of `milestone 1: first version build`: expand on everything that needs to be done to achieve it,
 divided into parts, with an intro in plain English (`pm plan edit 1 --intro "…" --body -`). State in the masterplan that its own tasks are not implementation work: each of them writes the
@@ -372,6 +392,13 @@ Then:
 4. Record lasting choices that are not part of the owner''s approval with `pm decision record`, if any.
 
 Done when `architecture-spec.md` is staged, the decision exists, and the open masterplan tasks are pending on it.', '2026-10-23T19:21:39Z', '2026-10-23T19:24:06Z', 12, 0, 'opus', 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (14, 3, 'create tasks for plan 3: project skeleton and Nix packaging', 'split', 'open', 1000, NULL, 'Split `plan 3: project skeleton and Nix packaging` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
+done and dropped ones stay as they are (pm refuses to change them): drop the open ones that no longer fit and add
+tasks for what the plan asks beyond them. A task that writes a plan gets `--kind plan`. A task that needs another
+task''s result (in this plan or another, in any work tree) requires it: `pm task add … --requires <task id>`, or
+`pm task requires <task id> <prerequisite id>` for an existing one; priority is only a hint and orders nothing across
+work trees. When you drop an open task that others require and add one in its place, drop it with
+`--replaced-by <new task id>`.', '2026-10-23T19:30:52Z', NULL, 4, 0, NULL, NULL);
 
 INSERT INTO decision (id, subject, status, options, body, intro, answer, reason, created_at, closed_at, created_by_task, signoff, kind, decided_by_task, consequences) VALUES (1, 'Sign off the masterplan of milestone 1: first version build', 'answered', '["approve"]', '', 'This is the overall roadmap for building the first working version of a small, private bookkeeping app for one Airbnb apartment. The app turns every booking and every cost into amounts per calendar day, so it can answer whether hosting pays off, whether prices are set well, and how things are trending. The roadmap splits the build into parts, starting with a short architecture document the owner approves before anything else is built, and ending with a check against the real Airbnb export.
 
@@ -388,6 +415,9 @@ INSERT INTO decision (id, subject, status, options, body, intro, answer, reason,
 - **CSV import:** one booking per confirmation code, its rows kept as booking lines (long stays have one row per month); adjustments and resolution rows fold into the booking; co-host payouts become a per-booking cost; `Payout` rows (EUR/USD transfers) ignored to avoid counting income twice; thousands commas in amounts handled.
 - **Listings (please check):** the export has 7 listings (rooms and apartments, overlapping in time). Recommended: a setting "listings of this property"; the first import asks which to keep, others are skipped.
 - **Currencies:** each line keeps original currency and amount, the rate used and the derived integer COP; rates (COP per USD) are loaded by the user, from a hand-downloaded TRM CSV of datos.gov.co or typed in; latest rate on or before the row''s date; missing rates are flagged, rate changes recompute.', 'Before anything is built, the owner should agree on how the bookkeeping app will be made: which programming language and screen style it uses, how it is installed, where its data lives, and how it reads Airbnb''s export file. Approving lets the build start on this basis; asking for changes means the design document is revised first. One point needs particular attention: the Airbnb export contains several rooms and apartments, while the app was meant for a single property.', 'approve', NULL, '2026-10-23T19:23:57Z', '2026-10-23T19:30:24Z', 13, NULL, 'rule', NULL, '');
+INSERT INTO decision (id, subject, status, options, body, intro, answer, reason, created_at, closed_at, created_by_task, signoff, kind, decided_by_task, consequences) VALUES (4, 'Sign off plan 3: project skeleton and Nix packaging', 'pending', '["approve"]', '', 'Before any bookkeeping feature is written, the app needs an empty but working frame: a place for the code, a way to run its tests and check its style, and a way to install and start it with the owner''s Nix setup. This part builds that frame with a tiny app that only starts and shows one page, and one test that passes. Every later part then just adds its own code and tests to it, instead of each one fighting with tooling.
+
+Approving lets the work described here go ahead.', NULL, NULL, '2026-10-23T19:30:54Z', NULL, NULL, 'plan', 'rule', NULL, '');
 
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (1, 1, '2026-10-23T19:14:37Z', '2026-10-23T19:15:40Z', 'done', NULL, 0, 'cd3d42740dd5ea9c8707207210ebd4e93c9b80c8', NULL, 'claude-opus-5-5', '0b74794a-06e2-4f40-8b9d-b839a74c0101', NULL, 6, 12, 5937, 151146, 39344, 0.46376920000000005, 39881, 60, 1445179);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (2, 2, '2026-10-23T19:19:04Z', '2026-10-23T19:19:45Z', 'done', NULL, 0, 'c3af31b31bf19a0c813d5df39657354d2953594e', NULL, 'claude-opus-5-5', 'a4465501-56c2-4e5c-ada6-af51d0d966e0', NULL, 6, 12, 4235, 176178, 25654, 0.32521560000000005, 37524, 60, 1445179);
@@ -395,6 +425,7 @@ INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, b
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (4, 4, '2026-10-23T19:20:09Z', '2026-10-23T19:20:33Z', 'blocked', NULL, 0, '6a3272656efbeb1bea37f1fc625c67460287cf82', 'main', 'claude-opus-5-5', '84de8f30-0785-4cd1-aef7-2d3866387edf', NULL, 8, 18, 1805, 241242, 24471, 0.2801884, 36595, 60, 1445179);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (5, 12, '2026-10-23T19:21:24Z', '2026-10-23T19:21:47Z', 'done', NULL, 0, '654e8a9c2e37d79153b5e55867d5c3b03396d2b6', NULL, 'claude-opus-5-5', '84937f15-3aa1-4610-bc16-56d19b29a803', NULL, 4, 8, 1712, 96033, 18932, 0.20493460000000002, 31072, 60, 1445179);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (6, 13, '2026-10-23T19:21:42Z', '2026-10-23T19:24:17Z', 'done', NULL, 0, '654e8a9c2e37d79153b5e55867d5c3b03396d2b6', 'main', 'claude-opus-5-5', 'fdbad895-093f-464b-9810-8678ba0124a4', NULL, 12, 24, 13704, 500149, 45430, 0.73764580000000013, 57973, 60, 1445179);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (7, 4, '2026-10-23T19:30:27Z', NULL, 'running', NULL, NULL, '0766499f96e5ec1095e40bd31fac6b92b64ec68f', 'main', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1445179);
 
 INSERT INTO task_decision (task_id, decision_id) VALUES (2, 1);
 INSERT INTO task_decision (task_id, decision_id) VALUES (4, 2);
@@ -407,6 +438,7 @@ INSERT INTO task_decision (task_id, decision_id) VALUES (9, 3);
 INSERT INTO task_decision (task_id, decision_id) VALUES (10, 3);
 INSERT INTO task_decision (task_id, decision_id) VALUES (11, 3);
 INSERT INTO task_decision (task_id, decision_id) VALUES (12, 2);
+INSERT INTO task_decision (task_id, decision_id) VALUES (14, 4);
 
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (4, 3);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (4, 12);
