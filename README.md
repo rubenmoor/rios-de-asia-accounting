@@ -59,11 +59,25 @@ The dev server proxies `/api` to the server on port 8080. `npm run build` writes
 `src/rios_de_asia_accounting/web/dist/`; the Flask server then serves it itself, at every path it
 has no page for. Checks: `npm run typecheck`, `npm run lint`, `npm test`.
 
+## Build
+
+- `nix build` builds the app with the client bundle inside (`result/bin/rios-de-asia-accounting`);
+  `nix flake check` builds it too and runs all checks.
+- `cd frontend && npm run build` writes a local bundle to `src/rios_de_asia_accounting/web/dist/`
+  (git-ignored) so a Python-only checkout can serve the screens.
+- Where the checks run:
+  - Python: `pytest`, `ruff check src tests`, `ruff format --check src tests` in the dev shell;
+    pytest needs no bundle.
+  - Client, in `frontend/`: `npm run typecheck`, `npm run lint`, `npm test`.
+  - `nix flake check` runs all of them (pytest in the package build, ruff in `lint`, the
+    `npm` checks in `frontend-lint`) plus the backup module test.
+
 ## Import the Airbnb CSV
 
 1. On airbnb.com open your Transaction history (under Earnings), choose all dates and download
    the CSV (menu names may change; it is the file with a "Confirmation code" column).
-2. In the app open **Import**, choose the file and look at the preview, then confirm.
+2. In the app open **Import**, choose the file under "Airbnb earnings CSV" and press **Preview**,
+   look at what would change, then press **Import** (**Cancel** drops the upload).
    On the first import you are asked which of the listings in the file are your apartment.
 3. Re-importing is safe: bookings are matched by confirmation code, known lines are skipped and
    only changes are applied. Your guests and notes are never overwritten.
@@ -75,9 +89,9 @@ From the command line: `rios-de-asia-accounting import airbnb.csv --listing "My 
 Airbnb pays in USD, the books are in COP. A booking needs a USD→COP rate for its payout date.
 
 - Download the official TRM history from datos.gov.co ("Tasa de Cambio Representativa del Mercado
-  - Historico", CSV) and load it on the **Import** page, or run
+  - Historico", CSV) and load it with **Load rates** under "Exchange rates (TRM)" on the **Import** page, or run
   `rios-de-asia-accounting import-rates trm.csv`.
-- Or type a single rate on the **Rates** page.
+- Or type a single rate on the **Rates** page (**New rate**).
 
 Bookings that still lack a rate are counted after each import.
 
