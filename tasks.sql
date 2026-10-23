@@ -1115,6 +1115,31 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 * delete code that isn''t actually used
 * check pending decisions if they are still relevant and really pending
 * check other milestones if their contents are up-to-date; raise a decision for each change they need', '2026-10-23T20:31:04Z', '2026-10-23T20:31:35Z', NULL, 0, NULL, NULL);
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (54, NULL, 'Rename the app from airbnb-books to rios-de-asia-accounting', 'exec', 'open', NULL, NULL, 'The human wants the app, its command and everything derived from the name to match the repo:
+**`rios-de-asia-accounting`**. This replaces the name `airbnb-books` fixed by
+`decision 3: approve the architecture` (only the name; the rest of that decision stands).
+Record the new name with `pm decision record` so later tasks don''t bring the old one back.
+
+## What to rename
+
+- **Command / package:** `airbnb-books` → `rios-de-asia-accounting` (`flake.nix` pname, `meta.mainProgram`,
+  `pyproject.toml` project name and console script, argparse `prog`).
+- **Python package:** `src/airbnb_books/` → `src/rios_de_asia_accounting/`, all imports, tests.
+- **Nix module:** `services.airbnb-books-backup` → `services.rios-de-asia-accounting-backup`, unit names
+  likewise (`nix/module.nix`, the `backup-module` check in `flake.nix`).
+- **Paths:** data dir `$XDG_DATA_HOME/rios-de-asia-accounting/books.db`, default backup dir
+  `~/Dropbox/rios-de-asia-accounting`. Backup file names `books-YYYY-MM-DD.db` and `books.db` stay.
+- **Env vars:** `AIRBNB_BOOKS_DB` → `RIOS_DE_ASIA_ACCOUNTING_DB`, `AIRBNB_BOOKS_BACKUP_DIR` →
+  `RIOS_DE_ASIA_ACCOUNTING_BACKUP_DIR`.
+- **User-visible text:** page title/header, startup and error messages, `README.md`, `architecture-spec.md`.
+- Leave `airbnb-bookkeeping-spec.md` (the original product spec) and words that mean Airbnb itself
+  (the CSV importer, "Airbnb fee", etc.) alone.
+
+## Notes
+
+- No compatibility with the old paths or env vars: no real data exists under the old names yet.
+- Done when `grep -rI "airbnb.books\|AIRBNB_BOOKS"` (excluding `tasks.sql`, `.git`, `airbnb-bookkeeping-spec.md`)
+  finds nothing, `nix flake check` passes and `nix run . -- --no-browser --port 8002` serves the app.', '2026-10-23T21:28:25Z', NULL, NULL, 0, NULL, NULL);
 
 INSERT INTO decision (id, subject, status, options, body, intro, answer, reason, created_at, closed_at, created_by_task, signoff, kind, decided_by_task, consequences) VALUES (1, 'Sign off the masterplan of milestone 1: first version build', 'answered', '["approve"]', '', 'This is the overall roadmap for building the first working version of a small, private bookkeeping app for one Airbnb apartment. The app turns every booking and every cost into amounts per calendar day, so it can answer whether hosting pays off, whether prices are set well, and how things are trending. The roadmap splits the build into parts, starting with a short architecture document the owner approves before anything else is built, and ending with a check against the real Airbnb export.
 
