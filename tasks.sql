@@ -191,6 +191,7 @@ INSERT INTO milestone (id, subject, status, body, created_at, implemented_at, qu
 
 * don''t change functionality
 * add a favicon', '2026-10-23T22:34:21Z', NULL, 0);
+INSERT INTO milestone (id, subject, status, body, created_at, implemented_at, queue_index) VALUES (3, 'add a proper client-side framework', 'open', 'the architecture spec are terrible. we want a proper client-side framework. your choice. we totally can have build steps. this becomes a classic web app, only that its server runs locally on my pc.', '2026-10-23T22:40:12Z', NULL, 0);
 
 INSERT INTO plan (id, milestone_id, subject, priority, body, intro, created_at, created_by_task) VALUES (1, 1, 'masterplan', 1000, 'Build the first version of the app described in `airbnb-bookkeeping-spec.md`: a local, single-user, single-property bookkeeping tool that allocates all income and costs per calendar day, imports the Airbnb transaction CSV (`airbnb_.csv` is a real sample), and shows a dashboard with metrics, a rolling 90-day chart and an expense breakdown. Only the spec''s "v1" features are in scope; its "Later" list is not.
 
@@ -639,6 +640,7 @@ INSERT INTO plan (id, milestone_id, subject, priority, body, intro, created_at, 
 ## Order
 
 Part 1''s plan, then (after `decision 23` is answered and part 1 is implemented) parts 2 and 3 in any order, then part 4. Where a later part''s tasks need the foundation, they `--requires` part 1''s implementation tasks.', 'The bookkeeping app works, but it looks like a bare web page from the nineties. This work gives every screen a friendly, consistent look built on two popular styling toolkits, makes the tables feel like a spreadsheet, adds small playful touches that nod to ledgers and accounting, and gives the browser tab its own little icon. Nothing the app does changes: the same screens, buttons and numbers, only better looking.', '2026-10-23T22:34:21Z', NULL);
+INSERT INTO plan (id, milestone_id, subject, priority, body, intro, created_at, created_by_task) VALUES (12, 3, 'masterplan', 1000, 'tbd.', '', '2026-10-23T22:40:12Z', NULL);
 
 INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (1, 1, 'write the masterplan of milestone 1: first version build', 'masterplan', 'done', NULL, '2026-10-23, plan 1 body and intro (no files)', 'Write `plan 1: masterplan`, the masterplan of `milestone 1: first version build`: expand on everything that needs to be done to achieve it,
 divided into parts, with an intro in plain English (`pm plan edit 1 --intro "…" --body -`). State in the masterplan that its own tasks are not implementation work: each of them writes the
@@ -1214,6 +1216,9 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 - Only decorative wording may change; existing messages and labels stay.
 - It decorates finished pages: its implementation tasks `--requires` the implementation tasks of parts 2 and 3 (`spreadsheet-style tables and dashboard`, `forms and actions`) that touch the same templates.
 - Keep the ground rules: no functional change, offline (inline SVG / plain CSS only), readability first.', '2026-10-23T22:36:12Z', NULL, 56, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (61, 12, 'write the masterplan of milestone 3: add a proper client-side framework', 'masterplan', 'open', NULL, NULL, 'Write `plan 12: masterplan`, the masterplan of `milestone 3: add a proper client-side framework`: expand on everything that needs to be done to achieve it,
+divided into parts, with an intro in plain English (`pm plan edit 12 --intro "…" --body -`). State in the masterplan that its own tasks are not implementation work: each of them writes the
+plan for one part.', '2026-10-23T22:40:12Z', NULL, NULL, 0, NULL, NULL);
 
 INSERT INTO decision (id, subject, status, options, body, intro, answer, reason, created_at, closed_at, created_by_task, signoff, kind, decided_by_task, consequences) VALUES (1, 'Sign off the masterplan of milestone 1: first version build', 'answered', '["approve"]', '', 'This is the overall roadmap for building the first working version of a small, private bookkeeping app for one Airbnb apartment. The app turns every booking and every cost into amounts per calendar day, so it can answer whether hosting pays off, whether prices are set well, and how things are trending. The roadmap splits the build into parts, starting with a short architecture document the owner approves before anything else is built, and ending with a check against the real Airbnb export.
 
