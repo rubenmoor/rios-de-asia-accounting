@@ -1062,7 +1062,7 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 - Tests: `/quit` with the test client triggers the shutdown callback (inject it, don''t kill the test process); the exit path calls the backup exactly once, even if several stop signals arrive.
 
 Done when the tests pass and, by hand: start with `--no-browser` on a temp DB and backup dir, `curl -X POST` the `/quit` URL, the process ends and today''s backup file exists.', '2026-10-23T19:50:00Z', '2026-10-23T20:23:18Z', 46, 0, NULL, 'main');
-INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (49, 10, 'NixOS and home-manager backup module', 'work', 'open', NULL, NULL, 'A Nix module that installs a daily systemd timer running `airbnb-books backup`, so backups happen even when the app isn''t opened.
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (49, 10, 'NixOS and home-manager backup module', 'work', 'done', NULL, '2026-10-23, nix/module.nix, flake.nix', 'A Nix module that installs a daily systemd timer running `airbnb-books backup`, so backups happen even when the app isn''t opened.
 
 - `nix/module.nix`, exposed in `flake.nix` as `homeManagerModules.default` and `nixosModules.default` (NixOS: `systemd.user` units, for all users). One file serves both.
 - Options `services.airbnb-books-backup`: `enable`; `package` (default: this flake''s package from `task 18: Nix package, app and flake checks`); `backupDir`; `keep` (default 30); `dbPath` (default null = app default); `onCalendar` (default `"daily"`).
@@ -1070,7 +1070,7 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 - `airbnb-books-backup.timer`: `OnCalendar` from the option, `Persistent = true`, wanted by `timers.target`.
 - A flake check that evaluates the NixOS module in a minimal `nixosSystem` and asserts the generated unit''s `ExecStart` and timer settings (no VM test). Don''t add home-manager as a flake input just for a check.
 
-Done when `nix flake check` passes.', '2026-10-23T19:50:00Z', NULL, 46, 0, NULL, 'main');
+Done when `nix flake check` passes.', '2026-10-23T19:50:00Z', '2026-10-23T20:23:58Z', 46, 0, NULL, 'main');
 INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (50, 10, 'README for the owner', 'work', 'open', NULL, NULL, 'A short `README.md` for the owner: how to install, use, back up and restore the app.
 
 Contents:
@@ -1179,6 +1179,7 @@ INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, b
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (47, 44, '2026-10-23T20:17:06Z', '2026-10-23T20:17:52Z', 'done', NULL, 0, '1d8293a730b7be0a6a0880ab4c4c0b560e9c4916', 'main', 'claude-sonnet-5-5', '4307fc5d-d4e2-4248-8092-db70125dfae2', 46, 6, 12, 4454, 480308, 12316, 0.6923469, 85227, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (48, 47, '2026-10-23T20:17:53Z', '2026-10-23T20:19:03Z', 'done', NULL, 0, '7bdbecd108ae1118b5a150903345b90a01035f95', 'main', 'claude-sonnet-5-5', '02de1d34-c631-426f-9388-30b2899550b7', NULL, 11, 22, 6224, 379005, 30164, 0.22084050000000002, 42471, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (49, 48, '2026-10-23T20:19:03Z', '2026-10-23T20:23:23Z', 'done', NULL, 0, 'b8f21ee2e781c13144ad8c466a630bb3de1e3fff', 'main', 'claude-sonnet-5-5', '02de1d34-c631-426f-9388-30b2899550b7', 48, 14, 28, 8174, 754972, 20696, 0.46091770000000004, 63362, 60, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (50, 49, '2026-10-23T20:23:23Z', '2026-10-23T20:24:03Z', 'done', NULL, 0, '6f3017a901117fce7d1a000da1b342c2e751af1c', 'main', 'claude-sonnet-5-5', '02de1d34-c631-426f-9388-30b2899550b7', 49, 4, 8, 3095, 268742, 8551, 0.5529619, 71847, 60, 1465683);
 
 INSERT INTO task_decision (task_id, decision_id) VALUES (2, 1);
 INSERT INTO task_decision (task_id, decision_id) VALUES (4, 2);

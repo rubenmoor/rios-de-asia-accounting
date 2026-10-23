@@ -36,6 +36,38 @@
       });
 
       checks = forAll (system: pkgs: {
+        backup-module =
+          let
+            os = nixpkgs.lib.nixosSystem {
+              inherit system;
+              modules = [
+                self.nixosModules.default
+                {
+                  services.airbnb-books-backup = {
+                    enable = true;
+                    backupDir = "/tmp/bk";
+                    keep = 7;
+                    dbPath = "/tmp/books.db";
+                    onCalendar = "03:00";
+                  };
+                  boot.loader.grub.enable = false;
+                  fileSystems."/" = { device = "none"; fsType = "tmpfs"; };
+                  system.stateVersion = "25.05";
+                }
+              ];
+            };
+            svc = os.config.systemd.user.services.airbnb-books-backup;
+            timer = os.config.systemd.user.timers.airbnb-books-backup;
+            exe = "${self.packages.${system}.default}/bin/airbnb-books";
+            ok = svc.serviceConfig.Type == "oneshot"
+              && svc.serviceConfig.ExecStart
+                == "${exe} --db /tmp/books.db backup --backup-dir /tmp/bk --keep 7"
+              && timer.timerConfig.OnCalendar == "03:00"
+              && timer.timerConfig.Persistent == true
+              && timer.wantedBy == [ "timers.target" ];
+          in
+          assert ok;
+          pkgs.runCommand "airbnb-books-backup-module" { } "touch $out";
         default = self.packages.${system}.default;
         lint = pkgs.runCommand "airbnb-books-lint" { nativeBuildInputs = [ pkgs.ruff ]; } ''
           cd ${./.}
@@ -45,6 +77,9 @@
           touch $out
         '';
       });
+
+      nixosModules.default = import ./nix/module.nix { inherit self; flavor = "nixos"; };
+      homeManagerModules.default = import ./nix/module.nix { inherit self; flavor = "home-manager"; };
 
       devShells = forAll (system: pkgs: {
         default = pkgs.mkShell {
