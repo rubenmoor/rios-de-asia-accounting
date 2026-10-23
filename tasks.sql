@@ -1071,7 +1071,7 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 - A flake check that evaluates the NixOS module in a minimal `nixosSystem` and asserts the generated unit''s `ExecStart` and timer settings (no VM test). Don''t add home-manager as a flake input just for a check.
 
 Done when `nix flake check` passes.', '2026-10-23T19:50:00Z', '2026-10-23T20:23:58Z', 46, 0, NULL, 'main');
-INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (50, 10, 'README for the owner', 'work', 'open', NULL, NULL, 'A short `README.md` for the owner: how to install, use, back up and restore the app.
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (50, 10, 'README for the owner', 'work', 'done', NULL, '2026-10-23, README.md', 'A short `README.md` for the owner: how to install, use, back up and restore the app.
 
 Contents:
 - What the app is (one paragraph).
@@ -1083,7 +1083,7 @@ Contents:
 - **Restore**: close the app, copy `books-YYYY-MM-DD.db` over the live DB path, start the app.
 - Where the DB lives and how to override it (flag / env var).
 
-Done when every command in the README has been tried once in the dev shell against a temp DB and works as written.', '2026-10-23T19:50:00Z', NULL, 46, 0, NULL, 'main');
+Done when every command in the README has been tried once in the dev shell against a temp DB and works as written.', '2026-10-23T19:50:00Z', '2026-10-23T20:24:34Z', 46, 0, NULL, 'main');
 INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (51, 10, 'End-to-end check with real data', 'work', 'open', NULL, NULL, 'Final run-through of the whole app, checking one month''s numbers independently of the app''s code.
 
 - In the real app on a fresh temp DB: import `airbnb_.csv` (repo root) through the import screen, choose the listings, add the USD rates needed for one chosen month, add a few expenses (a recurring fixed cost, a per-night cost, a capex item with a useful life, a maintenance cost) and a time log entry; open the dashboard.
@@ -1180,6 +1180,7 @@ INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, b
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (48, 47, '2026-10-23T20:17:53Z', '2026-10-23T20:19:03Z', 'done', NULL, 0, '7bdbecd108ae1118b5a150903345b90a01035f95', 'main', 'claude-sonnet-5-5', '02de1d34-c631-426f-9388-30b2899550b7', NULL, 11, 22, 6224, 379005, 30164, 0.22084050000000002, 42471, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (49, 48, '2026-10-23T20:19:03Z', '2026-10-23T20:23:23Z', 'done', NULL, 0, 'b8f21ee2e781c13144ad8c466a630bb3de1e3fff', 'main', 'claude-sonnet-5-5', '02de1d34-c631-426f-9388-30b2899550b7', 48, 14, 28, 8174, 754972, 20696, 0.46091770000000004, 63362, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (50, 49, '2026-10-23T20:23:23Z', '2026-10-23T20:24:03Z', 'done', NULL, 0, '6f3017a901117fce7d1a000da1b342c2e751af1c', 'main', 'claude-sonnet-5-5', '02de1d34-c631-426f-9388-30b2899550b7', 49, 4, 8, 3095, 268742, 8551, 0.5529619, 71847, 60, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (51, 50, '2026-10-23T20:24:03Z', '2026-10-23T20:24:37Z', 'done', NULL, 0, 'aaadff6a06fbe1b9f79c35f79be708567208aa24', 'main', 'claude-sonnet-5-5', '02de1d34-c631-426f-9388-30b2899550b7', 50, 5, 10, 2929, 389327, 11996, 0.6691886, 83612, 60, 1465683);
 
 INSERT INTO task_decision (task_id, decision_id) VALUES (2, 1);
 INSERT INTO task_decision (task_id, decision_id) VALUES (4, 2);

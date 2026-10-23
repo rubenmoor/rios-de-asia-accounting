@@ -1,0 +1,93 @@
+# airbnb-books
+
+A small local bookkeeping app for one Airbnb apartment. It imports Airbnb's earnings CSV, lets you
+add expenses, and shows on a dashboard whether the apartment makes money: income, costs, profit,
+occupancy, average nightly rate and profit per hour you put in. Everything runs on your own
+computer; the data is one SQLite file.
+
+## Install
+
+Run it without installing:
+
+```sh
+nix run github:rubenmoor/rios-de-asia-accounting
+```
+
+Or use the flake as an input (package and daily backup module):
+
+```nix
+inputs.airbnb-books.url = "github:rubenmoor/rios-de-asia-accounting";
+```
+
+Home-manager example (`inputs.airbnb-books.homeManagerModules.default` goes into the home-manager
+modules; NixOS uses `nixosModules.default` and installs the timer for all users):
+
+```nix
+{ inputs, ... }: {
+  imports = [ inputs.airbnb-books.homeManagerModules.default ];
+  home.packages = [ inputs.airbnb-books.packages.x86_64-linux.default ];
+  services.airbnb-books-backup = {
+    enable = true;
+    backupDir = "/home/me/Dropbox/airbnb-books";
+    keep = 30;                # optional, default 30
+    onCalendar = "daily";     # optional, default "daily"
+    # dbPath = "/path/to/books.db";   # optional, default: see "Where the data lives"
+  };
+}
+```
+
+## Run and quit
+
+```sh
+airbnb-books            # starts the app and opens the browser
+airbnb-books --no-browser --port 8080
+```
+
+Press **Quit** in the page header (or Ctrl-C in the terminal) to stop it. A backup is taken when it
+stops.
+
+## Import the Airbnb CSV
+
+1. On airbnb.com open your Transaction history (under Earnings), choose all dates and download
+   the CSV (menu names may change; it is the file with a "Confirmation code" column).
+2. In the app open **Import**, choose the file and look at the preview, then confirm.
+   On the first import you are asked which of the listings in the file are your apartment.
+3. Re-importing is safe: bookings are matched by confirmation code, known lines are skipped and
+   only changes are applied. Your guests and notes are never overwritten.
+
+From the command line: `airbnb-books import airbnb.csv --listing "My listing" [--dry-run]`.
+
+## Exchange rates
+
+Airbnb pays in USD, the books are in COP. A booking needs a USD→COP rate for its payout date.
+
+- Download the official TRM history from datos.gov.co ("Tasa de Cambio Representativa del Mercado
+  - Historico", CSV) and load it on the **Import** page, or run
+  `airbnb-books import-rates trm.csv`.
+- Or type a single rate on the **Rates** page.
+
+Bookings that still lack a rate are counted after each import.
+
+## Backup
+
+- When the app stops (Quit, Ctrl-C or a shutdown), and daily by the timer if you enabled the
+  module above.
+- Files are `books-YYYY-MM-DD.db` in the backup folder, by default `~/Dropbox/airbnb-books`
+  (override with `--backup-dir` or `AIRBNB_BOOKS_BACKUP_DIR`). One file per day; the newest 30 are
+  kept (Settings page, or `--keep`); other files in the folder are never touched.
+- A backup is also taken before the database is upgraded to a newer version of the app.
+- By hand: `airbnb-books backup [--backup-dir DIR] [--keep N]`.
+
+## Restore
+
+1. Quit the app.
+2. Copy the backup over the live database:
+   `cp ~/Dropbox/airbnb-books/books-2026-10-23.db ~/.local/share/airbnb-books/books.db`
+3. Start the app again.
+
+## Where the data lives
+
+The live database is `$XDG_DATA_HOME/airbnb-books/books.db` (usually
+`~/.local/share/airbnb-books/books.db`). Override it with `airbnb-books --db FILE ...` or the
+environment variable `AIRBNB_BOOKS_DB`. It must not be inside a Dropbox folder; only backups go
+there.
