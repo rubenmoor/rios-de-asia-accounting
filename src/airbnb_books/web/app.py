@@ -1,4 +1,5 @@
 import os
+from collections.abc import Callable
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -28,7 +29,7 @@ def _same_origin() -> bool:
     return True
 
 
-def create_app(db_path: str | Path) -> Flask:
+def create_app(db_path: str | Path, shutdown: Callable[[], None] | None = None) -> Flask:
     app = Flask(__name__)
     app.secret_key = os.urandom(24)  # only signs flash messages of this run
     app.config["DB_PATH"] = str(db_path)
@@ -58,6 +59,13 @@ def create_app(db_path: str | Path) -> Flask:
             return render_template("stub.html", title=title)
 
         app.add_url_rule(url, endpoint, view)
+
+    @app.post("/quit")
+    def quit_app():
+        response = app.make_response(render_template("stopped.html"))
+        if shutdown is not None:
+            response.call_on_close(shutdown)  # after the page has been sent
+        return response
 
     dashboard.register(app)
     bookings.register(app)
