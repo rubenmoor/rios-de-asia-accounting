@@ -7,7 +7,8 @@ from pathlib import Path
 
 from waitress import create_server
 
-from airbnb_books.config import ConfigError, resolve_db_path
+from airbnb_books.backup import BackupError, backup, before_migrate_hook, resolve_keep
+from airbnb_books.config import ConfigError, resolve_backup_dir, resolve_db_path
 from airbnb_books.importer.airbnb_csv import (
     FileError,
     ImportPlan,
@@ -48,10 +49,16 @@ def run_migrate(db: str | None) -> None:
     path = resolve_db_path(db)
     conn = connect(path)
     try:
-        applied = migrate(conn)
+        applied = migrate(conn, before_migrate=before_migrate_hook())
     finally:
         conn.close()
     print(f"{path}: {applied} migration(s) applied")
+
+
+def run_backup(db: str | None, backup_dir: str | None, keep: int | None) -> None:
+    path = resolve_db_path(db)
+    target = backup(path, resolve_backup_dir(backup_dir), resolve_keep(path, keep), date.today())
+    print(f"backup written: {target}")
 
 
 def _print_plan(plan: ImportPlan, applied: bool) -> None:
@@ -129,6 +136,14 @@ def main(argv: list[str] | None = None) -> None:
     sub = parser.add_subparsers(dest="command")
     serve_parser = sub.add_parser("serve", help="start the web app (default)")
     sub.add_parser("migrate", help="create or upgrade the database")
+    backup_parser = sub.add_parser("backup", help="copy the database into the backup folder")
+    backup_parser.add_argument(
+        "--backup-dir",
+        help="backup folder (default: $AIRBNB_BOOKS_BACKUP_DIR or ~/Dropbox/airbnb-books)",
+    )
+    backup_parser.add_argument(
+        "--keep", type=int, help="backups to keep (default: the backup_keep setting, else 30)"
+    )
     import_parser = sub.add_parser("import", help="import an Airbnb transaction CSV")
     import_parser.add_argument("csv", help="Airbnb transaction history CSV")
     import_parser.add_argument(
@@ -149,6 +164,8 @@ def main(argv: list[str] | None = None) -> None:
     try:
         if args.command == "migrate":
             run_migrate(args.db)
+        elif args.command == "backup":
+            run_backup(args.db, args.backup_dir, args.keep)
         elif args.command == "import":
             code = run_import(args.db, args.csv, args.listing, args.dry_run)
             if code:
@@ -164,7 +181,7 @@ def main(argv: list[str] | None = None) -> None:
             finally:
                 conn.close()
             serve(db_path, args.port, not args.no_browser)
-    except (ConfigError, FileError, OSError) as e:
+    except (ConfigError, BackupError, FileError, OSError) as e:
         parser.exit(2, f"airbnb-books: {e}\n")
 
 
