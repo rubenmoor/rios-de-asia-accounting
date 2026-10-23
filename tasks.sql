@@ -822,6 +822,38 @@ Checks per task, in `frontend/`: `npm run build`, `npm run typecheck`, `npm run 
 Gaps in the API found while building (a missing field): follow-up task in `plan 13: JSON API`, not a client-side workaround. Deleting `web/charts.py` and the Jinja dashboard belongs to part 6.
 
 Done when: the dashboard in the Vite dev server shows the same table, warnings, charts and breakdown as the Jinja page for the same URL, period choices are bookmarkable, and the checks are green.', 'The dashboard is the app''s overview page: a table that compares income, costs, occupancy and profit over several periods, a chart of the last 90 days and a chart of how costs split by kind. This part rebuilds that page as part of the new in-browser app, with the same figures, the same period choices that can be bookmarked, and the same two hand-drawn charts. It looks plain for now; a new look comes later.', '2026-10-23T22:48:37Z', 66);
+INSERT INTO plan (id, milestone_id, subject, priority, body, intro, created_at, created_by_task) VALUES (17, 3, 'import flow', 480, 'Part 5 of `plan 12: masterplan`: the import screen at `/import` in React, built into the app shell of `plan 14: architecture and client toolchain` on the import endpoints of `plan 13: JSON API` (`task 76: JSON API: Airbnb and exchange-rate import`). The Jinja pages (`web/importing.py`, `templates/import.html`, `import_preview.html`, `import_summary.html`) stay until part 6 and are the reference: same steps, texts, counts and links.
+
+Binding:
+- `decision 24: client-side framework: React with TypeScript, built by Vite, on top of a JSON API from the existing Python server`: parsing, planning and applying the import stay in Python; the client uploads the file and shows what the API returns. No CSV reading in the browser.
+- `decision 14: Airbnb import: which rows set a booking''s dates, listing and guest name`: the preview shows the changes the server reports (field: old → new); nothing to decide on the client.
+- `decision 25: In which order do the visual design update and the new client-side framework happen, and does the design work move onto the new screens?`: the design update waits until this milestone is done → plain daisyUI default classes only (`table`, `input`, `file-input`, `checkbox`, `btn`, `alert`), no custom theme.
+
+## Choices this plan makes
+
+- **One route, steps in component state**: `/import` shows upload forms → preview → summary without changing the URL (today the preview and summary are POST responses with no URL of their own either). A reload or leaving the page goes back to the upload forms; the kept upload file is left as today (only Cancel and Import delete it).
+- **Uploads**: a small `postFile(path, FormData)` in `frontend/src/api.ts` next to the JSON helpers (no `Content-Type` header, the browser sets the multipart boundary; same `ApiError` handling). Writes stay same-origin (the browser sends `Origin`; the guard is untouched).
+- **Airbnb steps** (texts as today):
+  - Upload: "You see what would change before anything is written.", file input (`.csv,text/csv`), Preview. No file chosen → "choose the Airbnb CSV file"; a file error (wrong columns, …) from the API shown above the form.
+  - Preview, listing choice needed: today''s paragraph ("No listings of this property are chosen yet. …"), one checkbox per listing found with its row count (in the server''s order, most rows first), "Another listing name". Import with nothing chosen → the API''s 422 "choose at least one listing" above the form, preview kept.
+  - Preview otherwise: "Listings imported: …"; tables for new bookings (code, check-in – check-out, guest, listing, lines) and updated bookings (code, changes `field: old → new` or "new lines only", new lines); skipped (payout rows, already imported lines, rows of other listings with per-listing counts); problems ("line N: message", as errors) and warnings.
+  - Import → summary: "N new booking(s), N updated, N line(s) added", "N booking(s) need an exchange rate (rates)" linking to `/rates`, skipped counts, problems, warnings, link to `/bookings`.
+  - Cancel → `DELETE` → back to the upload forms with the notice "Import cancelled; nothing was changed." via the notices context of `task 84: Form kit (format.ts, shared components, notices, useSave) and time log screens`.
+  - "The uploaded file is gone; upload it again" (API error on apply) → back to the upload form with that error.
+- **Exchange rates (TRM)** on the same page: hint "CSV from datos.gov.co with the columns VALOR and VIGENCIADESDE.", file input, Currency (default `USD`, typed text kept after an error), "Load rates"; field errors via the `Field` component; success → "USD rates: N added, N changed; N line(s) recomputed; N booking(s) still need an exchange rate." plus the problem list.
+- **After a successful Airbnb import or rates load**: invalidate all TanStack queries (bookings, rates, dashboard all change), so other screens show fresh data.
+- TS types for the import responses mirror the "JSON API" section of `architecture-spec.md`. No Vitest tests (no pure helpers worth testing here).
+
+## Tasks (in this order)
+
+1. **Airbnb import flow**: `postFile` in `api.ts`, the `/import` route replacing the shell''s placeholder with the Airbnb upload, preview (both variants), listing choice, Import, Cancel and summary as above. Needs `task 76: JSON API: Airbnb and exchange-rate import`, `task 80: Frontend skeleton and app shell in frontend/`, `task 81: Flask serves the built frontend; Vite dev proxy; README Develop section` and `task 84: Form kit (format.ts, shared components, notices, useSave) and time log screens`.
+2. **Exchange-rate import**: the TRM section on the same page as above. Needs task 1.
+
+Checks per task, in `frontend/`: `npm run build`, `npm run typecheck`, `npm run lint`, `npm test`. Verify by running the server (`--no-browser --port 8080`) on a **copy** of the real database (and once on an empty one, for the listing choice) with the Vite dev server: upload `airbnb_.csv` (preview counts equal the Jinja page''s for the same file and database), Cancel, upload again and Import, re-import (everything skipped), a non-CSV file (error); TRM: a fixture from `tests/fixtures`, a bad currency. Ad-hoc headless screenshots are fine; no browser test suite.
+
+Gaps in the API found while building (a missing count or field): follow-up task in `plan 13: JSON API`, no client-side workaround. Deleting the Jinja import pages belongs to part 6.
+
+Done when: the import screen in the Vite dev server goes through every step of today''s import pages with the same texts and counts, checks green.', 'The app reads two kinds of files: the earnings export from Airbnb, which brings in bookings and their payouts, and a list of official dollar-to-peso exchange rates. This part rebuilds the import page as part of the new in-browser app: upload the Airbnb file, see what would change before anything is written, pick which listings belong to the property the first time, confirm, and read a short summary, plus the upload of exchange rates. It looks plain for now and behaves exactly like today''s page.', '2026-10-23T22:49:54Z', 67);
 
 INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (1, 1, 'write the masterplan of milestone 1: first version build', 'masterplan', 'done', NULL, '2026-10-23, plan 1 body and intro (no files)', 'Write `plan 1: masterplan`, the masterplan of `milestone 1: first version build`: expand on everything that needs to be done to achieve it,
 divided into parts, with an intro in plain English (`pm plan edit 1 --intro "…" --body -`). State in the masterplan that its own tasks are not implementation work: each of them writes the
@@ -1661,6 +1693,13 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 Checks in `frontend/`: `npm run build`, `npm run typecheck`, `npm run lint`, `npm test`. Verify with the server (`--no-browser --port 8080`) and the Vite dev server on a copy of the real database; compare chart shapes, ticks and labels with the Jinja page at `http://127.0.0.1:8080/` for the default view, `?month=…` and `?from=…&to=…` (ad-hoc headless screenshots are fine).
 
 Done when: the charts match the Jinja page for those URLs and the checks are green.', '2026-10-23T22:49:12Z', NULL, 88, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (91, 17, 'create tasks for plan 17: import flow', 'split', 'open', 1000, NULL, 'Split `plan 17: import flow` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
+done and dropped ones stay as they are (pm refuses to change them): drop the open ones that no longer fit and add
+tasks for what the plan asks beyond them. A task that writes a plan gets `--kind plan`. A task that needs another
+task''s result (in this plan or another, in any work tree) requires it: `pm task add … --requires <task id>`, or
+`pm task requires <task id> <prerequisite id>` for an existing one; priority is only a hint and orders nothing across
+work trees. When you drop an open task that others require and add one in its place, drop it with
+`--replaced-by <new task id>`.', '2026-10-23T22:49:54Z', NULL, 67, 0, NULL, NULL);
 
 INSERT INTO decision (id, subject, status, options, body, intro, answer, reason, created_at, closed_at, created_by_task, signoff, kind, decided_by_task, consequences) VALUES (1, 'Sign off the masterplan of milestone 1: first version build', 'answered', '["approve"]', '', 'This is the overall roadmap for building the first working version of a small, private bookkeeping app for one Airbnb apartment. The app turns every booking and every cost into amounts per calendar day, so it can answer whether hosting pays off, whether prices are set well, and how things are trending. The roadmap splits the build into parts, starting with a short architecture document the owner approves before anything else is built, and ending with a check against the real Airbnb export.
 
