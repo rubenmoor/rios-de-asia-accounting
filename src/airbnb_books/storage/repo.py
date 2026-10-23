@@ -280,6 +280,36 @@ def set_exchange_rate(conn: sqlite3.Connection, rate: ExchangeRate) -> None:
 
 
 @validated
+def upsert_exchange_rates(
+    conn: sqlite3.Connection, rates: list[ExchangeRate]
+) -> tuple[int, int, int]:
+    """Add or change many rates, then re-convert the lines once.
+
+    Returns (rates added, rates changed, lines recomputed).
+    """
+    added = changed = 0
+    with transaction(conn):
+        for rate in rates:
+            row = conn.execute(
+                "SELECT rate FROM exchange_rates WHERE date = ? AND currency = ?",
+                (rate.date.isoformat(), rate.currency),
+            ).fetchone()
+            if row is None:
+                added += 1
+            elif row["rate"] != rate.rate:
+                changed += 1
+            else:
+                continue
+            conn.execute(
+                "INSERT INTO exchange_rates (date, currency, rate) VALUES (?, ?, ?)"
+                " ON CONFLICT (date, currency) DO UPDATE SET rate = excluded.rate",
+                (rate.date.isoformat(), rate.currency, rate.rate),
+            )
+        recomputed = recompute_lines(conn)
+    return added, changed, recomputed
+
+
+@validated
 def delete_exchange_rate(conn: sqlite3.Connection, day: date, currency: str) -> None:
     with transaction(conn):
         conn.execute(
@@ -313,19 +343,28 @@ def rate_for(conn: sqlite3.Connection, currency: str, day: date) -> int | None:
     return row["rate"] if row else None
 
 
-def recompute_lines(conn: sqlite3.Connection) -> None:
-    """Fill or update rate / amount_cop of every non-COP line from the exchange rates."""
+def recompute_lines(conn: sqlite3.Connection) -> int:
+    """Fill or update rate / amount_cop of every non-COP line from the exchange rates.
+
+    Returns how many lines changed.
+    """
+    changed = 0
     with transaction(conn):
         rows = conn.execute(
-            "SELECT id, currency, date, amount_minor FROM booking_lines WHERE currency <> 'COP'"
+            "SELECT id, currency, date, amount_minor, rate, amount_cop FROM booking_lines"
+            " WHERE currency <> 'COP'"
         ).fetchall()
         for r in rows:
             rate = rate_for(conn, r["currency"], date.fromisoformat(r["date"]))
             cop = None if rate is None else to_cop(r["amount_minor"], rate)
+            if (rate, cop) == (r["rate"], r["amount_cop"]):
+                continue
+            changed += 1
             conn.execute(
                 "UPDATE booking_lines SET rate = ?, amount_cop = ? WHERE id = ?",
                 (rate, cop, r["id"]),
             )
+    return changed
 
 
 # --- expenses ---------------------------------------------------------------------------------

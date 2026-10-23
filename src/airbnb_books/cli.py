@@ -15,6 +15,8 @@ from airbnb_books.importer.airbnb_csv import (
     parse,
     plan_import,
 )
+from airbnb_books.importer.trm_csv import apply_rates
+from airbnb_books.importer.trm_csv import parse as parse_rates
 from airbnb_books.recurring import generate_recurring
 from airbnb_books.storage.db import connect, migrate
 from airbnb_books.web.app import create_app
@@ -101,6 +103,24 @@ def run_import(db: str | None, csv_path: str, listings: list[str] | None, dry_ru
         conn.close()
 
 
+def run_import_rates(db: str | None, csv_path: str, currency: str) -> None:
+    parsed = parse_rates(csv_path)
+    conn = connect(resolve_db_path(db))
+    try:
+        migrate(conn)
+        summary = apply_rates(conn, parsed, currency)
+    finally:
+        conn.close()
+    print(f"{len(parsed.problems)} problem(s)")
+    for pr in parsed.problems:
+        print(f"  line {pr.line}: {pr.message}")
+    print(
+        f"{currency} rates: {summary.added} added, {summary.changed} changed; "
+        f"{summary.lines_recomputed} line(s) recomputed; "
+        f"{summary.needing_rate} booking(s) still need an exchange rate"
+    )
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="airbnb-books")
     parser.add_argument(
@@ -119,6 +139,9 @@ def main(argv: list[str] | None = None) -> None:
     import_parser.add_argument(
         "--dry-run", action="store_true", help="show what would happen, change nothing"
     )
+    rates_parser = sub.add_parser("import-rates", help="import the official TRM rate history")
+    rates_parser.add_argument("csv", help="TRM history CSV from datos.gov.co")
+    rates_parser.add_argument("--currency", default="USD", help="currency of the rates")
     for p in (parser, serve_parser):
         p.add_argument("--port", type=int, help="port to listen on (default: a free port)")
         p.add_argument("--no-browser", action="store_true", help="do not open the browser")
@@ -130,6 +153,8 @@ def main(argv: list[str] | None = None) -> None:
             code = run_import(args.db, args.csv, args.listing, args.dry_run)
             if code:
                 sys.exit(code)
+        elif args.command == "import-rates":
+            run_import_rates(args.db, args.csv, args.currency)
         else:
             run_migrate(args.db)
             db_path = resolve_db_path(args.db)
