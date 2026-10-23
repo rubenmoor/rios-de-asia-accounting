@@ -437,3 +437,87 @@ def test_time_validation_and_booking_picker(client, db_path):
     assert b"2026-03-01 \xe2\x80\x93 2026-03-04 \xc2\xb7 Ann" in client.get("/time/new").data
     _time(client, booking_id=str(booking.id))
     assert repo.list_time_entries(_db(db_path))[0].booking_id == booking.id
+
+
+def _settings(client, **over):
+    data = {
+        "hourly_value_cop": "25.000",
+        "long_term_rent_cop_per_month": "2000000",
+        "per_booking_allocation": "spread",
+        "backup_keep": "10",
+    }
+    data.update(over)
+    return client.post("/settings", data=data)
+
+
+def test_settings_defaults_round_trip_and_listings(client, db_path):
+    page = client.get("/settings").data
+    assert b'name="backup_keep" value="30"' in page and b"COP" in page
+    _new_booking(client, listing="Casa A")
+    _new_booking(client, listing="Casa B", check_in="2026-04-01", check_out="2026-04-03")
+    page = client.get("/settings").data
+    assert b'value="Casa A"' in page and b'value="Casa B"' in page
+    response = client.post(
+        "/settings",
+        data={
+            "hourly_value_cop": "25.000",
+            "long_term_rent_cop_per_month": "2000000",
+            "per_booking_allocation": "spread",
+            "backup_keep": "10",
+            "listings": ["Casa B"],
+            "other_listing": "Casa C",
+        },
+    )
+    assert response.status_code == 302
+    saved = repo.load_settings(_db(db_path))
+    assert saved.hourly_value_cop == 25000 and saved.long_term_rent_cop_per_month == 2000000
+    assert (saved.per_booking_allocation, saved.backup_keep) == ("spread", 10)
+    assert saved.property_listings == ["Casa B", "Casa C"]
+    page = client.get("/settings").data
+    assert b"25.000" in page and b'value="Casa C" checked' in page
+
+
+def test_settings_validation(client, db_path):
+    assert b"enter whole pesos" in _settings(client, hourly_value_cop="-5").data
+    assert b"at least 1" in _settings(client, backup_keep="0").data
+    assert b"choose one" in _settings(client, per_booking_allocation="x").data
+    assert repo.load_settings(_db(db_path)).backup_keep == 30
+
+
+def _usd_booking(db_path):
+    conn = _db(db_path)
+    bid = repo.create_booking(conn, Booking(date(2026, 1, 10), date(2026, 1, 12)))
+    line = BookingLine(bid, "Reservation", date(2026, 1, 15), "USD", 10_000)
+    repo.add_line(conn, line)
+    return conn, bid
+
+
+def test_rates_create_recompute_edit_delete(client, db_path):
+    conn, bid = _usd_booking(db_path)
+    assert repo.get_booking(conn, bid).needs_rate
+    response = client.post(
+        "/rates/new", data={"date": "2026-01-10", "currency": "usd", "rate": "4000.50"}
+    )
+    assert response.status_code == 302
+    (rate,) = repo.list_exchange_rates(conn)
+    assert (rate.currency, rate.rate) == ("USD", 40_005_000)
+    first = repo.get_booking(conn, bid)
+    assert not first.needs_rate and first.net_payout > 0
+    page = client.get("/rates").data
+    assert b"4000.5" in page
+    client.post("/rates/2026-01-10/USD", data={"rate": "5000"})
+    assert repo.get_booking(conn, bid).net_payout > first.net_payout
+    assert b"5000" in client.get("/rates/2026-01-10/USD").data
+    response = client.post("/rates/2026-01-10/USD/delete", follow_redirects=True)
+    assert b"1 booking(s) still need an exchange rate" in response.data
+    assert repo.list_exchange_rates(conn) == [] and repo.get_booking(conn, bid).needs_rate
+    assert client.get("/rates/2026-01-10/USD").status_code == 404
+
+
+def test_rates_validation(client, db_path):
+    base = {"date": "2026-01-10", "currency": "USD", "rate": "4000"}
+    assert b"3-letter" in client.post("/rates/new", data={**base, "currency": "US"}).data
+    assert b"greater than zero" in client.post("/rates/new", data={**base, "rate": "0"}).data
+    assert b"up to 2 decimals" in client.post("/rates/new", data={**base, "rate": "4000.123"}).data
+    assert b"required" in client.post("/rates/new", data={**base, "date": ""}).data
+    assert repo.list_exchange_rates(_db(db_path)) == []

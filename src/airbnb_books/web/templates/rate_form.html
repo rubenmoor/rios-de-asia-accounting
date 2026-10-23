@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · airbnb-books{% endblock %}
+{% macro err(field) %}{% if field in form.errors %}<div class="error">{{ form.errors[field] }}</div>{% endif %}{% endmacro %}
+{% block content %}
+<h1>{{ title }}</h1>
+{{ err('') }}
+<form method="post">
+  {% if rate %}
+  <p>{{ rate.date }} · {{ rate.currency }}</p>
+  {% else %}
+  <label>Date <input type="date" name="date" value="{{ form.raw.get('date', '') }}"></label>{{ err('date') }}
+  <label>Currency <input name="currency" value="{{ form.raw.get('currency', '') }}" size="4" maxlength="3"></label>{{ err('currency') }}
+  {% endif %}
+  <label>COP per unit <span class="hint">up to 2 decimals after a dot, e.g. 4100.50</span>
+    <input name="rate" value="{{ form.raw.get('rate', '') }}">
+  </label>{{ err('rate') }}
+  <button>Save</button>
+  <a href="{{ url_for('rates') }}">Cancel</a>
+</form>
+{% if rate %}
+<form method="post" action="{{ url_for('rate_delete', day=rate.date.isoformat(), currency=rate.currency) }}" onsubmit="return confirm('Delete this rate?')">
+  <button class="danger">Delete rate</button>
+</form>
+{% endif %}
+{% endblock %}
