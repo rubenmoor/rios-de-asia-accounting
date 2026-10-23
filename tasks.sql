@@ -651,10 +651,10 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 
 - Covers: metrics for the standard ranges side by side plus a custom range, a chart of rolling 90-day RevPAR, ADR and occupancy, expense breakdown by category for a chosen range; plain, readable presentation.
 - Tasks require the metrics tasks of part 5 and, where they share UI scaffolding, the screens of part 7.', '2026-10-23T19:19:30Z', '2026-10-23T19:47:47Z', 2, 0, NULL, 'main');
-INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (11, 1, 'write the plan for part 9: backup, install and final check', 'plan', 'open', 1000, NULL, 'Write the plan for part 9 of `plan 1: masterplan` (section "9. Backup, install and final check"); suggested plan priority 300.
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (11, 1, 'write the plan for part 9: backup, install and final check', 'plan', 'done', 1000, '2026-10-23, plan 10: backup, install and final check; decision 19', 'Write the plan for part 9 of `plan 1: masterplan` (section "9. Backup, install and final check"); suggested plan priority 300.
 
 - Covers: `sqlite3 … ".backup …"` into a Dropbox folder as `books-YYYY-MM-DD.db`, keeping the last N, on app exit and via a daily systemd user timer shipped as a NixOS / home-manager module in the flake; restore and install/run/import/backup docs in the README; an end-to-end check (fresh DB, import `airbnb_.csv`, a few expenses, dashboard numbers verified by hand for one month).
-- The end-to-end check requires the tasks of parts 6, 7 and 8.', '2026-10-23T19:19:30Z', NULL, 2, 0, NULL, 'main');
+- The end-to-end check requires the tasks of parts 6, 7 and 8.', '2026-10-23T19:19:30Z', '2026-10-23T19:49:20Z', 2, 0, NULL, 'main');
 INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (12, 2, 'create tasks for plan 2: architecture spec', 'split', 'done', 1000, '2026-10-23, tasks 13', 'Split `plan 2: architecture spec` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
 done and dropped ones stay as they are (pm refuses to change them): drop the open ones that no longer fit and add
 tasks for what the plan asks beyond them. A task that writes a plan gets `--kind plan`. A task that needs another
@@ -707,7 +707,7 @@ task''s result (in this plan or another, in any work tree) requires it: `pm task
 `pm task requires <task id> <prerequisite id>` for an existing one; priority is only a hint and orders nothing across
 work trees. When you drop an open task that others require and add one in its place, drop it with
 `--replaced-by <new task id>`.', '2026-10-23T19:36:41Z', '2026-10-23T19:42:58Z', 6, 0, NULL, NULL);
-INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (17, 3, 'Python project skeleton', 'work', 'open', NULL, NULL, 'Builds the empty app frame from `architecture-spec.md` (`decision 3: approve the architecture`): Python 3, Flask + Jinja2 + waitress, pytest, ruff. No DB, no config paths, no real pages yet.
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (17, 3, 'Python project skeleton', 'work', 'done', NULL, '2026-10-23, pyproject.toml, src/airbnb_books/, tests/test_web.py, flake.nix, .gitignore', 'Builds the empty app frame from `architecture-spec.md` (`decision 3: approve the architecture`): Python 3, Flask + Jinja2 + waitress, pytest, ruff. No DB, no config paths, no real pages yet.
 
 - `pyproject.toml` (setuptools build backend, `src/` layout):
   - package `airbnb_books`, dependencies `flask`, `jinja2`, `waitress`
@@ -721,7 +721,7 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 - `flake.nix` dev shell: keep `pm`, the pm dashboard and git; add `python3.withPackages` (flask, jinja2, waitress, pytest), `ruff`, `sqlite`.
 - `.gitignore`: `__pycache__/`, `*.egg-info/`, `.pytest_cache/`, `.ruff_cache/`, `result`.
 
-Done when, inside `nix develop`: `pytest` passes, `ruff check` and `ruff format --check` are clean, and `PYTHONPATH=src python -m airbnb_books.cli --no-browser` serves the page on localhost (check with `curl`, then stop it by PID).', '2026-10-23T19:41:36Z', NULL, 14, 0, NULL, 'main');
+Done when, inside `nix develop`: `pytest` passes, `ruff check` and `ruff format --check` are clean, and `PYTHONPATH=src python -m airbnb_books.cli --no-browser` serves the page on localhost (check with `curl`, then stop it by PID).', '2026-10-23T19:41:36Z', '2026-10-23T19:50:02Z', 14, 0, NULL, 'main');
 INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (18, 3, 'Nix package, app and flake checks', 'work', 'open', NULL, NULL, 'Packages the skeleton from `task 17: Python project skeleton` with Nix so it can be built, run and checked with the owner''s Nix setup.
 
 - `flake.nix`, for all listed systems:
@@ -1036,13 +1036,63 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 **Tests** in `tests/test_web.py`, temp DB with a booking, a fixed expense and a time entry (hand-checked numbers): all standard columns present; `?month=` and `?from/to` add/change columns; invalid custom range → message and 200; a booking with a USD line without a rate → the notice; empty DB → empty state; None shown as a dash.
 
 **Done when** `pytest`, `ruff check` and `ruff format --check` pass and `/` renders in the browser (`airbnb-books --db /tmp/x.db --no-browser`, checked with `curl`, stopped by PID).', '2026-10-23T19:48:24Z', NULL, 42, 0, NULL, 'main');
-INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (46, 10, 'create tasks for plan 10: backup, install and final check', 'split', 'open', 1000, NULL, 'Split `plan 10: backup, install and final check` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (46, 10, 'create tasks for plan 10: backup, install and final check', 'split', 'done', 1000, '2026-10-23, tasks 47, 48, 49, 50, 51', 'Split `plan 10: backup, install and final check` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
 done and dropped ones stay as they are (pm refuses to change them): drop the open ones that no longer fit and add
 tasks for what the plan asks beyond them. A task that writes a plan gets `--kind plan`. A task that needs another
 task''s result (in this plan or another, in any work tree) requires it: `pm task add … --requires <task id>`, or
 `pm task requires <task id> <prerequisite id>` for an existing one; priority is only a hint and orders nothing across
 work trees. When you drop an open task that others require and add one in its place, drop it with
-`--replaced-by <new task id>`.', '2026-10-23T19:49:14Z', NULL, 11, 0, NULL, NULL);
+`--replaced-by <new task id>`.', '2026-10-23T19:49:14Z', '2026-10-23T19:50:04Z', 11, 0, NULL, NULL);
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (47, 10, 'Backup module and backup command', 'work', 'open', NULL, NULL, 'Daily and on-demand copies of the live SQLite database into the backup folder (Dropbox by default). Rules: `decision 19: backups: which files are pruned, how many are kept, and what a failed backup does`.
+
+- `backup.py`: `backup(db_path, backup_dir, keep, today)` → path written.
+  - Uses `sqlite3.Connection.backup` (online backup, safe while the app runs) into a temp file inside `backup_dir`, then renames it to `books-YYYY-MM-DD.db` (same day overwrites).
+  - Creates `backup_dir` if missing.
+  - Then prunes: only files matching `books-YYYY-MM-DD.db`, newest `keep` kept, oldest deleted. Any other file is left alone. A failed backup deletes nothing.
+- `cli.py`: subcommand `backup [--backup-dir] [--keep]` (backup dir and DB path resolved by `config.py`, `task 19: Paths, connection and migrations runner`). Keep = flag, else setting `backup_keep` (`task 22: Repository: expenses, recurring expenses, blocked days, time log, settings`), else 30. On failure: message on stderr, non-zero exit.
+- `serve` and `migrate` pass the backup as `before_migrate` to `storage/db.migrate`; a failed backup there aborts the migration.
+- `tests/test_backup.py`: the backup is a readable copy with the same rows; same-day overwrite; pruning keeps N and leaves foreign files alone; keep precedence (flag > setting > 30); migration hook called only for an existing (non-new) DB; failure → non-zero exit.
+
+Done when the tests pass and `airbnb-books backup --backup-dir <tmp>` on a temp DB writes today''s file.', '2026-10-23T19:50:00Z', NULL, 46, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (48, 10, 'Backup on exit and Quit button', 'work', 'open', NULL, NULL, 'The app takes a backup whenever it stops, and gets a Quit button so the owner has a clean way to close it.
+
+- `serve` takes a backup (`backup.py` from `task 47: Backup module and backup command`) when the server stops: Ctrl-C, SIGTERM, or the **Quit** button in the page header (layout from `task 36: Web frame: layout, form helpers, app on a real DB`).
+- POST `/quit`: renders "airbnb-books has stopped, you can close this tab", then stops waitress cleanly (after the response is sent).
+- A failed backup at exit is printed to stderr; the app still exits (`decision 19: backups: which files are pruned, how many are kept, and what a failed backup does`).
+- Tests: `/quit` with the test client triggers the shutdown callback (inject it, don''t kill the test process); the exit path calls the backup exactly once, even if several stop signals arrive.
+
+Done when the tests pass and, by hand: start with `--no-browser` on a temp DB and backup dir, `curl -X POST` the `/quit` URL, the process ends and today''s backup file exists.', '2026-10-23T19:50:00Z', NULL, 46, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (49, 10, 'NixOS and home-manager backup module', 'work', 'open', NULL, NULL, 'A Nix module that installs a daily systemd timer running `airbnb-books backup`, so backups happen even when the app isn''t opened.
+
+- `nix/module.nix`, exposed in `flake.nix` as `homeManagerModules.default` and `nixosModules.default` (NixOS: `systemd.user` units, for all users). One file serves both.
+- Options `services.airbnb-books-backup`: `enable`; `package` (default: this flake''s package from `task 18: Nix package, app and flake checks`); `backupDir`; `keep` (default 30); `dbPath` (default null = app default); `onCalendar` (default `"daily"`).
+- `airbnb-books-backup.service`: oneshot, runs `airbnb-books backup --backup-dir … --keep …`, plus `--db …` when `dbPath` is set (command from `task 47: Backup module and backup command`).
+- `airbnb-books-backup.timer`: `OnCalendar` from the option, `Persistent = true`, wanted by `timers.target`.
+- A flake check that evaluates the NixOS module in a minimal `nixosSystem` and asserts the generated unit''s `ExecStart` and timer settings (no VM test). Don''t add home-manager as a flake input just for a check.
+
+Done when `nix flake check` passes.', '2026-10-23T19:50:00Z', NULL, 46, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (50, 10, 'README for the owner', 'work', 'open', NULL, NULL, 'A short `README.md` for the owner: how to install, use, back up and restore the app.
+
+Contents:
+- What the app is (one paragraph).
+- Install: `nix run`; or the flake as an input with the package and the backup module (`task 49: NixOS and home-manager backup module`), with a home-manager example.
+- Run and quit (the Quit button, `task 48: Backup on exit and Quit button`).
+- Import the Airbnb CSV: where to download it on Airbnb, the listings question on the first import, re-imports are safe (`task 41: Import screen`, `task 33: Command line Airbnb import`).
+- Exchange rates: the TRM file from datos.gov.co, or typing one in (`task 34: Exchange-rate (TRM) import`).
+- Backup: on exit, daily timer, where files go, how many are kept, `airbnb-books backup` by hand.
+- **Restore**: close the app, copy `books-YYYY-MM-DD.db` over the live DB path, start the app.
+- Where the DB lives and how to override it (flag / env var).
+
+Done when every command in the README has been tried once in the dev shell against a temp DB and works as written.', '2026-10-23T19:50:00Z', NULL, 46, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (51, 10, 'End-to-end check with real data', 'work', 'open', NULL, NULL, 'Final run-through of the whole app, checking one month''s numbers independently of the app''s code.
+
+- In the real app on a fresh temp DB: import `airbnb_.csv` (repo root) through the import screen, choose the listings, add the USD rates needed for one chosen month, add a few expenses (a recurring fixed cost, a per-night cost, a capex item with a useful life, a maintenance cost) and a time log entry; open the dashboard.
+- Pick one month with several stays (one crossing a month boundary). Recompute its figures independently from the CSV rows and the expenses (a short throwaway script or by hand, not by calling the app''s code): nights, occupancy, income, costs by category, profit, ADR, RevPAR, profit per hour. They must match the dashboard exactly (integer COP).
+- Then: Quit, check the backup file, restore it per the README (`task 50: README for the owner`) and see the same dashboard.
+- Make it repeatable: `tests/test_e2e.py` does the same on `tests/fixtures/airbnb_sample.csv` (fake guest names; no real names in the repo) and asserts the hand-checked numbers for one month.
+- Every mismatch or bug found becomes a follow-up task in the plan it belongs to; don''t fix it here.
+
+Done when `tests/test_e2e.py` passes; the done note names the month checked and the result.', '2026-10-23T19:50:00Z', NULL, 46, 0, 'opus', 'main');
 
 INSERT INTO decision (id, subject, status, options, body, intro, answer, reason, created_at, closed_at, created_by_task, signoff, kind, decided_by_task, consequences) VALUES (1, 'Sign off the masterplan of milestone 1: first version build', 'answered', '["approve"]', '', 'This is the overall roadmap for building the first working version of a small, private bookkeeping app for one Airbnb apartment. The app turns every booking and every cost into amounts per calendar day, so it can answer whether hosting pays off, whether prices are set well, and how things are trending. The roadmap splits the build into parts, starting with a short architecture document the owner approves before anything else is built, and ending with a check against the real Airbnb export.
 
@@ -1058,7 +1108,7 @@ INSERT INTO decision (id, subject, status, options, body, intro, answer, reason,
 - **DB:** `$XDG_DATA_HOME/airbnb-books/books.db`, override with `--db` / `AIRBNB_BOOKS_DB`; migrations as numbered SQL files tracked by `PRAGMA user_version`; backups via SQLite''s online backup API into `~/Dropbox/airbnb-books`, keep 30.
 - **CSV import:** one booking per confirmation code, its rows kept as booking lines (long stays have one row per month); adjustments and resolution rows fold into the booking; co-host payouts become a per-booking cost; `Payout` rows (EUR/USD transfers) ignored to avoid counting income twice; thousands commas in amounts handled.
 - **Listings (please check):** the export has 7 listings (rooms and apartments, overlapping in time). Recommended: a setting "listings of this property"; the first import asks which to keep, others are skipped.
-- **Currencies:** each line keeps original currency and amount, the rate used and the derived integer COP; rates (COP per USD) are loaded by the user, from a hand-downloaded TRM CSV of datos.gov.co or typed in; latest rate on or before the row''s date; missing rates are flagged, rate changes recompute.', 'Before anything is built, the owner should agree on how the bookkeeping app will be made: which programming language and screen style it uses, how it is installed, where its data lives, and how it reads Airbnb''s export file. Approving lets the build start on this basis; asking for changes means the design document is revised first. One point needs particular attention: the Airbnb export contains several rooms and apartments, while the app was meant for a single property.', 'approve', NULL, '2026-10-23T19:23:57Z', '2026-10-23T19:30:24Z', 13, NULL, 'rule', NULL, '');
+- **Currencies:** each line keeps original currency and amount, the rate used and the derived integer COP; rates (COP per USD) are loaded by the user, from a hand-downloaded TRM CSV of datos.gov.co or typed in; latest rate on or before the row''s date; missing rates are flagged, rate changes recompute.', 'Before anything is built, the owner should agree on how the bookkeeping app will be made: which programming language and screen style it uses, how it is installed, where its data lives, and how it reads Airbnb''s export file. Approving lets the build start on this basis; asking for changes means the design document is revised first. One point needs particular attention: the Airbnb export contains several rooms and apartments, while the app was meant for a single property.', 'approve', NULL, '2026-10-23T19:23:57Z', '2026-10-23T19:30:24Z', 13, NULL, 'rule', NULL, '2026-10-23, task 11: Approving architecture-spec.md fixed the stack and layout every part plan builds on: Python 3 + Flask/Jinja2/waitress local web app named airbnb-books, pytest + ruff, flake package/app/checks and a shared NixOS/home-manager backup module (nix/module.nix, services.airbnb-books-backup), DB at $XDG_DATA_HOME/airbnb-books/books.db with numbered SQL migrations and a backup before migrating, backups via Connection.backup as books-YYYY-MM-DD.db in ~/Dropbox/airbnb-books keeping 30. Schema additions beyond the product spec: booking_lines, exchange_rates, bookings.listing/guest_name, settings property_listings/backup_keep; booking money totals derived from lines; co-host payouts are per-booking costs; Payout rows ignored; USD lines converted with the latest rate on or before the line date. Plans 3-10 (parts 2-9) were written against it; no longer holds: the product spec''s single integer net_payout per booking and storing per-day rows in a table (days is computed on demand).');
 INSERT INTO decision (id, subject, status, options, body, intro, answer, reason, created_at, closed_at, created_by_task, signoff, kind, decided_by_task, consequences) VALUES (4, 'Sign off plan 3: project skeleton and Nix packaging', 'answered', '["approve"]', '', 'Before any bookkeeping feature is written, the app needs an empty but working frame: a place for the code, a way to run its tests and check its style, and a way to install and start it with the owner''s Nix setup. This part builds that frame with a tiny app that only starts and shows one page, and one test that passes. Every later part then just adds its own code and tests to it, instead of each one fighting with tooling.
 
 Approving lets the work described here go ahead.', 'approve', NULL, '2026-10-23T19:30:54Z', '2026-10-23T19:31:35Z', NULL, 'plan', 'rule', NULL, '');
@@ -1099,7 +1149,10 @@ INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, b
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (19, 35, '2026-10-23T19:46:36Z', '2026-10-23T19:47:31Z', 'done', NULL, 0, 'a8fa68692dc46c04958671f49c502ab49c9ee357', NULL, 'claude-opus-5-5', '871c309e-4819-4b09-914a-7751cc7d2271', NULL, 10, 20, 5831, 345005, 32128, 0.44272499999999992, 44391, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (20, 10, '2026-10-23T19:46:45Z', '2026-10-23T19:47:55Z', 'done', NULL, 0, 'a8fa68692dc46c04958671f49c502ab49c9ee357', 'main', 'claude-opus-5-5', 'b680badb-d1d7-4dfb-86b9-824d30f2f5f9', NULL, 10, 20, 4693, 405832, 41885, 0.5101864, 54385, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (21, 42, '2026-10-23T19:47:43Z', '2026-10-23T19:48:33Z', 'done', NULL, 0, '0acf1aed2824d3f41eb0046b0a673c0fd6f12c47', NULL, 'claude-opus-5-5', 'a324808b-955c-4092-a048-bdd5c400e144', NULL, 9, 18, 5472, 292183, 29225, 0.4017486, 41517, 60, 1465683);
-INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (22, 11, '2026-10-23T19:47:55Z', NULL, 'running', NULL, NULL, '0acf1aed2824d3f41eb0046b0a673c0fd6f12c47', 'main', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (22, 11, '2026-10-23T19:47:55Z', '2026-10-23T19:49:29Z', 'done', NULL, 0, '0acf1aed2824d3f41eb0046b0a673c0fd6f12c47', 'main', 'claude-opus-5-5', '839d4b95-bc9d-4592-9a4c-9e3cd56419c2', NULL, 9, 18, 6398, 312355, 35957, 0.478159, 48533, 60, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (23, 46, '2026-10-23T19:49:15Z', '2026-10-23T19:50:10Z', 'done', NULL, 0, '122cf5bcf3c236ae4bb40ab8ac5bc02a09bf8132', NULL, 'claude-opus-5-5', 'af3db05b-fb4e-4d3c-940b-30ffb561f0b1', NULL, 8, 16, 4304, 251039, 29900, 0.37555179999999994, 42174, 60, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (24, 17, '2026-10-23T19:49:30Z', '2026-10-23T19:50:06Z', 'done', NULL, 0, '122cf5bcf3c236ae4bb40ab8ac5bc02a09bf8132', 'main', 'claude-sonnet-5-5', 'cb74b131-b982-40e0-bb65-605beb46eb69', NULL, 6, 12, 2984, 143565, 31838, 0.17157250000000002, 32256, 60, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (25, 18, '2026-10-23T19:50:06Z', NULL, 'running', NULL, NULL, 'a4d6b79501457f8aa9be917248fa582833c0fa71', 'main', NULL, NULL, 24, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1465683);
 
 INSERT INTO task_decision (task_id, decision_id) VALUES (2, 1);
 INSERT INTO task_decision (task_id, decision_id) VALUES (4, 2);
@@ -1156,3 +1209,21 @@ INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (45, 27);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (45, 36);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (45, 40);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (45, 43);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (47, 19);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (47, 22);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (48, 36);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (48, 47);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (49, 18);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (49, 47);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (50, 33);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (50, 34);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (50, 41);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (50, 48);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (50, 49);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (51, 37);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (51, 38);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (51, 40);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (51, 41);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (51, 44);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (51, 45);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (51, 50);
