@@ -242,6 +242,16 @@ Endpoints (method, path, request → response):
 - `GET /api/settings/options` — `{"allocations": ["check_in", "spread"], "listings": [names known from bookings]}`.
 - `PUT /api/settings` — `{hourly_value_cop, long_term_rent_cop_per_month, per_booking_allocation,
   backup_keep, listings: [..]}` → `{data: <settings>, notices: ["Settings saved."]}`.
+- `GET /api/dashboard?month=&from=&to=` — same parameters and messages as the HTML page
+  (`decision 18: dashboard layout: which periods are shown and which period the cost breakdown uses`)
+  → `{form: {month, from, to}, needing_rate, empty, columns: [{label, start, end}],
+  rows: [{key, label, kind: int|pct|money|minutes, values}], rolling_90: [{date, adr, revpar, occupancy}],
+  breakdown: {start, end, items: [{key, label, amount, share}]} | null, notices}`. `form` holds the
+  effective choices (`month` `YYYY-MM`, default last month, or the raw text when invalid). One value per
+  column, `null` where uncomputable (`decision 10: a figure that cannot be computed is shown as empty, not as zero`);
+  `pct` is a ratio, `money` whole pesos, `minutes` whole minutes. Rows end with `capex_book_value`.
+  `rolling_90` is empty before 90 days of history (`decision 13: the rolling 90-day chart starts once 90 days of history exist`);
+  `empty` (no data at all) leaves `columns`, `rows` empty and `breakdown` `null`. Invalid periods are `error` notices, not `422`.
 
 ## 4. Tests
 
