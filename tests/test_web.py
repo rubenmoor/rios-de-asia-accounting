@@ -367,3 +367,73 @@ def test_recurring_validation(client, db_path):
     assert b"greater than zero" in _template(client, amount="0").data
     assert b"choose one" in _template(client, category="capex").data
     assert repo.list_recurring_expenses(_db(db_path)) == []
+
+
+def _block(client, **over):
+    data = {"from": "2026-05-01", "to": "2026-05-05", "reason": "owner", "note": "trip"}
+    data.update(over)
+    return client.post("/blocked-days/new", data=data, follow_redirects=True)
+
+
+def test_blocked_range_skips_existing_and_warns_inside_booking(client, db_path):
+    assert b"5 day(s) blocked." in _block(client, **{"from": "2026-05-04", "to": "2026-05-08"}).data
+    page = _block(client).data
+    assert b"3 day(s) blocked; 2 already blocked and skipped" in page
+    assert len(repo.list_blocked_days(_db(db_path))) == 8
+    _new_booking(client, check_in="2026-06-02", check_out="2026-06-05")
+    page = _block(client, **{"from": "2026-06-04", "to": "2026-06-05"}).data
+    assert b"fall inside a booking" in page and b"2026-06-04" in page
+    # check-out day itself is free
+    assert b"fall inside" not in _block(client, **{"from": "2026-06-05", "to": "2026-06-05"}).data
+
+
+def test_blocked_validation_edit_delete(client, db_path):
+    assert b"must not be before" in _block(client, to="2026-04-01").data
+    assert b"choose one" in _block(client, reason="x").data
+    assert b"required" in _block(client, **{"from": ""}).data
+    assert repo.list_blocked_days(_db(db_path)) == []
+    _block(client, **{"to": "2026-05-01"})
+    assert b"trip" in client.get("/blocked-days?from=2026-05-01&to=2026-05-01").data
+    assert b"trip" not in client.get("/blocked-days?from=2026-06-01").data
+    client.post("/blocked-days/2026-05-01", data={"reason": "buffer", "note": "n2"})
+    day = repo.get_blocked_day(_db(db_path), date(2026, 5, 1))
+    assert (day.reason, day.note) == ("buffer", "n2")
+    assert client.get("/blocked-days/bogus").status_code == 404
+    client.post("/blocked-days/2026-05-01/delete")
+    assert repo.list_blocked_days(_db(db_path)) == []
+
+
+def _time(client, **over):
+    data = {"date": "2026-05-02", "hours": "1:30", "description": "cleaning"}
+    data.update(over)
+    return client.post("/time/new", data=data)
+
+
+def test_time_create_edit_delete_total(client, db_path):
+    assert _time(client).status_code == 302
+    _time(client, date="2026-06-02", hours="2,5", description="repairs")
+    conn = _db(db_path)
+    first, second = repo.list_time_entries(conn)
+    assert (first.minutes, second.minutes) == (90, 150)
+    page = client.get("/time").data
+    assert b"1.5 h" in page and b"4 h" in page and page.index(b"repairs") < page.index(b"cleaning")
+    page = client.get("/time?from=2026-05-01&to=2026-05-31").data
+    assert b"cleaning" in page and b"repairs" not in page and b"1.5 h" in page
+    assert b'value="1.5"' in client.get(f"/time/{first.id}/edit").data
+    client.post(f"/time/{first.id}/edit", data={"date": "2026-05-02", "hours": "2"})
+    assert repo.get_time_entry(conn, first.id).minutes == 120
+    client.post(f"/time/{first.id}/delete")
+    assert len(repo.list_time_entries(conn)) == 1
+
+
+def test_time_validation_and_booking_picker(client, db_path):
+    assert b"greater than zero" in _time(client, hours="0").data
+    assert b"enter hours" in _time(client, hours="abc").data
+    assert b"required" in _time(client, date="").data
+    assert b"choose one" in _time(client, booking_id="999").data
+    assert repo.list_time_entries(_db(db_path)) == []
+    _new_booking(client)
+    (booking,) = repo.list_bookings(_db(db_path))
+    assert b"2026-03-01 \xe2\x80\x93 2026-03-04 \xc2\xb7 Ann" in client.get("/time/new").data
+    _time(client, booking_id=str(booking.id))
+    assert repo.list_time_entries(_db(db_path))[0].booking_id == booking.id
