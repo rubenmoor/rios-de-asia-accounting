@@ -5,6 +5,9 @@ import { ApiError, api } from "../api";
 import { ConfirmDelete } from "../components/ConfirmDelete";
 import { type Column, DataTable } from "../components/DataTable";
 import { Field } from "../components/Field";
+import { FormActions } from "../components/FormActions";
+import { FormError } from "../components/FormError";
+import { FormSlip } from "../components/FormSlip";
 import { DateInput, Select, TextField } from "../components/inputs";
 import { PageTitle } from "../components/Titles";
 import { useSave } from "../useSave";
@@ -132,66 +135,67 @@ function BlockedForm({
           Days that are already blocked are skipped.
         </p>
       )}
-      <form
-        className="max-w-lg"
-        onSubmit={(e) => {
-          e.preventDefault();
-          saver.save(day ? { reason: form.reason, note: form.note } : form);
-        }}
-      >
-        {errors[""] && (
-          <div role="alert" className="alert alert-error mb-4">
-            {errors[""]}
+      <FormError message={errors[""]} />
+      <FormSlip label="Blocked days">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            saver.save(day ? { reason: form.reason, note: form.note } : form);
+          }}
+        >
+          {!day && (
+            <>
+              <Field label="From" error={errors.from}>
+                <DateInput
+                  name="from"
+                  value={form.from}
+                  onChange={set("from")}
+                />
+              </Field>
+              <Field label="To (inclusive)" error={errors.to}>
+                <DateInput name="to" value={form.to} onChange={set("to")} />
+              </Field>
+            </>
+          )}
+          <Field label="Reason" error={errors.reason}>
+            <Select name="reason" value={form.reason} onChange={set("reason")}>
+              {reasons.map((r) => (
+                <option key={r}>{r}</option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Note" error={errors.note}>
+            <TextField
+              name="note"
+              value={form.note}
+              onChange={set("note")}
+              className="w-full"
+            />
+          </Field>
+          <FormActions>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={saver.pending}
+            >
+              {day ? "Save" : "Block"}
+            </button>
+            <Link className="btn btn-ghost" to="/blocked-days">
+              Cancel
+            </Link>
+          </FormActions>
+        </form>
+        {day && (
+          <div className="mt-6 border-t border-base-300 pt-4">
+            <ConfirmDelete
+              label="Delete blocked day"
+              question="Unblock this day?"
+              pending={remover.pending}
+              onConfirm={() => remover.save()}
+            />
           </div>
         )}
-        {!day && (
-          <>
-            <Field label="From" error={errors.from}>
-              <DateInput name="from" value={form.from} onChange={set("from")} />
-            </Field>
-            <Field label="To (inclusive)" error={errors.to}>
-              <DateInput name="to" value={form.to} onChange={set("to")} />
-            </Field>
-          </>
-        )}
-        <Field label="Reason" error={errors.reason}>
-          <Select name="reason" value={form.reason} onChange={set("reason")}>
-            {reasons.map((r) => (
-              <option key={r}>{r}</option>
-            ))}
-          </Select>
-        </Field>
-        <Field label="Note" error={errors.note}>
-          <TextField
-            name="note"
-            value={form.note}
-            onChange={set("note")}
-            className="w-full"
-          />
-        </Field>
-        <div className="flex gap-2 mt-4">
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={saver.pending}
-          >
-            {day ? "Save" : "Block"}
-          </button>
-          <Link className="btn" to="/blocked-days">
-            Cancel
-          </Link>
-        </div>
-      </form>
-      {day && (
-        <div className="mt-6">
-          <ConfirmDelete
-            label="Delete blocked day"
-            question="Unblock this day?"
-            pending={remover.pending}
-            onConfirm={() => remover.save()}
-          />
-        </div>
-      )}
+      </FormSlip>
     </div>
   );
 }
