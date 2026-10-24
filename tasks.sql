@@ -192,7 +192,7 @@ INSERT INTO milestone (id, subject, status, body, created_at, implemented_at, qu
 * don''t change functionality
 * add a favicon', '2026-10-23T22:34:21Z', '2026-10-24T00:33:52Z', 0);
 INSERT INTO milestone (id, subject, status, body, created_at, implemented_at, queue_index) VALUES (3, 'add a proper client-side framework', 'implemented', 'the architecture spec are terrible. we want a proper client-side framework. your choice. we totally can have build steps. this becomes a classic web app, only that its server runs locally on my pc.', '2026-10-23T22:40:12Z', '2026-10-23T23:25:52Z', 0);
-INSERT INTO milestone (id, subject, status, body, created_at, implemented_at, queue_index) VALUES (4, 'first round of improvements', 'open', 'the spreadsheet look is great, but the "new expense" button should just be a plus and the form to add an expense should be inlined into the spreadsheet-styled table; same with recurring expense; the date field must be pre-filled with today''s date
+INSERT INTO milestone (id, subject, status, body, created_at, implemented_at, queue_index) VALUES (4, 'first round of improvements', 'implemented', 'the spreadsheet look is great, but the "new expense" button should just be a plus and the form to add an expense should be inlined into the spreadsheet-styled table; same with recurring expense; the date field must be pre-filled with today''s date
 
 the "new booking" button doesn''t make sense. correct me if i am wrong, but i want all the income from airbnb enter the accounting via the .csv export 
 
@@ -202,7 +202,7 @@ i don''t understand the time page
 
 i don''t understand the exchange rate page. i want the whole tool to run internally on USD. whenever an expense or income is added, the exchange rate that correspond to its date must be fetched to convert to USD if necessary. e.g. for income from airbnb the reference date would be the first day of booking. for recurring expenses it would be the first day of the month. the page should then allow to change the display currency: all amounts convert to COP or EUR based on the current exchange rate, fetched at the moment the currency is changed
 
-i don''t understand the quit button', '2026-10-24T03:15:59Z', NULL, 0);
+i don''t understand the quit button', '2026-10-24T03:15:59Z', '2026-10-24T14:11:50Z', 0);
 
 INSERT INTO plan (id, milestone_id, subject, priority, body, intro, created_at, created_by_task) VALUES (1, 1, 'masterplan', 1000, 'Build the first version of the app described in `airbnb-bookkeeping-spec.md`: a local, single-user, single-property bookkeeping tool that allocates all income and costs per calendar day, imports the Airbnb transaction CSV (`airbnb_.csv` is a real sample), and shows a dashboard with metrics, a rolling 90-day chart and an expense breakdown. Only the spec''s "v1" features are in scope; its "Later" list is not.
 
