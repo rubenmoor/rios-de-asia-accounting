@@ -14,7 +14,6 @@ from rios_de_asia_accounting.model import (
     Inputs,
     RecurringExpense,
     Settings,
-    TimeEntry,
 )
 from rios_de_asia_accounting.money import COP_RATE, to_cop
 
@@ -35,7 +34,6 @@ _CONSTRAINT_HINTS = {
     "exchange_rates.date, exchange_rates.currency": "this exchange rate already exists",
     "check_out > check_in": "check-out must be after check-in",
     "category <> 'per_booking' OR booking_id IS NOT NULL": "a per-booking expense needs a booking",
-    "minutes > 0": "minutes must be greater than zero",
 }
 
 
@@ -518,57 +516,9 @@ def delete_recurring_expense(conn: sqlite3.Connection, item_id: int) -> None:
     conn.execute("DELETE FROM recurring_expenses WHERE id = ?", (item_id,))
 
 
-# --- time log ---------------------------------------------------------------------------------
-
-
-def _time_entry(r: sqlite3.Row) -> TimeEntry:
-    return TimeEntry(
-        id=r["id"],
-        date=date.fromisoformat(r["date"]),
-        minutes=r["minutes"],
-        booking_id=r["booking_id"],
-        description=r["description"],
-    )
-
-
-@validated
-def create_time_entry(conn: sqlite3.Connection, entry: TimeEntry) -> int:
-    cur = conn.execute(
-        "INSERT INTO time_log (date, minutes, booking_id, description) VALUES (?, ?, ?, ?)",
-        (entry.date.isoformat(), entry.minutes, entry.booking_id, entry.description),
-    )
-    entry.id = cur.lastrowid
-    return entry.id
-
-
-def get_time_entry(conn: sqlite3.Connection, entry_id: int) -> TimeEntry | None:
-    row = conn.execute("SELECT * FROM time_log WHERE id = ?", (entry_id,)).fetchone()
-    return _time_entry(row) if row else None
-
-
-def list_time_entries(
-    conn: sqlite3.Connection, start: date | None = None, end: date | None = None
-) -> list[TimeEntry]:
-    where, args = _range_filter(start, end)
-    rows = conn.execute(f"SELECT * FROM time_log{where} ORDER BY date, id", args).fetchall()
-    return [_time_entry(r) for r in rows]
-
-
-@validated
-def update_time_entry(conn: sqlite3.Connection, entry: TimeEntry) -> None:
-    conn.execute(
-        "UPDATE time_log SET date = ?, minutes = ?, booking_id = ?, description = ? WHERE id = ?",
-        (entry.date.isoformat(), entry.minutes, entry.booking_id, entry.description, entry.id),
-    )
-
-
-def delete_time_entry(conn: sqlite3.Connection, entry_id: int) -> None:
-    conn.execute("DELETE FROM time_log WHERE id = ?", (entry_id,))
-
-
 # --- settings ---------------------------------------------------------------------------------
 
-_INT_SETTINGS = ("hourly_value_cop", "long_term_rent_cop_per_month", "backup_keep")
+_INT_SETTINGS = ("long_term_rent_cop_per_month", "backup_keep")
 _ALLOCATIONS = ("check_in", "spread")
 
 
@@ -614,6 +564,5 @@ def load_inputs(conn: sqlite3.Connection) -> Inputs:
     return Inputs(
         bookings=list_bookings(conn),
         expenses=list_expenses(conn),
-        time_log=list_time_entries(conn),
         settings=load_settings(conn),
     )

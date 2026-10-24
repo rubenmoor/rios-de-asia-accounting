@@ -66,17 +66,7 @@ class RecurringExpense:
 
 
 @dataclass
-class TimeEntry:
-    date: date
-    minutes: int
-    booking_id: int | None = None
-    description: str | None = None
-    id: int | None = None
-
-
-@dataclass
 class Settings:
-    hourly_value_cop: int = 0
     long_term_rent_cop_per_month: int = 0
     currency: str = "COP"
     per_booking_allocation: str = "check_in"  # or "spread"
@@ -90,13 +80,12 @@ class Inputs:
 
     bookings: list[Booking]
     expenses: list[Expense]
-    time_log: list[TimeEntry]
     settings: Settings
 
 
 @dataclass
 class Day:
-    """One row of the per-day view; money in whole COP, time in minutes."""
+    """One row of the per-day view; money in whole COP."""
 
     date: date
     occupied: bool = False
@@ -107,7 +96,6 @@ class Day:
     cost_maintenance: int = 0
     cost_capex: int = 0
     cost_tax: int = 0
-    minutes: int = 0
 
     @property
     def costs(self) -> int:

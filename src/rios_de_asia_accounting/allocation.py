@@ -113,7 +113,6 @@ def allocate(inputs: Inputs, today: date, start: date | None = None) -> list[Day
             [
                 *(b.check_in for b in inputs.bookings),
                 *(span[0] for _, span, _ in items),
-                *(t.date for t in inputs.time_log),
             ],
             default=None,
         )
@@ -132,9 +131,5 @@ def allocate(inputs: Inputs, today: date, start: date | None = None) -> list[Day
 
     for column, span, amount in items:
         _spread(days, span, amount, column)
-
-    for entry in inputs.time_log:
-        if entry.date in days:
-            days[entry.date].minutes += entry.minutes
 
     return list(days.values())

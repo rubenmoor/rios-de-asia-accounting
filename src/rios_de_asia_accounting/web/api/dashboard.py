@@ -11,7 +11,7 @@ from rios_de_asia_accounting.web.api.common import bp, error
 from rios_de_asia_accounting.web.app_db import get_db
 from rios_de_asia_accounting.web.forms import parse_date, parse_month
 
-# (label, Metrics attribute, kind); money kinds are COP, the screen shows minutes as hours
+# (label, Metrics attribute, kind); money kinds are COP
 ROWS = [
     ("Available nights", "available_nights", "int"),
     ("Occupied nights", "occupied_nights", "int"),
@@ -25,9 +25,6 @@ ROWS = [
     ("Break-even occupancy", "break_even_occupancy", "pct"),
     ("Long-term rental benchmark", "benchmark", "money"),
     ("Profit vs. long-term rental", "profit_vs_long_term", "money"),
-    ("Hours", "minutes", "minutes"),
-    ("Profit per hour", "profit_per_hour", "money"),
-    ("Profit after own time", "profit_after_own_time", "money"),
 ]
 
 
@@ -131,7 +128,7 @@ def build_dashboard(conn, today: date, args: Mapping[str, str]) -> Dashboard:
 def _number(value: float | None, kind: str):
     if value is None:
         return None
-    return int(value) if kind in ("money", "minutes") else value
+    return int(value) if kind == "money" else value
 
 
 def _range(rng: metrics.DateRange) -> dict:

@@ -10,8 +10,6 @@ from rios_de_asia_accounting.model import Booking
 from rios_de_asia_accounting.storage.repo import ValidationError
 
 _MONEY = re.compile(r"\d+|\d{1,3}(?:[.,  ]\d{3})+")
-_HOURS_DECIMAL = re.compile(r"\d+(?:[.,]\d+)?")
-_HOURS_CLOCK = re.compile(r"(\d+):([0-5]\d)")
 _RATE = re.compile(r"\d+(?:\.\d{1,2})?")
 _CURRENCY = re.compile(r"[A-Za-z]{3}")
 
@@ -26,22 +24,6 @@ def parse_money(text: str) -> int:
 
 def format_money(pesos: int) -> str:
     return f"{pesos:,}".replace(",", ".")
-
-
-def parse_hours(text: str) -> int:
-    """Hours as 1.5, 1,5 or 1:30; returns whole minutes."""
-    text = text.strip()
-    if m := _HOURS_CLOCK.fullmatch(text):
-        return int(m[1]) * 60 + int(m[2])
-    if _HOURS_DECIMAL.fullmatch(text):
-        return int((Decimal(text.replace(",", ".")) * 60).to_integral_value())
-    raise ValueError("enter hours as 1.5, 1,5 or 1:30")
-
-
-def format_hours(minutes: int) -> str:
-    """Minutes as decimal hours, e.g. 90 -> '1.5'."""
-    hours = (Decimal(minutes) / 60).quantize(Decimal("0.01")).normalize()
-    return f"{hours:f}"
 
 
 def parse_rate(text: str) -> int:
@@ -149,9 +131,6 @@ class Form:
 
     def money(self, field: str, **kw: Any) -> int | None:
         return self.parsed(field, parse_money, **kw)
-
-    def hours(self, field: str, **kw: Any) -> int | None:
-        return self.parsed(field, parse_hours, **kw)
 
     def rate(self, field: str, **kw: Any) -> int | None:
         return self.parsed(field, parse_rate, **kw)

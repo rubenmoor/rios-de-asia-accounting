@@ -15,7 +15,6 @@ def client(tmp_path):
 
 def test_settings_roundtrip(client):
     body = {
-        "hourly_value_cop": "20.000",
         "long_term_rent_cop_per_month": "1.500.000",
         "per_booking_allocation": "spread",
         "backup_keep": "10",
@@ -23,7 +22,7 @@ def test_settings_roundtrip(client):
     }
     assert client.put("/api/settings", json=body).status_code == 200
     got = client.get("/api/settings").get_json()
-    assert got["hourly_value_cop"] == 20000 and got["listings"] == ["Casa A"]
+    assert got["long_term_rent_cop_per_month"] == 1_500_000 and got["listings"] == ["Casa A"]
 
 
 def test_invalid_settings_is_422(client):

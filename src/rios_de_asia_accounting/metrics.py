@@ -82,7 +82,6 @@ class Metrics:
     cost_tax: int
     total_cost: int
     profit: int
-    minutes: int
     occupancy: float | None
     adr: int | None
     revpar: int | None
@@ -90,9 +89,6 @@ class Metrics:
     break_even_occupancy: float | None
     benchmark: int
     profit_vs_long_term: int
-    profit_per_hour: int | None
-    own_time_value: int
-    profit_after_own_time: int
 
 
 def summarize(days: list[Day], rng: DateRange, settings: Settings) -> Metrics:
@@ -103,7 +99,6 @@ def summarize(days: list[Day], rng: DateRange, settings: Settings) -> Metrics:
     costs = {column: sum(getattr(day, column) for day in selected) for column in COST_COLUMNS}
     total_cost = sum(costs.values())
     profit = income - total_cost
-    minutes = sum(day.minutes for day in selected)
     variable = costs["cost_per_night"] + costs["cost_per_booking"]
 
     break_even = None
@@ -120,7 +115,6 @@ def summarize(days: list[Day], rng: DateRange, settings: Settings) -> Metrics:
 
     monthly = settings.long_term_rent_cop_per_month
     benchmark = sum(benchmark_part(day.date, monthly) for day in selected) if monthly else 0
-    own_time_value = round_div(minutes * settings.hourly_value_cop, 60)
 
     return Metrics(
         available_nights=available,
@@ -129,7 +123,6 @@ def summarize(days: list[Day], rng: DateRange, settings: Settings) -> Metrics:
         **costs,
         total_cost=total_cost,
         profit=profit,
-        minutes=minutes,
         occupancy=occupied / available if available else None,
         adr=_ratio(income, occupied),
         revpar=_ratio(income, available),
@@ -137,9 +130,6 @@ def summarize(days: list[Day], rng: DateRange, settings: Settings) -> Metrics:
         break_even_occupancy=break_even,
         benchmark=benchmark,
         profit_vs_long_term=profit - benchmark,
-        profit_per_hour=_ratio(profit * 60, minutes),
-        own_time_value=own_time_value,
-        profit_after_own_time=profit - own_time_value,
     )
 
 

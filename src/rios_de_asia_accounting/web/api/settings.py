@@ -10,7 +10,6 @@ ALLOCATIONS = ["check_in", "spread"]
 
 def _read(form: Form, current: Settings) -> None:
     """Parse the settings fields into `current` (errors land in the form)."""
-    current.hourly_value_cop = form.money("hourly_value_cop", required=True)
     current.long_term_rent_cop_per_month = form.money("long_term_rent_cop_per_month", required=True)
     current.per_booking_allocation = form.choice("per_booking_allocation", ALLOCATIONS)
     current.backup_keep = form.whole("backup_keep", required=True, minimum=1)
@@ -18,7 +17,6 @@ def _read(form: Form, current: Settings) -> None:
 
 def _item(s: Settings) -> dict:
     return {
-        "hourly_value_cop": s.hourly_value_cop,
         "long_term_rent_cop_per_month": s.long_term_rent_cop_per_month,
         "per_booking_allocation": s.per_booking_allocation,
         "backup_keep": s.backup_keep,

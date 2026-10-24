@@ -120,16 +120,12 @@ def test_currency_format(conn):
 def test_delete_booking_with_expenses_fails_and_lines_cascade(conn):
     bid = booking(conn)
     line(conn, bid)
-    conn.execute(
-        "INSERT INTO time_log (date, minutes, booking_id) VALUES ('2026-01-02', 30, ?)", (bid,)
-    )
     expense(conn, category="per_booking", booking_id=bid)
     with pytest.raises(sqlite3.IntegrityError):
         conn.execute("DELETE FROM bookings WHERE id = ?", (bid,))
     conn.execute("DELETE FROM expenses")
     conn.execute("DELETE FROM bookings WHERE id = ?", (bid,))
     assert conn.execute("SELECT COUNT(*) FROM booking_lines").fetchone()[0] == 0
-    assert conn.execute("SELECT booking_id FROM time_log").fetchone()[0] is None
 
 
 def test_duplicate_line_rejected(conn):
@@ -138,11 +134,6 @@ def test_duplicate_line_rejected(conn):
     with pytest.raises(sqlite3.IntegrityError):
         line(conn, bid)
     line(conn, bid, amount=101)
-
-
-def test_time_log_minutes_positive(conn):
-    with pytest.raises(sqlite3.IntegrityError):
-        conn.execute("INSERT INTO time_log (date, minutes) VALUES ('2026-01-01', 0)")
 
 
 def test_exchange_rate_constraints(conn):

@@ -36,24 +36,6 @@ def test_format_money():
     assert forms.format_money(0) == "0"
 
 
-@pytest.mark.parametrize(
-    ("text", "minutes"), [("1.5", 90), ("1,5", 90), ("1:30", 90), ("0:45", 45), ("2", 120)]
-)
-def test_parse_hours(text, minutes):
-    assert forms.parse_hours(text) == minutes
-
-
-@pytest.mark.parametrize("text", ["1:75", "x", "1.5.5", "-1", ":30"])
-def test_parse_hours_errors(text):
-    with pytest.raises(ValueError):
-        forms.parse_hours(text)
-
-
-def test_format_hours():
-    assert forms.format_hours(90) == "1.5"
-    assert forms.format_hours(120) == "2"
-
-
 def test_rates_dates_months():
     assert forms.parse_rate("4100.5") == 410050
     assert forms.format_rate(410050) == "4100.50"
@@ -73,10 +55,9 @@ def test_rates_dates_months():
 
 
 def test_form_collects_one_error_per_field():
-    form = forms.Form({"amount": "12,5", "day": "", "hours": "1:30"})
+    form = forms.Form({"amount": "12,5", "day": ""})
     assert form.money("amount", positive=True) is None
     assert form.day("day", required=True) is None
-    assert form.hours("hours", positive=True) == 90
     assert set(form.errors) == {"amount", "day"}
     assert not form.ok
 

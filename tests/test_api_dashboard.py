@@ -42,5 +42,4 @@ def test_dashboard_figures_and_notice(db_path):
     rows = {r["key"]: r for r in body["rows"]}
     assert rows["occupancy"]["values"][0] == pytest.approx(0.3)
     assert rows["income"]["values"][0] == 1_500_000
-    assert rows["profit_per_hour"]["values"][0] is None
     assert body["rolling_90"] == [] and body["breakdown"]["items"][0]["key"] == "cost_fixed"
