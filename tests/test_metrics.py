@@ -37,7 +37,6 @@ def ten_days():
                 cost_fixed=10_000,
                 cost_per_night=5_000 if occupied else 0,
                 cost_per_booking=20_000 if i in (1, 6) else 0,
-                minutes=45 if i in (1, 2) else 0,
             )
         )
     return days
@@ -98,36 +97,20 @@ def test_benchmark_across_february_march_of_a_leap_year():
     assert m.profit_vs_long_term == 200_000 - 38_710
 
 
-def test_profit_per_hour_and_own_time():
-    m = summarize(ten_days(), ALL, Settings(hourly_value_cop=20_000))
-    assert m.minutes == 90
-    assert m.profit_per_hour == 286_667  # 430 000 * 60 / 90
-    assert m.own_time_value == 30_000
-    assert m.profit_after_own_time == 400_000
-
-    m = summarize(
-        ten_days(), custom(d("2026-01-03"), d("2026-01-10")), Settings(hourly_value_cop=20_000)
-    )
-    assert m.minutes == 0
-    assert m.profit_per_hour is None
-    assert m.own_time_value == 0
-    assert m.profit_after_own_time == m.profit
-
-
 def assert_empty(m):
     assert (m.available_nights, m.occupied_nights, m.income, m.total_cost, m.profit) == (0,) * 5
-    assert (m.minutes, m.benchmark, m.profit_vs_long_term, m.own_time_value) == (0,) * 4
+    assert (m.benchmark, m.profit_vs_long_term) == (0,) * 2
     assert m.occupancy is m.adr is m.revpar is m.variable_cost_per_night is None
-    assert m.break_even_occupancy is None and m.profit_per_hour is None
+    assert m.break_even_occupancy is None
 
 
 def test_empty_range():
-    settings = Settings(hourly_value_cop=20_000, long_term_rent_cop_per_month=900_000)
+    settings = Settings(long_term_rent_cop_per_month=900_000)
     assert_empty(summarize(ten_days(), custom(d("2026-01-05"), d("2026-01-04")), settings))
 
 
 def test_range_before_first_day():
-    settings = Settings(hourly_value_cop=20_000, long_term_rent_cop_per_month=900_000)
+    settings = Settings(long_term_rent_cop_per_month=900_000)
     assert_empty(summarize(ten_days(), month_range(2025, 12), settings))
 
 

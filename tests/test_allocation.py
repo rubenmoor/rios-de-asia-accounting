@@ -9,16 +9,16 @@ from rios_de_asia_accounting.allocation import (
     months_between,
     split,
 )
-from rios_de_asia_accounting.model import Booking, Expense, Inputs, Settings, TimeEntry
+from rios_de_asia_accounting.model import Booking, Expense, Inputs, Settings
 
 
 def d(s):
     return date.fromisoformat(s)
 
 
-def inputs(bookings=(), expenses=(), time_log=(), mode="check_in"):
+def inputs(bookings=(), expenses=(), mode="check_in"):
     settings = Settings(per_booking_allocation=mode)
-    return Inputs(list(bookings), list(expenses), list(time_log), settings)
+    return Inputs(list(bookings), list(expenses), settings)
 
 
 def booking(check_in, check_out, net_payout, cohost_cost=0, id=None):
@@ -118,24 +118,6 @@ def test_overlapping_bookings():
     rows = by_date(days)
     assert [rows[k].income for k in ("2026-01-01", "2026-01-02", "2026-01-03")] == [100, 125, 25]
     assert [day.occupied for day in days] == [True, True, True, False, False]
-
-
-def test_default_start_is_earliest_input_and_time_log():
-    days = allocate(
-        inputs(
-            [booking("2026-01-05", "2026-01-06", 10)],
-            time_log=[
-                TimeEntry(d("2026-01-02"), 30),
-                TimeEntry(d("2026-01-02"), 45),
-                TimeEntry(d("2025-12-31"), 1),
-            ],
-        ),
-        d("2026-01-06"),
-    )
-    rows = by_date(days)
-    assert days[0].date == d("2025-12-31")
-    assert rows["2026-01-02"].minutes == 75
-    assert sum(day.minutes for day in days) == 76
 
 
 def test_explicit_start_drops_earlier_days_and_profit():

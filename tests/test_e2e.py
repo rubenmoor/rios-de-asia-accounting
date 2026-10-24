@@ -11,7 +11,7 @@ October 2026, listings "Large 4 bed …" and "Master bedroom …":
   the first 9 nights get 47.642, so 10-21..10-23 = 142.926
 - fixed 450.000/month over 31 days, 23 days = 333.872; per-night 90.001 over the 16 booked
   October nights, 8 of them up to today = 45.001; capex 2.400.000 over 365 days from
-  09-15, 23 days of 6.576 = 151.248; maintenance 180.000; 4 hours logged
+  09-15, 23 days of 6.576 = 151.248; maintenance 180.000
 """
 
 import shutil
@@ -29,7 +29,7 @@ LISTINGS = [
 ]
 TODAY = date(2026, 10, 23)
 
-# row key → value in the October column: whole COP, ratios as fractions, hours as minutes
+# row key → value in the October column: whole COP, ratios as fractions
 OCTOBER = {
     "available_nights": 23,
     "occupied_nights": 8,
@@ -43,9 +43,6 @@ OCTOBER = {
     "break_even_occupancy": "6.6 %",
     "benchmark": 2225808,
     "profit_vs_long_term": 589711,
-    "minutes": 240,
-    "profit_per_hour": 703880,
-    "profit_after_own_time": 2735519,
 }
 BREAKDOWN = {
     "cost_fixed": 333872,
@@ -100,7 +97,6 @@ def _enter_everything(client):
         client.put(
             "/api/settings",
             json={
-                "hourly_value_cop": "20.000",
                 "long_term_rent_cop_per_month": "3.000.000",
                 "per_booking_allocation": "check_in",
                 "backup_keep": "30",
@@ -131,8 +127,6 @@ def _enter_everything(client):
         {"date": "2026-10-18", "amount": "180.000", "category": "maintenance"},
     ):
         _ok(client.post("/api/expenses", json={"description": "x", **expense}))
-    _ok(client.post("/api/time", json={"date": "2026-10-07", "hours": "2,5"}))
-    _ok(client.post("/api/time", json={"date": "2026-10-21", "hours": "1:30"}))
 
 
 def test_october_2026_end_to_end(tmp_path):

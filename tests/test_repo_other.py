@@ -8,7 +8,6 @@ from rios_de_asia_accounting.model import (
     Expense,
     RecurringExpense,
     Settings,
-    TimeEntry,
 )
 from rios_de_asia_accounting.storage import repo
 from rios_de_asia_accounting.storage.db import connect, migrate
@@ -60,23 +59,9 @@ def test_recurring_round_trip_and_generated_dedup(conn):
     assert left.recurring_expense_id is None
 
 
-def test_time_entries(conn):
-    t = TimeEntry(d("2026-01-02"), 90, description="cleaning")
-    tid = repo.create_time_entry(conn, t)
-    assert repo.get_time_entry(conn, tid) == t
-    t.minutes = 45
-    repo.update_time_entry(conn, t)
-    assert [x.minutes for x in repo.list_time_entries(conn, d("2026-01-01"), d("2026-01-03"))] == [
-        45
-    ]
-    repo.delete_time_entry(conn, tid)
-    assert repo.list_time_entries(conn) == []
-
-
 def test_settings_defaults_and_round_trip(conn):
     assert repo.load_settings(conn) == Settings()
     s = Settings(
-        hourly_value_cop=20_000,
         long_term_rent_cop_per_month=1_500_000,
         per_booking_allocation="spread",
         property_listings=["Casa Río", "Loft"],
@@ -99,8 +84,6 @@ def test_constraint_violations_become_validation_errors(conn):
         repo.create_expense(conn, Expense(d("2026-01-01"), 1, "per_booking"))
     with pytest.raises(ValidationError, match="useful life"):
         repo.create_expense(conn, Expense(d("2026-01-01"), 1, "capex"))
-    with pytest.raises(ValidationError, match="minutes"):
-        repo.create_time_entry(conn, TimeEntry(d("2026-01-01"), 0))
     with pytest.raises(ValidationError):
         repo.create_recurring_expense(conn, RecurringExpense("x", 1, "capex", "2026-01"))
 
@@ -121,11 +104,8 @@ def test_load_inputs(conn):
     )
     repo.add_line(conn, BookingLine(bid, "Co-Host payout", d("2026-01-04"), "COP", -3_000_000))
     repo.create_expense(conn, Expense(d("2026-01-02"), 10, "fixed"))
-    repo.create_time_entry(conn, TimeEntry(d("2026-01-02"), 60, booking_id=bid))
-    repo.save_settings(conn, Settings(hourly_value_cop=5))
     inputs = repo.load_inputs(conn)
     (b,) = inputs.bookings
     assert (b.net_payout, b.cohost_cost, b.nights) == (300_000, 30_000, 3)
     assert [e.amount for e in inputs.expenses] == [10]
-    assert [t.minutes for t in inputs.time_log] == [60]
-    assert inputs.settings.hourly_value_cop == 5
+    assert inputs.settings == Settings()
