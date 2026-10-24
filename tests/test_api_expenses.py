@@ -101,3 +101,19 @@ def test_recurring_edit_keeps_generated_rows(client):
     ).get_json()["data"]
     assert (edited["amount_minor"], edited["currency"]) == (200_000_000, "COP")
     assert [e["amount"] for e in edited["generated"]] == [e["amount"] for e in item["generated"]]
+
+
+def test_generated_expense_is_locked_in_generic_endpoints(client):
+    body = {"description": "rent", "amount": "100", "currency": "USD", "category": "fixed"}
+    item = client.post("/api/recurring", json={**body, "start_month": "2026-08"}).get_json()["data"]
+    generated = item["generated"][0]
+    url = f"/api/expenses/{generated['id']}"
+    assert client.put(url, json=body | {"date": "2026-08-01"}).status_code == 409
+    assert client.delete(url).status_code == 409
+    own = f"/api/recurring/{item['id']}/expenses/{generated['id']}"
+    edited = client.put(own, json={"date": generated["date"], "amount": "120", "currency": "USD"})
+    assert edited.get_json()["data"]["amount"] == 12_000
+    assert edited.get_json()["data"]["category"] == "fixed"
+    assert (
+        client.put(f"/api/recurring/{item['id'] + 1}/expenses/{generated['id']}").status_code == 404
+    )

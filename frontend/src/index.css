@@ -98,6 +98,11 @@
   & tbody tr.editable {
     cursor: pointer;
   }
+  /* Generated expenses: read-only in the Expenses table. */
+  & tbody tr.generated td:not(.gutter) {
+    font-style: italic;
+    color: color-mix(in oklab, var(--color-base-content) 65%, transparent);
+  }
   /* Entry row: the row being typed; inputs fill their cells. */
   & tbody tr.entry td:not(.gutter) {
     background-color: color-mix(

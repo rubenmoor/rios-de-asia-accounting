@@ -77,7 +77,12 @@ function Loaded<T>({
   return <>{children(query.data)}</>;
 }
 
-const expenseColumns = (currency: string): Column<Expense>[] => [
+// Generated expenses are locked in the Expenses table (`linkToTemplate`): the
+// Source badge leads to the Recurring page, where they are edited.
+const expenseColumns = (
+  currency: string,
+  linkToTemplate: boolean,
+): Column<Expense>[] => [
   { header: "Date", cell: (e) => e.date },
   { header: "Category", cell: (e) => e.category },
   { header: "Description", cell: (e) => e.description },
@@ -88,14 +93,20 @@ const expenseColumns = (currency: string): Column<Expense>[] => [
   },
   {
     header: "Source",
-    cell: (e) =>
-      e.recurring_expense_id != null ? (
-        <Link className="link" to={`/recurring/${e.recurring_expense_id}`}>
-          generated
+    cell: (e) => {
+      if (e.recurring_expense_id == null) return "";
+      return linkToTemplate ? (
+        <Link
+          className="badge badge-ghost badge-sm not-italic"
+          to={`/recurring/${e.recurring_expense_id}`}
+          title="Edit on the Recurring page"
+        >
+          ↻ recurring
         </Link>
       ) : (
-        ""
-      ),
+        "generated"
+      );
+    },
   },
 ];
 
@@ -197,12 +208,16 @@ export function ExpenseList() {
           </div>
         )}
       <DataTable
-        columns={expenseColumns(currency)}
+        columns={expenseColumns(currency, true)}
         rows={rows}
         rowKey={(e) => e.id}
         empty="No expenses."
         onEdit={
           open === null && options.data ? (e) => setOpen(e.id) : undefined
+        }
+        canEdit={(e) => e.recurring_expense_id == null}
+        rowClass={(e) =>
+          e.recurring_expense_id != null ? "generated" : undefined
         }
         editing={open}
         editRow={(e) =>
@@ -242,6 +257,8 @@ function localToday() {
 const ENTRY_FORM = "expense-entry";
 
 // The row for typing an expense: empty (today) to add, prefilled to edit.
+// A generated expense (only edited on its template's page) keeps its category,
+// is saved through the template's endpoint and cannot be deleted.
 function ExpenseEntryRow({
   expense,
   options,
@@ -278,10 +295,16 @@ function ExpenseEntryRow({
   );
   const set = (name: string) => (value: string) =>
     setForm((f) => ({ ...f, [name]: value }));
+  const templateId = expense?.recurring_expense_id;
+  const generated = templateId != null;
   const saver = useSave({
     method: expense ? "PUT" : "POST",
-    path: expense ? `/api/expenses/${expense.id}` : "/api/expenses",
-    resource: "expenses",
+    path: generated
+      ? `/api/recurring/${templateId}/expenses/${expense?.id}`
+      : expense
+        ? `/api/expenses/${expense.id}`
+        : "/api/expenses",
+    resource: generated ? "recurring" : "expenses",
     onSaved: onClose,
   });
   const remover = useSave({
@@ -293,7 +316,6 @@ function ExpenseEntryRow({
   const { errors } = saver;
   const err = (name: string) =>
     errors[name] && <FieldError small>{errors[name]}</FieldError>;
-  const generated = expense?.recurring_expense_id != null;
 
   return (
     <SheetEntryRow mark={expense ? "✎" : "+"} onEscape={onClose}>
@@ -316,18 +338,22 @@ function ExpenseEntryRow({
         {err("date")}
       </td>
       <td>
-        <Select
-          className="select-sm"
-          name="category"
-          form={ENTRY_FORM}
-          ariaLabel="Category"
-          value={form.category}
-          onChange={set("category")}
-        >
-          {options.categories.map((c) => (
-            <option key={c}>{c}</option>
-          ))}
-        </Select>
+        {generated ? (
+          form.category
+        ) : (
+          <Select
+            className="select-sm"
+            name="category"
+            form={ENTRY_FORM}
+            ariaLabel="Category"
+            value={form.category}
+            onChange={set("category")}
+          >
+            {options.categories.map((c) => (
+              <option key={c}>{c}</option>
+            ))}
+          </Select>
+        )}
         {err("category")}
         {form.category === "per_booking" && (
           <div className="mt-1">
@@ -390,7 +416,7 @@ function ExpenseEntryRow({
       <td>
         {generated && (
           <div className="mb-1 text-sm opacity-70">
-            generated · your edits are kept
+            generated · category follows the template
           </div>
         )}
         <div className="flex gap-2">
@@ -409,15 +435,10 @@ function ExpenseEntryRow({
           >
             Cancel
           </button>
-          {expense && (
+          {expense && !generated && (
             <ConfirmDelete
               label="Delete"
               question="Delete this expense?"
-              detail={
-                generated
-                  ? "It was generated from a recurring expense, so it comes back the next time months are generated."
-                  : undefined
-              }
               pending={remover.pending}
               onConfirm={() => remover.save()}
             />
@@ -677,24 +698,13 @@ export function RecurringList() {
   );
 }
 
-// Dates link to the expenses list narrowed to that day, where they are edited.
-const generatedColumns = (currency: string): Column<Expense>[] => [
-  {
-    header: "Date",
-    cell: (e) => e.date,
-    href: (e) => `/expenses?from=${e.date}&to=${e.date}`,
-  },
-  {
-    header: `Amount (${currency})`,
-    cell: (e) => <AmountCell e={e} />,
-    numeric: true,
-  },
-];
-
-// Read-only: the template's terms and the expenses generated from it.
+// The template's terms, and its generated expenses, which are edited here
+// (inline, no delete: a deleted one would come back).
 export function RecurringDetailPage() {
   const { id } = useParams();
   const { currency } = useDisplay();
+  const options = useExpenseOptions();
+  const [open, setOpen] = useState<Open>(null);
   const item = useQuery({
     queryKey: ["recurring", id],
     queryFn: () => api<RecurringDetail>("GET", `/api/recurring/${id}`),
@@ -714,10 +724,23 @@ export function RecurringDetailPage() {
           </p>
           <SectionTitle className="mb-2">Generated expenses</SectionTitle>
           <DataTable
-            columns={generatedColumns(currency)}
+            columns={expenseColumns(currency, false)}
             rows={t.generated}
             rowKey={(e) => e.id}
             empty="None yet."
+            onEdit={
+              open === null && options.data ? (e) => setOpen(e.id) : undefined
+            }
+            editing={open}
+            editRow={(e) =>
+              options.data && (
+                <ExpenseEntryRow
+                  expense={e}
+                  options={options.data}
+                  onClose={() => setOpen(null)}
+                />
+              )
+            }
           />
         </div>
       )}
