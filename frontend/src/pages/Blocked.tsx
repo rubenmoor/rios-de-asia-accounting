@@ -8,6 +8,7 @@ import { Field } from "../components/Field";
 import { FormActions } from "../components/FormActions";
 import { FormError } from "../components/FormError";
 import { FormSlip } from "../components/FormSlip";
+import { BlockedIcon } from "../components/icons";
 import { DateInput, Select, TextField } from "../components/inputs";
 import { PageTitle } from "../components/Titles";
 import { Toolbar, ToolbarField } from "../components/Toolbar";
@@ -59,7 +60,7 @@ export function BlockedList() {
 
   return (
     <div>
-      <PageTitle>Blocked days</PageTitle>
+      <PageTitle icon={<BlockedIcon />}>Blocked days</PageTitle>
       <Toolbar
         onSubmit={apply}
         errors={[filterErrors.from, filterErrors.to]}
@@ -137,7 +138,9 @@ function BlockedForm({
 
   return (
     <div>
-      <PageTitle>{day ? `Blocked day ${day.date}` : "Block days"}</PageTitle>
+      <PageTitle icon={<BlockedIcon />}>
+        {day ? `Blocked day ${day.date}` : "Block days"}
+      </PageTitle>
       {!day && (
         <p className="opacity-70 mb-4">
           Days that are already blocked are skipped.

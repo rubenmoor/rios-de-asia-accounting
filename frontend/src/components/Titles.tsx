@@ -11,9 +11,9 @@ export function PageTitle({
   className?: string;
 }) {
   return (
-    <h1 className={`text-2xl font-bold ${className}`}>
+    <h1 className={`flex items-center gap-2 text-2xl font-bold ${className}`}>
       {icon}
-      {children}
+      <span>{children}</span>
     </h1>
   );
 }

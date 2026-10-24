@@ -8,6 +8,7 @@ import { Field } from "../components/Field";
 import { FormActions } from "../components/FormActions";
 import { FormError } from "../components/FormError";
 import { FormSlip } from "../components/FormSlip";
+import { RatesIcon } from "../components/icons";
 import { DateInput, RateInput, TextField } from "../components/inputs";
 import { PageTitle } from "../components/Titles";
 import { Toolbar, ToolbarField } from "../components/Toolbar";
@@ -49,7 +50,7 @@ export function RateList() {
 
   return (
     <div>
-      <PageTitle>Exchange rates</PageTitle>
+      <PageTitle icon={<RatesIcon />}>Exchange rates</PageTitle>
       <Toolbar
         onSubmit={apply}
         errors={[filterErrors.currency]}
@@ -113,7 +114,9 @@ function RateForm({ rate }: { rate?: Rate }) {
 
   return (
     <div>
-      <PageTitle>{rate ? "Edit exchange rate" : "New exchange rate"}</PageTitle>
+      <PageTitle icon={<RatesIcon />}>
+        {rate ? "Edit exchange rate" : "New exchange rate"}
+      </PageTitle>
       <FormError message={errors[""]} />
       <FormSlip label="Exchange rate">
         <form

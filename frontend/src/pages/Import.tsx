@@ -13,6 +13,7 @@ import { Field } from "../components/Field";
 import { FormActions } from "../components/FormActions";
 import { FormError } from "../components/FormError";
 import { FormSlip } from "../components/FormSlip";
+import { ImportIcon } from "../components/icons";
 import { useNotices } from "../components/Notices";
 import { PageTitle, SectionTitle } from "../components/Titles";
 
@@ -286,7 +287,7 @@ function PreviewStep({
 
   return (
     <div>
-      <PageTitle>Import preview</PageTitle>
+      <PageTitle icon={<ImportIcon />}>Import preview</PageTitle>
       <FormError message={error ?? undefined} />
       <form
         onSubmit={(e) => {
@@ -365,7 +366,7 @@ function PreviewStep({
 function SummaryStep({ summary }: { summary: Summary }) {
   return (
     <div>
-      <PageTitle>Import done</PageTitle>
+      <PageTitle icon={<ImportIcon />}>Import done</PageTitle>
       <ul className="mb-2">
         <li>
           {summary.new} new booking(s), {summary.updated} updated,{" "}
@@ -519,7 +520,7 @@ export function ImportPage() {
   }
   return (
     <div>
-      <PageTitle>Import</PageTitle>
+      <PageTitle icon={<ImportIcon />}>Import</PageTitle>
       <UploadStep error={error} onPreview={setPreview} />
       <RatesSection />
     </div>

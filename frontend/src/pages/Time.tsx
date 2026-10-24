@@ -12,6 +12,7 @@ import { Field } from "../components/Field";
 import { FormActions } from "../components/FormActions";
 import { FormError } from "../components/FormError";
 import { FormSlip } from "../components/FormSlip";
+import { TimeIcon } from "../components/icons";
 import { DateInput, HoursInput, Select, TextField } from "../components/inputs";
 import { PageTitle } from "../components/Titles";
 import { Toolbar, ToolbarField } from "../components/Toolbar";
@@ -65,7 +66,7 @@ export function TimeList() {
 
   return (
     <div>
-      <PageTitle>Time</PageTitle>
+      <PageTitle icon={<TimeIcon />}>Time</PageTitle>
       <Toolbar
         onSubmit={apply}
         errors={[filterErrors.from, filterErrors.to]}
@@ -151,7 +152,9 @@ function TimeForm({ entry }: { entry?: TimeEntry }) {
 
   return (
     <div>
-      <PageTitle>{entry ? "Edit time entry" : "New time entry"}</PageTitle>
+      <PageTitle icon={<TimeIcon />}>
+        {entry ? "Edit time entry" : "New time entry"}
+      </PageTitle>
       <FormError message={errors[""]} />
       <FormSlip label="Time entry">
         <form

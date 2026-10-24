@@ -8,6 +8,7 @@ import { Field } from "../components/Field";
 import { FormActions } from "../components/FormActions";
 import { FormError } from "../components/FormError";
 import { FormSlip } from "../components/FormSlip";
+import { BookingsIcon } from "../components/icons";
 import {
   DateInput,
   MoneyInput,
@@ -110,7 +111,7 @@ export function BookingList() {
 
   return (
     <div>
-      <PageTitle>Bookings</PageTitle>
+      <PageTitle icon={<BookingsIcon />}>Bookings</PageTitle>
       <Toolbar
         onSubmit={apply}
         errors={[filterErrors.from, filterErrors.to]}
@@ -234,7 +235,7 @@ export function BookingDetail() {
   );
   return (
     <div>
-      <PageTitle>
+      <PageTitle icon={<BookingsIcon />}>
         Booking {b.check_in} – {b.check_out}
       </PageTitle>
       {b.needs_rate && (
@@ -347,7 +348,9 @@ function BookingForm({ booking }: { booking?: Detail }) {
 
   return (
     <div>
-      <PageTitle>{booking ? "Edit booking" : "New booking"}</PageTitle>
+      <PageTitle icon={<BookingsIcon />}>
+        {booking ? "Edit booking" : "New booking"}
+      </PageTitle>
       {imported && (
         <p className="mb-4 opacity-70">
           Imported from Airbnb: dates, listing, guest name and amounts are

@@ -12,6 +12,7 @@ import { Field } from "../components/Field";
 import { FormActions } from "../components/FormActions";
 import { FormError } from "../components/FormError";
 import { FormSlip } from "../components/FormSlip";
+import { ExpensesIcon, RecurringIcon } from "../components/icons";
 import {
   DateInput,
   MoneyInput,
@@ -118,7 +119,7 @@ export function ExpenseList() {
 
   return (
     <div>
-      <PageTitle>Expenses</PageTitle>
+      <PageTitle icon={<ExpensesIcon />}>Expenses</PageTitle>
       <Toolbar
         onSubmit={apply}
         errors={[filterErrors.from, filterErrors.to, filterErrors.category]}
@@ -221,7 +222,9 @@ function ExpenseForm({
 
   return (
     <div>
-      <PageTitle>{expense ? "Edit expense" : "New expense"}</PageTitle>
+      <PageTitle icon={<ExpensesIcon />}>
+        {expense ? "Edit expense" : "New expense"}
+      </PageTitle>
       {expense?.recurring_expense_id != null && (
         <p className="opacity-70 mb-4">
           Generated from a{" "}
@@ -381,7 +384,7 @@ export function RecurringList() {
   });
   return (
     <div>
-      <PageTitle>Recurring expenses</PageTitle>
+      <PageTitle icon={<RecurringIcon />}>Recurring expenses</PageTitle>
       <p className="mb-4">
         <Link className="btn btn-primary" to="/recurring/new">
           New recurring expense
@@ -443,7 +446,7 @@ function RecurringForm({
 
   return (
     <div>
-      <PageTitle>
+      <PageTitle icon={<RecurringIcon />}>
         {item ? "Edit recurring expense" : "New recurring expense"}
       </PageTitle>
       {item && (

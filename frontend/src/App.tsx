@@ -46,9 +46,10 @@ export function App() {
                 key={entry.path}
                 to={entry.path}
                 className={({ isActive }) =>
-                  `tab whitespace-nowrap ${isActive ? "tab-active" : ""}`
+                  `tab gap-1.5 whitespace-nowrap ${isActive ? "tab-active" : ""}`
                 }
               >
+                <entry.icon className="size-4" />
                 {entry.label}
               </NavLink>
             ))}
