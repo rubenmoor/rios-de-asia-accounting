@@ -23,7 +23,7 @@ function TextInput({
 }) {
   return (
     <input
-      className={`input ${className}`}
+      className={`input w-full ${className}`}
       type={type}
       name={name}
       value={value}
@@ -35,11 +35,13 @@ function TextInput({
 }
 
 export const MoneyInput = (p: InputProps) => (
-  <TextInput {...p} inputMode="numeric" />
+  <TextInput {...p} inputMode="numeric" className="num" />
 );
-export const HoursInput = (p: InputProps) => <TextInput {...p} />;
+export const HoursInput = (p: InputProps) => (
+  <TextInput {...p} className="num" />
+);
 export const RateInput = (p: InputProps) => (
-  <TextInput {...p} inputMode="decimal" />
+  <TextInput {...p} inputMode="decimal" className="num" />
 );
 export const DateInput = (p: InputProps & { className?: string }) => (
   <TextInput {...p} type="date" />
@@ -59,7 +61,7 @@ export function Select({
 }: InputProps & { children: ReactNode }) {
   return (
     <select
-      className="select"
+      className="select w-full"
       name={name}
       value={value}
       onChange={(e) => onChange(e.target.value)}
