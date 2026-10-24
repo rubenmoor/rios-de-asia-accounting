@@ -5,6 +5,9 @@ import { ApiError, api } from "../api";
 import { ConfirmDelete } from "../components/ConfirmDelete";
 import { type Column, DataTable } from "../components/DataTable";
 import { Field } from "../components/Field";
+import { FormActions } from "../components/FormActions";
+import { FormError } from "../components/FormError";
+import { FormSlip } from "../components/FormSlip";
 import {
   DateInput,
   MoneyInput,
@@ -276,14 +279,14 @@ export function BookingDetail() {
         rowKey={(l) => `${l.date}${l.type}${l.currency}${l.amount_minor}`}
         empty="No lines."
       />
-      <div className="flex gap-2 mt-4">
+      <FormActions>
         <Link className="btn btn-primary" to={`/bookings/${b.id}/edit`}>
           Edit
         </Link>
-        <Link className="btn" to="/bookings">
+        <Link className="btn btn-ghost" to="/bookings">
           Back to bookings
         </Link>
-      </div>
+      </FormActions>
     </div>
   );
 }
@@ -342,117 +345,114 @@ function BookingForm({ booking }: { booking?: Detail }) {
           read-only; only guests and notes can change.
         </p>
       )}
-      <form
-        className="max-w-lg"
-        onSubmit={(e) => {
-          e.preventDefault();
-          saver.save(body);
-        }}
-      >
-        {errors[""] && (
-          <div role="alert" className="alert alert-error mb-4">
-            {errors[""]}
+      <FormError message={errors[""]} />
+      <FormSlip label="Booking">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            saver.save(body);
+          }}
+        >
+          {booking && imported ? (
+            <p className="inked mb-2">
+              {booking.check_in} – {booking.check_out} ·{" "}
+              {dash(booking.guest_name)} · {dash(booking.listing)} ·{" "}
+              {showMoney(booking.net_payout)} COP
+            </p>
+          ) : (
+            <>
+              <Field label="Check-in" error={errors.check_in}>
+                <DateInput
+                  name="check_in"
+                  value={form.check_in}
+                  onChange={set("check_in")}
+                />
+              </Field>
+              <Field label="Check-out" error={errors.check_out}>
+                <DateInput
+                  name="check_out"
+                  value={form.check_out}
+                  onChange={set("check_out")}
+                />
+              </Field>
+              <Field label="Net payout (COP)" error={errors.net_payout}>
+                <MoneyInput
+                  name="net_payout"
+                  value={form.net_payout}
+                  onChange={set("net_payout")}
+                />
+              </Field>
+              <Field
+                label="Confirmation code"
+                hint="optional, unique"
+                error={errors.airbnb_code}
+              >
+                <TextField
+                  name="airbnb_code"
+                  value={form.airbnb_code}
+                  onChange={set("airbnb_code")}
+                />
+              </Field>
+              <Field label="Listing" error={errors.listing}>
+                <TextField
+                  name="listing"
+                  list="listings"
+                  value={form.listing}
+                  onChange={set("listing")}
+                />
+                <datalist id="listings">
+                  {options.data?.listings.map((name) => (
+                    <option key={name} value={name} />
+                  ))}
+                </datalist>
+              </Field>
+              <Field label="Guest name" error={errors.guest_name}>
+                <TextField
+                  name="guest_name"
+                  value={form.guest_name}
+                  onChange={set("guest_name")}
+                />
+              </Field>
+            </>
+          )}
+          <Field label="Guests" error={errors.guests}>
+            <MoneyInput
+              name="guests"
+              value={form.guests}
+              onChange={set("guests")}
+            />
+          </Field>
+          <Field label="Notes" error={errors.notes}>
+            <TextArea name="notes" value={form.notes} onChange={set("notes")} />
+          </Field>
+          <FormActions>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={saver.pending}
+            >
+              Save
+            </button>
+            <Link
+              className="btn btn-ghost"
+              to={booking ? `/bookings/${booking.id}` : "/bookings"}
+            >
+              Cancel
+            </Link>
+          </FormActions>
+        </form>
+        {booking && (
+          <div className="mt-6 border-t border-base-300 pt-4">
+            <ConfirmDelete
+              label="Delete booking"
+              question="Delete this booking?"
+              detail={deleteQuestion(imported)}
+              pending={remover.pending}
+              onConfirm={() => remover.save()}
+            />
           </div>
         )}
-        {booking && imported ? (
-          <p className="mb-2">
-            {booking.check_in} – {booking.check_out} ·{" "}
-            {dash(booking.guest_name)} · {dash(booking.listing)} ·{" "}
-            {showMoney(booking.net_payout)} COP
-          </p>
-        ) : (
-          <>
-            <Field label="Check-in" error={errors.check_in}>
-              <DateInput
-                name="check_in"
-                value={form.check_in}
-                onChange={set("check_in")}
-              />
-            </Field>
-            <Field label="Check-out" error={errors.check_out}>
-              <DateInput
-                name="check_out"
-                value={form.check_out}
-                onChange={set("check_out")}
-              />
-            </Field>
-            <Field label="Net payout (COP)" error={errors.net_payout}>
-              <MoneyInput
-                name="net_payout"
-                value={form.net_payout}
-                onChange={set("net_payout")}
-              />
-            </Field>
-            <Field
-              label="Confirmation code"
-              hint="optional, unique"
-              error={errors.airbnb_code}
-            >
-              <TextField
-                name="airbnb_code"
-                value={form.airbnb_code}
-                onChange={set("airbnb_code")}
-              />
-            </Field>
-            <Field label="Listing" error={errors.listing}>
-              <TextField
-                name="listing"
-                list="listings"
-                value={form.listing}
-                onChange={set("listing")}
-              />
-              <datalist id="listings">
-                {options.data?.listings.map((name) => (
-                  <option key={name} value={name} />
-                ))}
-              </datalist>
-            </Field>
-            <Field label="Guest name" error={errors.guest_name}>
-              <TextField
-                name="guest_name"
-                value={form.guest_name}
-                onChange={set("guest_name")}
-              />
-            </Field>
-          </>
-        )}
-        <Field label="Guests" error={errors.guests}>
-          <MoneyInput
-            name="guests"
-            value={form.guests}
-            onChange={set("guests")}
-          />
-        </Field>
-        <Field label="Notes" error={errors.notes}>
-          <TextArea name="notes" value={form.notes} onChange={set("notes")} />
-        </Field>
-        <div className="flex gap-2 mt-4">
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={saver.pending}
-          >
-            Save
-          </button>
-          <Link
-            className="btn"
-            to={booking ? `/bookings/${booking.id}` : "/bookings"}
-          >
-            Cancel
-          </Link>
-        </div>
-      </form>
-      {booking && (
-        <div className="mt-6">
-          <ConfirmDelete
-            label="Delete booking"
-            question="Delete this booking?"
-            detail={deleteQuestion(imported)}
-            pending={remover.pending}
-            onConfirm={() => remover.save()}
-          />
-        </div>
-      )}
+      </FormSlip>
     </div>
   );
 }
