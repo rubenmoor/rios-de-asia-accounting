@@ -2651,6 +2651,26 @@ Rules: `decision 44: the per-day view starts on the first day any input is sprea
 - `README.md`: the intro without "profit per hour you put in"; "Run and quit" becomes "Run" (stop with Ctrl-C or `systemctl stop`); the Backup section per decision 45 and where the last backup shows (Settings page); Restore step 1 "stop the app"; the Bookings button name "Add a stay booked outside Airbnb".
 
 Done when the docs describe the code and `rg -i "quit|time log|hourly|per hour|own time" *.md` finds nothing stale.', '2026-10-24T03:51:48Z', '2026-10-24T04:12:41Z', 142, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (147, NULL, 'Fix inline-form layout on Expenses and Recurring; move CSV import onto the Bookings page', 'exec', 'open', NULL, NULL, 'Three UI fixes the human reported from screenshots, plus removing a page.
+
+**1. Expenses: new-expense row overflows its cells**
+- When adding an expense, the inline row''s amount cell (column D, `Amount (USD)`) holds the `AmountInput` (`frontend/src/components/inputs.tsx`): a tiny empty amount box plus a wide currency select.
+- The currency select spills into column E and runs under the Save/Cancel buttons; the amount box itself is a few pixels wide, so you can''t see what you type.
+- Done when: the amount box is wide enough to read a typical amount, the currency select is compact (it only shows USD/COP/EUR), both stay inside their cell, and Save/Cancel don''t overlap anything.
+
+**2. Recurring: same row, different breakage**
+- On the Recurring page''s new-template row, the `Amount / month` cell (column C) also shows a near-zero-width amount box and a currency select that pokes into the `From` column.
+- The `Until` cell stacks the date input above Save/Cancel, so the row is twice as tall as needed and the buttons sit under the wrong column.
+- Done when: amount + currency fit in their cell like on Expenses, and the action buttons sit cleanly (own column or aligned at row end) without the row growing tall.
+- Best fix is likely in `AmountInput` / shared CSS (`frontend/src/index.css`) so both pages benefit; check the edit forms too, not only the "new" rows.
+
+**3. Remove the Import page; add "Import CSV" on Bookings**
+- Drop `/import` from `frontend/src/nav.ts` and `frontend/src/App.tsx`, and delete `frontend/src/pages/Import.tsx` (and `ImportIcon` if unused afterwards).
+- Add an "Import CSV" button to the Bookings page toolbar (`frontend/src/pages/Bookings.tsx`) that offers the same Airbnb CSV upload and shows the same result/feedback the Import page did; refresh the bookings list after a successful import.
+- Backend import endpoint stays as is.
+- Update README / specs where they mention the Import page.
+
+Verify each fix by looking at the running app (screenshot at a normal desktop width), not only by type-checking.', '2026-10-24T12:51:37Z', NULL, NULL, 0, NULL, NULL);
 
 INSERT INTO decision (id, subject, status, options, body, intro, answer, reason, created_at, closed_at, created_by_task, signoff, kind, decided_by_task, consequences) VALUES (1, 'Sign off the masterplan of milestone 1: first version build', 'answered', '["approve"]', '', 'This is the overall roadmap for building the first working version of a small, private bookkeeping app for one Airbnb apartment. The app turns every booking and every cost into amounts per calendar day, so it can answer whether hosting pays off, whether prices are set well, and how things are trending. The roadmap splits the build into parts, starting with a short architecture document the owner approves before anything else is built, and ending with a check against the real Airbnb export.
 
