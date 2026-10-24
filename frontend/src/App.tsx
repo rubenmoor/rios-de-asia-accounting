@@ -12,7 +12,6 @@ import { DashboardPage } from "./pages/Dashboard";
 import {
   ExpenseEdit,
   ExpenseList,
-  ExpenseNew,
   RecurringEdit,
   RecurringList,
   RecurringNew,
@@ -54,7 +53,6 @@ export function App() {
             <Route path="/bookings/:id" element={<BookingDetail />} />
             <Route path="/bookings/:id/edit" element={<BookingEdit />} />
             <Route path="/expenses" element={<ExpenseList />} />
-            <Route path="/expenses/new" element={<ExpenseNew />} />
             <Route path="/expenses/:id/edit" element={<ExpenseEdit />} />
             <Route path="/recurring" element={<RecurringList />} />
             <Route path="/recurring/new" element={<RecurringNew />} />

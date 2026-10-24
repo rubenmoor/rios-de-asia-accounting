@@ -95,6 +95,20 @@
       transparent
     );
   }
+  /* Entry row: the row being typed; inputs fill their cells. */
+  & tbody tr.entry td:not(.gutter) {
+    background-color: color-mix(
+      in oklab,
+      var(--color-primary) 10%,
+      transparent
+    );
+    vertical-align: top;
+  }
+  & tr.entry .input,
+  & tr.entry .select {
+    width: 100%;
+    min-width: 0;
+  }
   & tfoot th,
   & tfoot td {
     border-top: 2px solid var(--color-base-content);

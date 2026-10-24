@@ -7,9 +7,11 @@ import { ConfirmDelete } from "../components/ConfirmDelete";
 import {
   type Column,
   DataTable,
+  SheetEntryRow,
   SheetFooterRow,
 } from "../components/DataTable";
 import { Field } from "../components/Field";
+import { FieldError } from "../components/FieldError";
 import { FormActions } from "../components/FormActions";
 import { FormError } from "../components/FormError";
 import { FormSlip } from "../components/FormSlip";
@@ -111,6 +113,13 @@ export function ExpenseList() {
     queryKey: ["expenses", "options"],
     queryFn: () => api<ExpenseOptions>("GET", "/api/expenses/options"),
   });
+  const [adding, setAdding] = useState(false);
+  const adder = useSave({
+    method: "POST",
+    path: "/api/expenses",
+    resource: "expenses",
+    onSaved: () => setAdding(false),
+  });
   const filterErrors =
     expenses.error instanceof ApiError ? expenses.error.fieldErrors : {};
 
@@ -133,9 +142,16 @@ export function ExpenseList() {
         onSubmit={apply}
         errors={[filterErrors.from, filterErrors.to, filterErrors.category]}
         action={
-          <Link className="btn btn-primary btn-sm" to="/expenses/new">
-            New expense
-          </Link>
+          <button
+            type="button"
+            className="btn btn-primary btn-sm btn-square"
+            aria-label="Add expense"
+            title="Add expense"
+            disabled={adding}
+            onClick={() => setAdding(true)}
+          >
+            +
+          </button>
         }
       >
         <ToolbarField label="From">
@@ -180,11 +196,25 @@ export function ExpenseList() {
             {expenses.error.message}
           </div>
         )}
+      <FormError message={adder.errors[""]} />
       <DataTable
         columns={EXPENSE_COLUMNS}
         rows={rows}
         rowKey={(e) => e.id}
         empty="No expenses."
+        entry={
+          adding &&
+          options.data && (
+            <ExpenseEntryRow
+              options={options.data}
+              saver={adder}
+              onCancel={() => {
+                adder.resetErrors();
+                setAdding(false);
+              }}
+            />
+          )
+        }
         footer={
           <SheetFooterRow>
             <th colSpan={3}>Total</th>
@@ -197,37 +227,190 @@ export function ExpenseList() {
   );
 }
 
+// Today as YYYY-MM-DD in local time (toISOString would give the UTC day).
+function localToday() {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+const ENTRY_FORM = "expense-entry";
+
+function ExpenseEntryRow({
+  options,
+  saver,
+  onCancel,
+}: {
+  options: ExpenseOptions;
+  saver: ReturnType<typeof useSave>;
+  onCancel: () => void;
+}) {
+  const [form, setForm] = useState<Form>({
+    date: localToday(),
+    amount: "",
+    currency: options.default_currency,
+    category: options.categories[0] ?? "",
+    booking_id: "",
+    useful_life_days: "",
+    description: "",
+  });
+  const set = (name: string) => (value: string) =>
+    setForm((f) => ({ ...f, [name]: value }));
+  const { errors } = saver;
+  const err = (name: string) =>
+    errors[name] && <FieldError small>{errors[name]}</FieldError>;
+
+  return (
+    <SheetEntryRow>
+      <td>
+        <form
+          id={ENTRY_FORM}
+          onSubmit={(e) => {
+            e.preventDefault();
+            saver.save(form);
+          }}
+        />
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: Escape cancels from any input of the row */}
+        <div
+          onKeyDown={(e) => {
+            if (e.key === "Escape") onCancel();
+          }}
+        >
+          <DateInput
+            className="input-sm"
+            name="date"
+            form={ENTRY_FORM}
+            ariaLabel="Date"
+            value={form.date}
+            onChange={set("date")}
+          />
+          {err("date")}
+        </div>
+      </td>
+      <td>
+        <Select
+          className="select-sm"
+          name="category"
+          form={ENTRY_FORM}
+          ariaLabel="Category"
+          value={form.category}
+          onChange={set("category")}
+        >
+          {options.categories.map((c) => (
+            <option key={c}>{c}</option>
+          ))}
+        </Select>
+        {err("category")}
+        {form.category === "per_booking" && (
+          <div className="mt-1">
+            <Select
+              className="select-sm"
+              name="booking_id"
+              form={ENTRY_FORM}
+              ariaLabel="Booking"
+              value={form.booking_id}
+              onChange={set("booking_id")}
+            >
+              <option value="">– booking –</option>
+              {options.bookings.map((b) => (
+                <option key={b.id} value={String(b.id)}>
+                  {b.label}
+                </option>
+              ))}
+            </Select>
+            {err("booking_id")}
+          </div>
+        )}
+        {form.category === "capex" && (
+          <div className="mt-1">
+            <NumberInput
+              name="useful_life_days"
+              form={ENTRY_FORM}
+              ariaLabel="Useful life in days"
+              value={form.useful_life_days}
+              onChange={set("useful_life_days")}
+            />
+            {err("useful_life_days")}
+          </div>
+        )}
+      </td>
+      <td>
+        <TextField
+          className="input-sm"
+          name="description"
+          form={ENTRY_FORM}
+          ariaLabel="Description"
+          value={form.description}
+          onChange={set("description")}
+        />
+        {err("description")}
+      </td>
+      <td>
+        <AmountInput
+          small
+          name="amount"
+          form={ENTRY_FORM}
+          ariaLabel="Amount"
+          value={form.amount}
+          currency={form.currency}
+          onChange={set("amount")}
+          onCurrencyChange={set("currency")}
+        />
+        {err("amount")}
+        {err("currency")}
+      </td>
+      <td>
+        <div className="flex gap-2">
+          <button
+            type="submit"
+            form={ENTRY_FORM}
+            className="btn btn-primary btn-sm"
+            disabled={saver.pending}
+          >
+            Save
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={onCancel}
+          >
+            Cancel
+          </button>
+        </div>
+      </td>
+    </SheetEntryRow>
+  );
+}
+
 function ExpenseForm({
   expense,
   options,
 }: {
-  expense?: Expense;
+  expense: Expense;
   options: ExpenseOptions;
 }) {
   const [form, setForm] = useState<Form>({
-    date: expense?.date ?? "",
-    amount: expense
-      ? formatAmount(expense.original_minor, expense.currency)
-      : "",
-    currency: expense?.currency ?? options.default_currency,
-    category: expense?.category ?? options.categories[0] ?? "",
-    booking_id: expense?.booking_id != null ? String(expense.booking_id) : "",
+    date: expense.date,
+    amount: formatAmount(expense.original_minor, expense.currency),
+    currency: expense.currency,
+    category: expense.category,
+    booking_id: expense.booking_id != null ? String(expense.booking_id) : "",
     useful_life_days:
-      expense?.useful_life_days != null ? String(expense.useful_life_days) : "",
-    description: expense?.description ?? "",
+      expense.useful_life_days != null ? String(expense.useful_life_days) : "",
+    description: expense.description,
   });
   const set = (name: string) => (value: string) =>
     setForm((f) => ({ ...f, [name]: value }));
 
   const saver = useSave({
-    method: expense ? "PUT" : "POST",
-    path: expense ? `/api/expenses/${expense.id}` : "/api/expenses",
+    method: "PUT",
+    path: `/api/expenses/${expense.id}`,
     resource: "expenses",
     redirectTo: () => "/expenses",
   });
   const remover = useSave({
     method: "DELETE",
-    path: `/api/expenses/${expense?.id}`,
+    path: `/api/expenses/${expense.id}`,
     resource: "expenses",
     redirectTo: () => "/expenses",
   });
@@ -235,10 +418,8 @@ function ExpenseForm({
 
   return (
     <div>
-      <PageTitle icon={<ExpensesIcon />}>
-        {expense ? "Edit expense" : "New expense"}
-      </PageTitle>
-      {expense?.recurring_expense_id != null && (
+      <PageTitle icon={<ExpensesIcon />}>Edit expense</PageTitle>
+      {expense.recurring_expense_id != null && (
         <p className="opacity-70 mb-4">
           Generated from a{" "}
           <Link
@@ -335,16 +516,14 @@ function ExpenseForm({
             </Link>
           </FormActions>
         </form>
-        {expense && (
-          <div className="mt-6 border-t border-base-300 pt-4">
-            <ConfirmDelete
-              label="Delete expense"
-              question="Delete this expense?"
-              pending={remover.pending}
-              onConfirm={() => remover.save()}
-            />
-          </div>
-        )}
+        <div className="mt-6 border-t border-base-300 pt-4">
+          <ConfirmDelete
+            label="Delete expense"
+            question="Delete this expense?"
+            pending={remover.pending}
+            onConfirm={() => remover.save()}
+          />
+        </div>
       </FormSlip>
     </div>
   );
@@ -355,11 +534,6 @@ function useExpenseOptions() {
     queryKey: ["expenses", "options"],
     queryFn: () => api<ExpenseOptions>("GET", "/api/expenses/options"),
   });
-}
-
-export function ExpenseNew() {
-  const options = useExpenseOptions();
-  return <Loaded query={options}>{(o) => <ExpenseForm options={o} />}</Loaded>;
 }
 
 export function ExpenseEdit() {

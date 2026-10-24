@@ -29,6 +29,19 @@ export function SheetFooterRow({ children }: { children: ReactNode }) {
   );
 }
 
+// The entry row of a `DataTable` (pass as `entry`): a "+" gutter cell, then
+// one cell per column, styled for typing in place.
+export function SheetEntryRow({ children }: { children: ReactNode }) {
+  return (
+    <tr className="entry">
+      <td className="gutter" aria-hidden="true">
+        +
+      </td>
+      {children}
+    </tr>
+  );
+}
+
 const cls = (...c: (string | false | undefined)[]) =>
   c.filter(Boolean).join(" ") || undefined;
 
@@ -38,12 +51,15 @@ export function DataTable<T>({
   rowKey,
   empty,
   footer,
+  entry,
 }: {
   columns: Column<T>[];
   rows: T[];
   rowKey: (row: T) => string | number;
   empty: string;
   footer?: ReactNode;
+  // A `SheetEntryRow` shown as the last body row.
+  entry?: ReactNode;
 }) {
   return (
     <div className="overflow-x-auto">
@@ -112,6 +128,7 @@ export function DataTable<T>({
               ))}
             </tr>
           ))}
+          {entry}
         </tbody>
         {footer && <tfoot>{footer}</tfoot>}
       </table>
