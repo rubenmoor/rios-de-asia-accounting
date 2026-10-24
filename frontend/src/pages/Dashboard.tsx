@@ -4,6 +4,7 @@ import { Link, useSearchParams } from "react-router";
 import { api, type Notice } from "../api";
 import { BarChart } from "../charts/BarChart";
 import { LineChart } from "../charts/LineChart";
+import { BlankLedgerDoodle } from "../components/icons";
 import { DateInput, MonthInput } from "../components/inputs";
 import { NoticeIcon } from "../components/Notices";
 import { PageTitle, SectionTitle } from "../components/Titles";
@@ -157,17 +158,20 @@ export function DashboardPage() {
         />
       )}
       {data?.empty && (
-        <p>
-          Nothing here yet:{" "}
-          <Link className="link" to="/import">
-            import the Airbnb CSV
-          </Link>{" "}
-          or{" "}
-          <Link className="link" to="/bookings/new">
-            add a booking
-          </Link>
-          .
-        </p>
+        <div className="flex items-center gap-4 rounded-box border border-base-300 bg-base-200 p-4">
+          <BlankLedgerDoodle className="size-20 shrink-0 opacity-70" />
+          <p>
+            Nothing here yet:{" "}
+            <Link className="link" to="/import">
+              import the Airbnb CSV
+            </Link>{" "}
+            or{" "}
+            <Link className="link" to="/bookings/new">
+              add a booking
+            </Link>
+            .
+          </p>
+        </div>
       )}
       {data && !data.empty && <DashboardBody data={data} />}
     </div>

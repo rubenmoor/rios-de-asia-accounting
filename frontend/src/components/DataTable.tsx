@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router";
+import { BlankLedgerDoodle } from "./icons";
 
 export type Column<T> = {
   header: string;
@@ -71,7 +72,20 @@ export function DataTable<T>({
               <td className="gutter" aria-hidden="true">
                 1
               </td>
-              <td colSpan={columns.length}>{empty}</td>
+              <td colSpan={columns.length}>
+                <div className="flex items-center gap-3 py-2">
+                  <BlankLedgerDoodle className="size-10 shrink-0 opacity-70" />
+                  <div>
+                    <div
+                      className="text-xs italic opacity-60"
+                      aria-hidden="true"
+                    >
+                      The ledger is blank
+                    </div>
+                    <div>{empty}</div>
+                  </div>
+                </div>
+              </td>
             </tr>
           )}
           {rows.map((row, i) => (
