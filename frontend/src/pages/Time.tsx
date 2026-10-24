@@ -3,7 +3,11 @@ import { type FormEvent, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import { ApiError, api } from "../api";
 import { ConfirmDelete } from "../components/ConfirmDelete";
-import { type Column, DataTable } from "../components/DataTable";
+import {
+  type Column,
+  DataTable,
+  SheetFooterRow,
+} from "../components/DataTable";
 import { Field } from "../components/Field";
 import { DateInput, HoursInput, Select, TextField } from "../components/inputs";
 import { PageTitle } from "../components/Titles";
@@ -94,10 +98,10 @@ export function TimeList() {
         rowKey={(e) => e.id}
         empty="No time entries."
         footer={
-          <tr>
+          <SheetFooterRow>
             <th colSpan={2}>Total</th>
-            <th className="text-right">{showHours(total)}</th>
-          </tr>
+            <th className="num">{showHours(total)}</th>
+          </SheetFooterRow>
         }
       />
     </div>

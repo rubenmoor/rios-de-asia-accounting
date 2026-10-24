@@ -77,7 +77,9 @@ has no page for. Checks: `npm run typecheck`, `npm run lint`, `npm test`.
 The look is one light daisyUI theme, `ledger` (`frontend/src/index.css`). Pages stick to these conventions so the design can change in one place:
 
 - **Numbers:** class `num` (monospace, tabular, right-aligned); negatives also get `neg` (red ink).
-- **Tables:** only through `DataTable`; pages add no table classes of their own.
+- **Tables:** only through `DataTable`; pages add no table classes of their own. It renders `table sheet` (the `sheet` class in `index.css`: grid lines in the ledger rule colour, `base-200` header cells, zebra rows, row hover, heavier rule above footer rows) inside `overflow-x-auto`, with a decorative frame like a spreadsheet's: a letter row (A, B, C …) above the header and a row-number gutter on the left, both `aria-hidden`.
+- **Table footers (totals):** pass `<SheetFooterRow>` (from `DataTable.tsx`, adds the gutter cell) as `footer`; total cells get `num`.
+- **Negative cells:** `negative?: (row) => boolean` on a `Column` adds `neg`; only the colour changes, never the text.
 - **Headings:** `PageTitle` (h1) and `SectionTitle` (h2) from `components/Titles.tsx`, never hand-written heading classes.
 - **Forms:** `Field` plus the inputs in `inputs.tsx`; the form actions sit in one `flex gap-2 mt-4` row.
 - **Buttons:** `btn btn-primary` for Save/Apply, `btn btn-ghost` or `btn-soft` for Cancel/Reset links, `btn btn-error` for Delete (via `ConfirmDelete`).
