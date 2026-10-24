@@ -142,3 +142,31 @@
   font-family: ui-serif, Georgia, "Times New Roman", serif;
   font-style: italic;
 }
+
+/* Accountant's double underline under a total figure. */
+@utility total {
+  border-bottom: 3px double var(--color-base-content);
+}
+
+/* Rubber stamp: outlined, ledger green, slightly rotated; decorative only. */
+@utility stamp {
+  display: inline-block;
+  border: 2px solid var(--color-primary);
+  border-radius: 0.25rem;
+  padding: 0.0625rem 0.5rem;
+  color: var(--color-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transform: rotate(-4deg);
+  opacity: 0.85;
+}
+
+/* A list of ruled lines, like entries in a ledger. */
+@utility ledger-list {
+  & > li {
+    border-bottom: 1px solid var(--ledger-rule-green);
+    padding-block: 0.25rem;
+  }
+}
