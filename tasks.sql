@@ -192,6 +192,17 @@ INSERT INTO milestone (id, subject, status, body, created_at, implemented_at, qu
 * don''t change functionality
 * add a favicon', '2026-10-23T22:34:21Z', '2026-10-24T00:33:52Z', 0);
 INSERT INTO milestone (id, subject, status, body, created_at, implemented_at, queue_index) VALUES (3, 'add a proper client-side framework', 'implemented', 'the architecture spec are terrible. we want a proper client-side framework. your choice. we totally can have build steps. this becomes a classic web app, only that its server runs locally on my pc.', '2026-10-23T22:40:12Z', '2026-10-23T23:25:52Z', 0);
+INSERT INTO milestone (id, subject, status, body, created_at, implemented_at, queue_index) VALUES (4, 'first round of improvements', 'open', 'the spreadsheet look is great, but the "new expense" button should just be a plus and the form to add an expense should be inlined into the spreadsheet-styled table; same with recurring expense; the date field must be pre-filled with today''s date
+
+the "new booking" button doesn''t make sense. correct me if i am wrong, but i want all the income from airbnb enter the accounting via the .csv export 
+
+i don''t understand "blocked days" and it can be probably removed completely
+
+i don''t understand the time page
+
+i don''t understand the exchange rate page. i want the whole tool to run internally on USD. whenever an expense or income is added, the exchange rate that correspond to its date must be fetched to convert to USD if necessary. e.g. for income from airbnb the reference date would be the first day of booking. for recurring expenses it would be the first day of the month. the page should then allow to change the display currency: all amounts convert to COP or EUR based on the current exchange rate, fetched at the moment the currency is changed
+
+i don''t understand the quit button', '2026-10-24T03:15:59Z', NULL, 0);
 
 INSERT INTO plan (id, milestone_id, subject, priority, body, intro, created_at, created_by_task) VALUES (1, 1, 'masterplan', 1000, 'Build the first version of the app described in `airbnb-bookkeeping-spec.md`: a local, single-user, single-property bookkeeping tool that allocates all income and costs per calendar day, imports the Airbnb transaction CSV (`airbnb_.csv` is a real sample), and shows a dashboard with metrics, a rolling 90-day chart and an expense breakdown. Only the spec''s "v1" features are in scope; its "Later" list is not.
 
@@ -1026,6 +1037,7 @@ INSERT INTO plan (id, milestone_id, subject, priority, body, intro, created_at, 
 5. **Stopped page** (requires 1)
    - `pages/Stopped.tsx` on part 1''s paper card: the same h1 text, the logo, a "books closed" doodle (closed ledger with a ribbon), and a muted decorative line (e.g. "The books are closed for today.").
    - Done when Quit leads to the decorated page with the same sentence.', 'The last step of the bookkeeping app''s new look adds the small, playful touches that make it feel like a well-kept ledger: a browser-tab icon and a little logo, a tiny picture for each section of the app, friendly drawings where a list is still empty, a double line under totals like an accountant draws, an ink-stamp on the import result and a nicer goodbye page after quitting. None of it changes what the app does or what any figure or message says; it only decorates screens that the earlier design steps have already finished.', '2026-10-24T00:15:56Z', 60);
+INSERT INTO plan (id, milestone_id, subject, priority, body, intro, created_at, created_by_task) VALUES (23, 4, 'masterplan', 1000, 'tbd.', '', '2026-10-24T03:15:59Z', NULL);
 
 INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (1, 1, 'write the masterplan of milestone 1: first version build', 'masterplan', 'done', NULL, '2026-10-23, plan 1 body and intro (no files)', 'Write `plan 1: masterplan`, the masterplan of `milestone 1: first version build`: expand on everything that needs to be done to achieve it,
 divided into parts, with an intro in plain English (`pm plan edit 1 --intro "…" --body -`). State in the masterplan that its own tasks are not implementation work: each of them writes the
@@ -2218,6 +2230,9 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 * delete code that isn''t actually used
 * check pending decisions if they are still relevant and really pending
 * check other milestones if their contents are up-to-date; raise a decision for each change they need', '2026-10-24T00:33:25Z', '2026-10-24T00:33:48Z', NULL, 0, NULL, NULL);
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (124, 23, 'write the masterplan of milestone 4: first round of improvements', 'masterplan', 'open', NULL, NULL, 'Write `plan 23: masterplan`, the masterplan of `milestone 4: first round of improvements`: expand on everything that needs to be done to achieve it,
+divided into parts, with an intro in plain English (`pm plan edit 23 --intro "…" --body -`). State in the masterplan that its own tasks are not implementation work: each of them writes the
+plan for one part.', '2026-10-24T03:15:59Z', NULL, NULL, 0, NULL, NULL);
 
 INSERT INTO decision (id, subject, status, options, body, intro, answer, reason, created_at, closed_at, created_by_task, signoff, kind, decided_by_task, consequences) VALUES (1, 'Sign off the masterplan of milestone 1: first version build', 'answered', '["approve"]', '', 'This is the overall roadmap for building the first working version of a small, private bookkeeping app for one Airbnb apartment. The app turns every booking and every cost into amounts per calendar day, so it can answer whether hosting pays off, whether prices are set well, and how things are trending. The roadmap splits the build into parts, starting with a short architecture document the owner approves before anything else is built, and ending with a check against the real Airbnb export.
 
