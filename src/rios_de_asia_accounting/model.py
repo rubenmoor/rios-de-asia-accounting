@@ -66,13 +66,6 @@ class RecurringExpense:
 
 
 @dataclass
-class BlockedDay:
-    date: date
-    reason: str
-    note: str | None = None
-
-
-@dataclass
 class TimeEntry:
     date: date
     minutes: int
@@ -97,7 +90,6 @@ class Inputs:
 
     bookings: list[Booking]
     expenses: list[Expense]
-    blocked_days: list[BlockedDay]
     time_log: list[TimeEntry]
     settings: Settings
 
@@ -107,7 +99,6 @@ class Day:
     """One row of the per-day view; money in whole COP, time in minutes."""
 
     date: date
-    available: bool = True
     occupied: bool = False
     income: int = 0
     cost_fixed: int = 0

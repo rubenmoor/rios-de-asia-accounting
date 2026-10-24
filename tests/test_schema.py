@@ -91,8 +91,6 @@ def test_unknown_enums(conn):
     with pytest.raises(sqlite3.IntegrityError):
         expense(conn, category="food")
     with pytest.raises(sqlite3.IntegrityError):
-        conn.execute("INSERT INTO blocked_days (date, reason) VALUES ('2026-01-01', 'nap')")
-    with pytest.raises(sqlite3.IntegrityError):
         line(conn, bid, type="Payout")
     with pytest.raises(sqlite3.IntegrityError):
         conn.execute(
@@ -229,3 +227,8 @@ def test_booking_totals_no_lines_and_all_rated(conn):
     rows = {r["booking_id"]: r for r in conn.execute("SELECT * FROM booking_totals")}
     assert rows[empty]["net_payout"] == 0 and rows[empty]["needs_rate"] == 0
     assert rows[rated]["net_payout"] == 10 and rows[rated]["needs_rate"] == 0
+
+
+def test_blocked_days_table_is_gone(conn):
+    tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
+    assert "blocked_days" not in tables

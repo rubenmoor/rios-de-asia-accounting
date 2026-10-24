@@ -2,7 +2,7 @@
 
 The expected numbers for October 2026 were recomputed by hand from the CSV rows (not with
 the app's code) and match the same run on the real export. Today is fixed at 2026-10-23, so
-October counts its days 1 to 23; 2026-10-15 is blocked.
+October counts its days 1 to 23.
 
 October 2026, listings "Large 4 bed …" and "Master bedroom …":
 - HMECDBYSMK 10-07..10-12, USD 1093.52 at 3850.25 (rate of 10-08) = 4.210.325, co-host
@@ -31,16 +31,16 @@ TODAY = date(2026, 10, 23)
 
 # row key → value in the October column: whole COP, ratios as fractions, hours as minutes
 OCTOBER = {
-    "available_nights": 22,
+    "available_nights": 23,
     "occupied_nights": 8,
-    "occupancy": "36.4 %",
+    "occupancy": "34.8 %",
     "adr": 544156,
-    "revpar": 197875,
+    "revpar": 189272,
     "income": 4353251,
     "total_cost": 1537732,
     "profit": 2815519,
     "variable_cost_per_night": 109077,
-    "break_even_occupancy": "6.9 %",
+    "break_even_occupancy": "6.6 %",
     "benchmark": 2225808,
     "profit_vs_long_term": 589711,
     "minutes": 240,
@@ -131,11 +131,6 @@ def _enter_everything(client):
         {"date": "2026-10-18", "amount": "180.000", "category": "maintenance"},
     ):
         _ok(client.post("/api/expenses", json={"description": "x", **expense}))
-    _ok(
-        client.post(
-            "/api/blocked-days", json={"from": "2026-10-15", "to": "2026-10-15", "reason": "owner"}
-        )
-    )
     _ok(client.post("/api/time", json={"date": "2026-10-07", "hours": "2,5"}))
     _ok(client.post("/api/time", json={"date": "2026-10-21", "hours": "1:30"}))
 

@@ -97,7 +97,7 @@ class Metrics:
 
 def summarize(days: list[Day], rng: DateRange, settings: Settings) -> Metrics:
     selected = [day for day in days if day.date in rng]
-    available = sum(day.available for day in selected)
+    available = len(selected)
     occupied = sum(day.occupied for day in selected)
     income = sum(day.income for day in selected)
     costs = {column: sum(getattr(day, column) for day in selected) for column in COST_COLUMNS}
@@ -159,12 +159,12 @@ def rolling_90(days: list[Day]) -> list[RollingPoint]:
     points = []
     available = occupied = income = 0
     for i, day in enumerate(days):
-        available += day.available
+        available += 1
         occupied += day.occupied
         income += day.income
         if i >= ROLLING_WINDOW:
             old = days[i - ROLLING_WINDOW]
-            available -= old.available
+            available -= 1
             occupied -= old.occupied
             income -= old.income
         if i >= ROLLING_WINDOW - 1:

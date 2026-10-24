@@ -9,16 +9,16 @@ from rios_de_asia_accounting.allocation import (
     months_between,
     split,
 )
-from rios_de_asia_accounting.model import BlockedDay, Booking, Expense, Inputs, Settings, TimeEntry
+from rios_de_asia_accounting.model import Booking, Expense, Inputs, Settings, TimeEntry
 
 
 def d(s):
     return date.fromisoformat(s)
 
 
-def inputs(bookings=(), expenses=(), blocked=(), time_log=(), mode="check_in"):
+def inputs(bookings=(), expenses=(), time_log=(), mode="check_in"):
     settings = Settings(per_booking_allocation=mode)
-    return Inputs(list(bookings), list(expenses), list(blocked), list(time_log), settings)
+    return Inputs(list(bookings), list(expenses), list(time_log), settings)
 
 
 def booking(check_in, check_out, net_payout, cohost_cost=0, id=None):
@@ -120,29 +120,10 @@ def test_overlapping_bookings():
     assert [day.occupied for day in days] == [True, True, True, False, False]
 
 
-def test_blocked_and_booked_same_day():
-    days = allocate(
-        inputs(
-            [booking("2026-01-02", "2026-01-03", 10)],
-            blocked=[
-                BlockedDay(d("2026-01-01"), "owner"),
-                BlockedDay(d("2026-01-02"), "owner"),
-            ],
-        ),
-        d("2026-01-03"),
-    )
-    assert [(day.available, day.occupied) for day in days] == [
-        (False, False),
-        (True, True),  # a booking wins over a block
-        (True, False),
-    ]
-
-
 def test_default_start_is_earliest_input_and_time_log():
     days = allocate(
         inputs(
             [booking("2026-01-05", "2026-01-06", 10)],
-            blocked=[BlockedDay(d("2026-01-03"), "repair")],
             time_log=[
                 TimeEntry(d("2026-01-02"), 30),
                 TimeEntry(d("2026-01-02"), 45),

@@ -3,7 +3,6 @@ from datetime import date
 import pytest
 
 from rios_de_asia_accounting.model import (
-    BlockedDay,
     Booking,
     BookingLine,
     Expense,
@@ -59,17 +58,6 @@ def test_recurring_round_trip_and_generated_dedup(conn):
     repo.delete_recurring_expense(conn, rid)  # generated rows stay, unlinked
     (left,) = repo.list_expenses(conn)
     assert left.recurring_expense_id is None
-
-
-def test_blocked_days(conn):
-    repo.set_blocked_day(conn, BlockedDay(d("2026-01-02"), "owner", "mine"))
-    repo.set_blocked_day(conn, BlockedDay(d("2026-01-03"), "buffer"))
-    repo.set_blocked_day(conn, BlockedDay(d("2026-01-02"), "other"))
-    assert repo.get_blocked_day(conn, d("2026-01-02")) == BlockedDay(d("2026-01-02"), "other", None)
-    assert len(repo.list_blocked_days(conn)) == 2
-    assert [b.date for b in repo.list_blocked_days(conn, d("2026-01-03"))] == [d("2026-01-03")]
-    repo.delete_blocked_day(conn, d("2026-01-02"))
-    assert repo.get_blocked_day(conn, d("2026-01-02")) is None
 
 
 def test_time_entries(conn):
@@ -133,13 +121,11 @@ def test_load_inputs(conn):
     )
     repo.add_line(conn, BookingLine(bid, "Co-Host payout", d("2026-01-04"), "COP", -3_000_000))
     repo.create_expense(conn, Expense(d("2026-01-02"), 10, "fixed"))
-    repo.set_blocked_day(conn, BlockedDay(d("2026-01-10"), "buffer"))
     repo.create_time_entry(conn, TimeEntry(d("2026-01-02"), 60, booking_id=bid))
     repo.save_settings(conn, Settings(hourly_value_cop=5))
     inputs = repo.load_inputs(conn)
     (b,) = inputs.bookings
     assert (b.net_payout, b.cohost_cost, b.nights) == (300_000, 30_000, 3)
     assert [e.amount for e in inputs.expenses] == [10]
-    assert [x.date for x in inputs.blocked_days] == [d("2026-01-10")]
     assert [t.minutes for t in inputs.time_log] == [60]
     assert inputs.settings.hourly_value_cop == 5

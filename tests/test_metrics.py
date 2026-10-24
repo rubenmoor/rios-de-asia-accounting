@@ -22,7 +22,7 @@ def d(s):
 
 
 def ten_days():
-    """2026-01-01..10: nights 1-4 and 6-7 booked at 100 000, day 10 blocked.
+    """2026-01-01..10: nights 1-4 and 6-7 booked at 100 000.
 
     Fixed 10 000 a day, 5 000 per occupied night, 20 000 per booking on check-in.
     """
@@ -32,7 +32,6 @@ def ten_days():
         days.append(
             Day(
                 date=day,
-                available=i != 10,
                 occupied=occupied,
                 income=100_000 if occupied else 0,
                 cost_fixed=10_000,
@@ -49,17 +48,17 @@ ALL = custom(d("2026-01-01"), d("2026-01-10"))
 
 def test_ten_day_example():
     m = summarize(ten_days(), ALL, Settings())
-    assert (m.available_nights, m.occupied_nights) == (9, 6)
+    assert (m.available_nights, m.occupied_nights) == (10, 6)
     assert m.income == 600_000
     assert (m.cost_fixed, m.cost_per_night, m.cost_per_booking) == (100_000, 30_000, 40_000)
     assert m.total_cost == 170_000
     assert m.profit == 430_000
-    assert m.occupancy == pytest.approx(6 / 9)
+    assert m.occupancy == pytest.approx(6 / 10)
     assert m.adr == 100_000
-    assert m.revpar == 66_667  # 600 000 / 9 = 66 666.67
+    assert m.revpar == 60_000
     assert m.variable_cost_per_night == 11_667  # 70 000 / 6
-    # (100 000 / 9) / (100 000 − 70 000 / 6) = 20 / 159
-    assert m.break_even_occupancy == float(Fraction(20, 159))
+    # (100 000 / 10) / (100 000 − 70 000 / 6) = 6 / 53
+    assert m.break_even_occupancy == float(Fraction(6, 53))
 
 
 def test_break_even_none_when_adr_not_above_variable_cost():
@@ -159,7 +158,6 @@ def long_history(n):
     return [
         Day(
             date=day,
-            available=i % 17 != 0,
             occupied=i % 3 != 0 and i % 17 != 0,
             income=(40_000 + i * 100) if i % 3 != 0 and i % 17 != 0 else 0,
             cost_fixed=1_000 + i,
@@ -197,12 +195,6 @@ def test_rolling_on_200_days():
     assert len(points) == 111
     for index in (89, 90, 120, 199):
         check_point(days, points[index - 89], index)
-
-
-def test_rolling_window_without_available_nights():
-    days = [Day(day, available=False) for day in date_range(d("2026-01-01"), d("2026-03-31"))]
-    (point,) = rolling_90(days)
-    assert (point.revpar, point.adr, point.occupancy) == (None, None, None)
 
 
 def test_expense_breakdown():
