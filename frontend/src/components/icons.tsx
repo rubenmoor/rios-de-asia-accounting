@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 /** Inline SVG icons: no icon fonts, no CDN. Colours come from the theme. */
 
 /** The app mark (an open ledger, as in the favicon); named by the text beside it. */
@@ -23,5 +25,110 @@ export function Logo({ className = "size-7" }: { className?: string }) {
         strokeLinecap="round"
       />
     </svg>
+  );
+}
+
+export type IconProps = { className?: string };
+
+function StrokeIcon({
+  className = "size-5",
+  children,
+}: IconProps & { children: ReactNode }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      {children}
+    </svg>
+  );
+}
+
+/** Calendar page. */
+export function BookingsIcon(props: IconProps) {
+  return (
+    <StrokeIcon {...props}>
+      <rect x="3.5" y="5" width="17" height="15" rx="2" />
+      <path d="M3.5 10h17M8 3v4M16 3v4" />
+    </StrokeIcon>
+  );
+}
+
+/** Receipt with a torn edge. */
+export function ExpensesIcon(props: IconProps) {
+  return (
+    <StrokeIcon {...props}>
+      <path d="M6 3h12v18l-2-1.5-2 1.5-2-1.5-2 1.5-2-1.5L6 21z" />
+      <path d="M9 8h6M9 12h6" />
+    </StrokeIcon>
+  );
+}
+
+/** Circular arrows. */
+export function RecurringIcon(props: IconProps) {
+  return (
+    <StrokeIcon {...props}>
+      <path d="M19 12a7 7 0 0 0-12-4.9L5 9M5 12a7 7 0 0 0 12 4.9L19 15" />
+      <path d="M5 4v5h5M19 20v-5h-5" />
+    </StrokeIcon>
+  );
+}
+
+/** Calendar with a cross. */
+export function BlockedIcon(props: IconProps) {
+  return (
+    <StrokeIcon {...props}>
+      <rect x="3.5" y="5" width="17" height="15" rx="2" />
+      <path d="M3.5 10h17M8 3v4M16 3v4M9.5 12.5l5 5M14.5 12.5l-5 5" />
+    </StrokeIcon>
+  );
+}
+
+/** Clock. */
+export function TimeIcon(props: IconProps) {
+  return (
+    <StrokeIcon {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </StrokeIcon>
+  );
+}
+
+/** Two coins. */
+export function RatesIcon(props: IconProps) {
+  return (
+    <StrokeIcon {...props}>
+      <circle cx="9" cy="9" r="5.5" />
+      <path d="M14.5 9.6A5.5 5.5 0 1 1 9.6 14.5" />
+      <path d="M9 7v4" />
+    </StrokeIcon>
+  );
+}
+
+/** Tray with a down arrow. */
+export function ImportIcon(props: IconProps) {
+  return (
+    <StrokeIcon {...props}>
+      <path d="M12 3v11M8 10l4 4 4-4" />
+      <path d="M4 14v5h16v-5" />
+    </StrokeIcon>
+  );
+}
+
+/** Gear. */
+export function SettingsIcon(props: IconProps) {
+  return (
+    <StrokeIcon {...props}>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1" />
+      <circle cx="12" cy="12" r="6.5" />
+    </StrokeIcon>
   );
 }

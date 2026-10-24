@@ -5,6 +5,7 @@ import { Field } from "../components/Field";
 import { FormActions } from "../components/FormActions";
 import { FormError } from "../components/FormError";
 import { FormSlip } from "../components/FormSlip";
+import { SettingsIcon } from "../components/icons";
 import { MoneyInput, Select, TextField } from "../components/inputs";
 import { PageTitle } from "../components/Titles";
 import { formatMoney } from "../format";
@@ -53,7 +54,7 @@ function SettingsForm({
 
   return (
     <div>
-      <PageTitle>Settings</PageTitle>
+      <PageTitle icon={<SettingsIcon />}>Settings</PageTitle>
       <FormError message={errors[""]} />
       <FormSlip label="Settings">
         <form
