@@ -1,4 +1,55 @@
 @import "tailwindcss";
 @plugin "daisyui" {
-  themes: light --default;
+  themes: false;
+}
+@plugin "daisyui/theme" {
+  name: "ledger";
+  default: true;
+  prefersdark: false;
+  color-scheme: light;
+  --color-base-100: #fbf8ef;
+  --color-base-200: #f1ecdc;
+  --color-base-300: #ddd6bd;
+  --color-base-content: #26231c;
+  --color-primary: #2a6a43;
+  --color-primary-content: #fbf8ef;
+  --color-secondary: #2b5a8c;
+  --color-secondary-content: #fbf8ef;
+  --color-accent: #8a5a1c;
+  --color-accent-content: #fbf8ef;
+  --color-neutral: #3a362c;
+  --color-neutral-content: #fbf8ef;
+  --color-info: #2b5a8c;
+  --color-info-content: #fbf8ef;
+  --color-success: #2a6a43;
+  --color-success-content: #fbf8ef;
+  --color-warning: #f0c04a;
+  --color-warning-content: #3a2c00;
+  --color-error: #b3261e;
+  --color-error-content: #fbf8ef;
+  --radius-selector: 0.25rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.375rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+:root {
+  --ledger-rule-green: #a9cdb4;
+  --ledger-rule-blue: #aac3dd;
+}
+
+@utility num {
+  font-family:
+    ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+@utility neg {
+  color: var(--color-error);
 }
