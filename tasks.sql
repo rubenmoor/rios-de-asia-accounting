@@ -1512,12 +1512,12 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 - Shared conventions for parts 2–4 (components/classes for tables, forms, buttons, hints, errors; Jinja macros or a README section), so the later plans can point at them.
 - Keep the masterplan''s ground rules in the plan body (no functional change, offline, checks).
 - Waits for the human''s answer to `decision 23`.', '2026-10-23T22:36:11Z', '2026-10-24T00:12:22Z', 56, 0, NULL, 'main');
-INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (58, 11, 'write the plan for part 2: spreadsheet-style tables and dashboard', 'plan', 'open', 1000, NULL, 'Write the plan for part 2 of `plan 11: masterplan` (see its body): **Spreadsheet-style tables and dashboard**, `pm plan add 2 "spreadsheet-style tables and dashboard" --priority 300 --intro "…"`.
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (58, 11, 'write the plan for part 2: spreadsheet-style tables and dashboard', 'plan', 'done', 1000, '2026-10-23, plan 20: spreadsheet-style tables and dashboard (no files; its split task 106 was already running, so it could not be made to require task 102)', 'Write the plan for part 2 of `plan 11: masterplan` (see its body): **Spreadsheet-style tables and dashboard**, `pm plan add 2 "spreadsheet-style tables and dashboard" --priority 300 --intro "…"`.
 
 - Covers: every list table (bookings, expenses, blocked days, time log, rates, recurring expenses, import preview/summary, booking detail lines) and the dashboard metric table in spreadsheet style (grid lines, column-header row, optional A/B/C letters and row-number gutter, zebra rows, right-aligned tabular numbers, red negatives via a class instead of the inline style in `index.html`).
 - Dashboard period form as a compact "formula bar" toolbar; headings and the exchange-rate warning restyled; `web/charts.py` colours/fonts/grid aligned with the theme only.
 - Build on the conventions from part 1''s plan (`styling foundation`); its implementation tasks `--requires` the part 1 implementation tasks they need (look them up with `pm plan list` / `pm show`).
-- Keep the ground rules: no functional change (`decision 10`, `decision 18` formats and structure), tests keep passing, offline.', '2026-10-23T22:36:12Z', NULL, 56, 0, NULL, 'main');
+- Keep the ground rules: no functional change (`decision 10`, `decision 18` formats and structure), tests keep passing, offline.', '2026-10-23T22:36:12Z', '2026-10-24T00:13:56Z', 56, 0, NULL, 'main');
 INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (59, 11, 'write the plan for part 3: forms and actions', 'plan', 'open', 1000, NULL, 'Write the plan for part 3 of `plan 11: masterplan` (see its body): **Forms and actions**, `pm plan add 2 "forms and actions" --priority 300 --intro "…"`.
 
 - Covers: every form (booking, expense, blocked days, time entry, rate, recurring expense, settings, CSV import upload) with daisyUI inputs, selects, labels, hints and errors; field names, order and validation unchanged (`decision 15: data entry forms: how money and hours are typed`).
@@ -1956,13 +1956,64 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 - Bring existing pages in line with these conventions only where it''s a pure class change.
 
 Done when: no page uses the old heading classes, the README section exists, and all checks in the plan pass.', '2026-10-24T00:12:39Z', NULL, 102, 0, NULL, 'main');
-INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (106, 20, 'create tasks for plan 20: spreadsheet-style tables and dashboard', 'split', 'open', 1000, NULL, 'Split `plan 20: spreadsheet-style tables and dashboard` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (106, 20, 'create tasks for plan 20: spreadsheet-style tables and dashboard', 'split', 'done', 1000, '2026-10-23, tasks 107, 108, 109, 110', 'Split `plan 20: spreadsheet-style tables and dashboard` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
 done and dropped ones stay as they are (pm refuses to change them): drop the open ones that no longer fit and add
 tasks for what the plan asks beyond them. A task that writes a plan gets `--kind plan`. A task that needs another
 task''s result (in this plan or another, in any work tree) requires it: `pm task add … --requires <task id>`, or
 `pm task requires <task id> <prerequisite id>` for an existing one; priority is only a hint and orders nothing across
 work trees. When you drop an open task that others require and add one in its place, drop it with
-`--replaced-by <new task id>`.', '2026-10-24T00:13:47Z', NULL, 58, 0, NULL, NULL);
+`--replaced-by <new task id>`.', '2026-10-24T00:13:47Z', '2026-10-24T00:14:28Z', 58, 0, NULL, NULL);
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (107, 20, 'sheet table style and DataTable spreadsheet frame', 'work', 'open', NULL, NULL, 'Part of `plan 20: spreadsheet-style tables and dashboard`; follow its ground rules (no functional change: same columns, texts, links, formats; offline; no new npm deps; light only, `decision 28: visual design: one light ledger theme, no dark mode`). Uses part 1''s `num`/`neg` classes, `--ledger-rule` variables and README "Styling conventions" section.
+
+Files: `frontend/src/index.css`, `frontend/src/components/DataTable.tsx`, `pages/Expenses.tsx`, `pages/Time.tsx`, `pages/Bookings.tsx` (detail lines), `README.md`.
+
+- `sheet` component class in `index.css`, on top of daisyUI `table`:
+  - thin grid lines on every cell in the ledger rule colour
+  - header cells like spreadsheet column headers (`base-200`, small, semibold)
+  - zebra rows, compact padding, row hover highlight
+  - footer (totals) rows with a heavier top rule
+- `DataTable`:
+  - uses `table sheet`, wrapped in `overflow-x-auto`
+  - numeric columns get `num` instead of `text-right`
+  - decorative letter row (A, B, C … one per column) above the real header, and a row-number gutter (1, 2, 3 …) on the left; both `aria-hidden`, muted, never replacing a real header or value
+  - the empty-state row keeps its text and spans all columns (plus the gutter)
+- Footer rows need a gutter cell too: export a small helper (e.g. `SheetFooterRow` or a gutter cell) and use it in the Expenses and Time footers; their total cells get `num`.
+- Optional `negative?: (row) => boolean` on `Column` that adds `neg`; use it for the booking detail lines (`Amount`, `COP` below zero). Only the colour changes.
+- README "Styling conventions": add the `sheet` class, the gutter/letter frame, the footer helper and `negative`.
+
+Done when every `DataTable` page (bookings, booking detail lines, expenses list/recurring/generated, blocked days, time log, rates) shows the sheet look with the same columns, texts and links, with data and empty; `npm run typecheck`, `npm run lint`, `npm test`, `npm run build` (in `frontend/`), `pytest` and `nix flake check` pass; checked in the running app (`rios-de-asia-accounting --no-browser`).', '2026-10-24T00:14:11Z', NULL, 106, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (108, 20, 'import preview and booking detail tables on the sheet style', 'work', 'open', NULL, NULL, 'Part of `plan 20: spreadsheet-style tables and dashboard`; follow its ground rules (no functional change, same texts and columns; offline; no new npm deps). Builds on the `sheet` class and `DataTable` frame from `task 107: sheet table style and DataTable spreadsheet frame` (see README "Styling conventions").
+
+Files: `frontend/src/pages/Import.tsx`, `frontend/src/pages/Bookings.tsx` (`BookingDetail`).
+
+- Import preview: the two hand-built tables (new bookings, changed bookings) use the sheet style: via `DataTable` where that fits without changing any text, else `table sheet` plus the same `aria-hidden` letter row and row-number gutter by hand. Money/number cells `num`. The import summary stays a list.
+- Booking detail key/value table: a two-column sheet, the labels as a header column (`th`, `base-200`), money values `num`.
+
+Done when no table in `frontend/src/pages/` other than the dashboard''s uses plain `className="table"`; `npm run typecheck`, `npm run lint`, `npm test`, `npm run build` (in `frontend/`), `pytest` and `nix flake check` pass; import preview and a booking detail checked in the running app (`rios-de-asia-accounting --no-browser`).', '2026-10-24T00:14:27Z', NULL, 106, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (109, 20, 'dashboard: metric tables as sheets, formula-bar period form, headings and warning', 'work', 'open', NULL, NULL, 'Part of `plan 20: spreadsheet-style tables and dashboard`; follow its ground rules. Same numbers, texts, URL parameters and layout (`decision 18: dashboard layout: which periods are shown and which period the cost breakdown uses`, `decision 10: a figure that cannot be computed is shown as empty, not as zero`). Builds on the `sheet` class from `task 107: sheet table style and DataTable spreadsheet frame` and part 1''s `PageTitle`/`SectionTitle` and alert style.
+
+File: `frontend/src/pages/Dashboard.tsx` (plus `index.css` only if a small class is needed).
+
+- Metric table and expense breakdown table on `table sheet`:
+  - period columns as column headers (label + muted date range)
+  - metric labels as a frozen first column (`sticky left-0` with a background) so wide tables scroll under it; table in `overflow-x-auto`
+  - values `num`; negatives `neg` instead of `text-error`, same `cell()` text with the `−` sign
+- `PeriodForm` as a compact "formula bar": one bordered `base-200` strip, `input-sm` inputs, short inline labels Month/From/To, a decorative `fx`-like marker (`aria-hidden`), Apply `btn btn-primary btn-sm`, Reset `btn btn-ghost btn-sm` link to `/`; same input names and submit behaviour; error lines below the strip as `text-error`; wraps on narrow windows.
+- Headings via `PageTitle`/`SectionTitle` (if not already), chart sub-headings (`h3`) in the same style one size smaller; the date range after "Expense breakdown" muted.
+- The "N booking(s) need(s) an exchange rate" warning as the same alert style as the app''s notices (warning icon), still a link to `/rates` with the same text. "Nothing here yet" unchanged.
+
+Done when the dashboard reads like one sheet with a toolbar on top and every number is where it was (compare before/after with data and with an empty database); `npm run typecheck`, `npm run lint`, `npm test`, `npm run build` (in `frontend/`), `pytest` and `nix flake check` pass; checked in the running app (`rios-de-asia-accounting --no-browser`).', '2026-10-24T00:14:27Z', NULL, 106, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (110, 20, 'charts in the ledger theme colours', 'work', 'open', NULL, NULL, 'Part of `plan 20: spreadsheet-style tables and dashboard`; follow its ground rules (same data, series, sizes, labels, `<title>` tooltips; no new npm deps). Uses the `ledger` theme colours and `--ledger-rule` variables from `task 103: ledger theme and shared number classes`.
+
+Files: `frontend/src/charts/chartMath.ts`, `LineChart.tsx`, `BarChart.tsx` (`chartMath.test.ts` only if it asserts literal colours).
+
+- Series colours from the theme: ledger green, ledger blue, then two more clearly distinguishable inks; no red for a series (red means negative). Keep `DASHES` so series differ without colour.
+- Bars in ledger green.
+- Grid lines (the hard-coded `GRID`) in the ledger rule colour, axis text (`TEXT`) in the base content colour.
+- `fontFamily="sans-serif"` → the app''s system stack or `inherit`; tick labels with tabular figures.
+- Colours via CSS variables through `style` or Tailwind `stroke-*`/`fill-*` classes: SVG presentation attributes don''t resolve `var()`. The theme stays the single source of colour.
+
+Done when the charts match the theme in the running app (`rios-de-asia-accounting --no-browser`, with data) and `npm run typecheck`, `npm run lint`, `npm test`, `npm run build` (in `frontend/`), `pytest` and `nix flake check` pass.', '2026-10-24T00:14:27Z', NULL, 106, 0, NULL, 'main');
 
 INSERT INTO decision (id, subject, status, options, body, intro, answer, reason, created_at, closed_at, created_by_task, signoff, kind, decided_by_task, consequences) VALUES (1, 'Sign off the masterplan of milestone 1: first version build', 'answered', '["approve"]', '', 'This is the overall roadmap for building the first working version of a small, private bookkeeping app for one Airbnb apartment. The app turns every booking and every cost into amounts per calendar day, so it can answer whether hosting pays off, whether prices are set well, and how things are trending. The roadmap splits the build into parts, starting with a short architecture document the owner approves before anything else is built, and ending with a check against the real Airbnb export.
 
@@ -2109,7 +2160,9 @@ INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, b
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (97, 101, '2026-10-23T23:25:20Z', '2026-10-23T23:25:52Z', 'done', NULL, 0, '5a093e452891ccf9e701c5a9021207fcd1d8a7e9', NULL, 'claude-sonnet-5-5', '477bf9fb-a0a5-4414-a366-b148cece6dcd', NULL, 13, 24, 3050, 425896, 33392, 0.2067056, 45712, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (98, 57, '2026-10-24T00:10:58Z', '2026-10-24T00:12:32Z', 'done', NULL, 0, '152acd7d8324a30358e4a6eeac692f391a7a1747', 'main', 'claude-opus-5-5', '1a1512e9-b04b-424f-b711-7364a47de8ff', NULL, 11, 22, 7142, 393859, 38906, 0.53294779999999986, 50779, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (99, 102, '2026-10-24T00:12:13Z', '2026-10-24T00:12:46Z', 'done', NULL, 0, '60af466d68fa04280c7173655afd9f5145df96e0', NULL, 'claude-opus-5-5', '76bf5cd6-5dda-4964-b8f3-e9fe109d32e2', NULL, 6, 12, 3429, 170307, 23907, 0.2939454, 36205, 60, 1465683);
-INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (100, 58, '2026-10-24T00:12:32Z', NULL, 'running', NULL, NULL, '60af466d68fa04280c7173655afd9f5145df96e0', 'main', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (100, 58, '2026-10-24T00:12:32Z', '2026-10-24T00:14:03Z', 'done', NULL, 0, '60af466d68fa04280c7173655afd9f5145df96e0', 'main', 'claude-opus-5-5', '94f5837e-d1e5-474d-8f0e-31840a50b471', NULL, 12, 24, 7618, 508799, 43789, 0.60452780000000006, 55659, 60, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (101, 106, '2026-10-24T00:13:49Z', '2026-10-24T00:14:34Z', 'done', NULL, 0, '072e8b2830e12142a69ac1b7f9949c815dec5a8c', NULL, 'claude-opus-5-5', '5bf806c8-9e01-4d20-b5e9-cfb14ba30404', NULL, 8, 16, 4290, 278646, 32829, 0.4042252, 44700, 60, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (102, 59, '2026-10-24T00:14:03Z', NULL, 'running', NULL, NULL, '072e8b2830e12142a69ac1b7f9949c815dec5a8c', 'main', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1465683);
 
 INSERT INTO task_decision (task_id, decision_id) VALUES (2, 1);
 INSERT INTO task_decision (task_id, decision_id) VALUES (4, 2);
@@ -2257,3 +2310,8 @@ INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (98, 93);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (98, 97);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (104, 103);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (105, 104);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (107, 103);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (107, 105);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (108, 107);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (109, 107);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (110, 103);
