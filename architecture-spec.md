@@ -23,7 +23,7 @@ Binding: `decision 24: client-side framework: React with TypeScript, built by Vi
   - React 19 with TypeScript in strict mode;
   - React Router, with the app's URLs: `/` (dashboard) and the `NAV` paths of
     `frontend/src/nav.ts` (`/bookings`, `/expenses`, `/recurring`,
-    `/rates`, `/import`, `/settings`), plus a not-found page;
+    `/import`, `/settings`), plus a not-found page;
   - TanStack Query for server data; `frontend/src/api.ts` is the only place that calls
     `fetch` (relative URLs, JSON in and out, an `ApiError` carrying status, field
     errors and text);
@@ -33,8 +33,9 @@ Binding: `decision 24: client-side framework: React with TypeScript, built by Vi
     conventions are in README.md, "Styling conventions";
   - Biome for lint and format, Vitest for pure helpers (and the API error parsing).
 - **Charts:** drawn in the client from the data of the JSON API (the dashboard plan
-  picks the way to draw them); no network access needed.
-- **Offline:** no CDN, no network fonts; everything the page needs is in the bundle.
+  picks the way to draw them); no library call goes to the network.
+- **Network:** the server reaches the network only to fetch exchange rates (section 6, "Currencies");
+  the page itself loads nothing from outside: no CDN, no web fonts, everything it needs is in the bundle.
 - **Same-origin guard:** every write (`POST`, `PUT`, `PATCH`, `DELETE`) must come from
   the app's own origin; the server rejects others. The client only uses relative URLs.
 - **Backend lint/format:** ruff.
@@ -83,12 +84,14 @@ frontend/
 src/rios_de_asia_accounting/
   cli.py            entry point: `serve` (default), `backup`, `import <csv>`, `migrate`
   config.py         paths: DB, backup dir (env vars and flags)
-  money.py          parsing amounts, currency → COP, rounding
+  money.py          parsing amounts, `to_usd` (original minor units + rate → US cents), rounding
   model.py          plain dataclasses: Booking, Expense, Day, …
   storage/
     db.py           connection, migrations runner
     migrations/     0001_init.sql, 0002_….sql
     repo.py         all SQL lives here: CRUD, loading the inputs of the engine
+  rates.py          fetch exchange rates (datos.gov.co, Frankfurter); parsing split from HTTP
+  conversion.py     rate cache and coverage, converting waiting entries to US cents
   allocation.py     pure: bookings, expenses → list[Day]
   metrics.py        pure: list[Day] + range → metrics, rolling series, breakdown
   importer/
@@ -153,8 +156,15 @@ client's TypeScript types mirror the endpoint list at the end of this section.
   arrays of strings. It is read by `read_form()` into `Form(data, lists)`, so the
   parsers and messages are the server's. A body that is not such an object → `400`.
   File uploads are `multipart/form-data`.
-- **Output values:** money as integer pesos, exchange
-  rates as the stored integer (COP × 100), dates `YYYY-MM-DD`, months `YYYY-MM`,
+- **Money:** inputs are an `amount` as typed plus a `currency` (`USD`, `COP` or `EUR`;
+  `decision 39: money entry: an amount with a currency choice (USD, COP, EUR)`): COP whole
+  pesos, USD and EUR up to 2 decimals (the last `.` or `,` followed by 1–2 digits at the end
+  is the decimal mark). The `options` endpoints of forms with money carry `currencies` and
+  `default_currency` (the currency of the most recently saved expense, `USD` when there is none).
+- **Output values:** money as integer US cents (`amount`, `net_payout`, …), `null` while the entry
+  waits for a rate; entries that were converted also carry what was typed (`original_minor`
+  in minor units, `currency`) and the conversion (`rate`, currency units per USD × 1 000 000, and
+  `rate_date`); dates `YYYY-MM-DD`, months `YYYY-MM`,
   ratios as plain numbers (0.42, not 42 %). A figure that cannot be computed is
   `null`, never `0` (`decision 10: a figure that cannot be computed is shown as empty, not as zero`).
   Display formatting is the client's.
@@ -174,18 +184,19 @@ Endpoints (method, path, request → response):
 
 - `GET /api/bookings?from=&to=&listing=` — filters optional (`from`/`to` are days;
   a bad one → `422 {"errors": {"from": …}}`) → list, newest check-in first, of
-  `{id, check_in, check_out, guest_name, listing, nights, net_payout, needs_rate}`;
-  `net_payout` is integer pesos, `null` when `needs_rate`.
+  `{id, check_in, check_out, guest_name, listing, nights, net_payout, waiting}`;
+  `net_payout` is US cents, `null` when `waiting` (a line of the booking has no rate yet).
 - `GET /api/bookings/<id>` — `{id, check_in, check_out, airbnb_code, listing, guest_name,
-  guests, notes, nights, imported, needs_rate, net_payout, gross, airbnb_fee,
-  cohost_cost, manual_amount, lines: [{date, type, currency, amount_minor, amount_cop}]}`;
-  totals are `null` when `needs_rate`, `amount_cop` `null` for a line without rate,
-  `manual_amount` (pesos of the Manual line) `null` for imported bookings; `imported` = has
+  guests, notes, nights, imported, waiting, net_payout, gross, airbnb_fee,
+  cohost_cost, manual_amount, manual_currency, lines: [{date, type, currency, amount_minor,
+  amount_usd, rate, rate_date}]}`; totals are US cents and `null` when `waiting`, `amount_usd`
+  `null` (and `rate`, `rate_date`) for a line without rate, `manual_amount` and `manual_currency`
+  (what was typed for the Manual line) `null` for imported bookings; `imported` = has
   Airbnb lines.
 - `GET /api/bookings/options` — `{"listings": ["…"]}`.
-- `POST /api/bookings` — `{check_in, check_out, net_payout, airbnb_code?, listing?,
+- `POST /api/bookings` — `{check_in, check_out, amount, currency, airbnb_code?, listing?,
   guest_name?, guests?, notes?}` → `{data: <detail>, notices}` ("Booking saved." `info`;
-  overlap `warning`).
+  overlap `warning`; no rate yet `warning`, see "Currencies").
 - `PUT /api/bookings/<id>` — same fields; an imported booking accepts only `guests` and
   `notes` (`decision 17: bookings from the Airbnb import: dates, listing and guest name are read-only in the edit form`)
   → as `POST`.
@@ -193,46 +204,48 @@ Endpoints (method, path, request → response):
   while it has expenses → `422 {"errors": {"": "Booking not deleted: …. Delete its expenses first."}}`.
 - `GET /api/expenses?from=&to=&category=` — filters optional (bad value → `422`) → list,
   newest first, of `{id, date, amount, category, booking_id, useful_life_days,
-  description, recurring_expense_id}` (`amount` integer pesos).
+  description, recurring_expense_id, original_minor, currency, rate, rate_date, waiting}`
+  (`amount` US cents, `null` when `waiting`).
 - `GET /api/expenses/<id>` — one such item.
 - `GET /api/expenses/options` — `{"categories": ["fixed", …], "bookings": [{"id", "label"}]}`
   (newest booking first).
-- `POST /api/expenses`, `PUT /api/expenses/<id>` — `{date, amount, category, description?,
+- `POST /api/expenses`, `PUT /api/expenses/<id>` — `{date, amount, currency, category, description?,
   booking_id? (per_booking, required there), useful_life_days? (capex, required there)}`
-  → `{data: <item>, notices: ["Expense saved."]}`.
+  → `{data: <item>, notices: ["Expense saved."]}` (a `warning` instead when no rate could be
+  fetched: the expense is saved and waits).
 - `DELETE /api/expenses/<id>` — → `{data: null, notices: ["Expense deleted."]}`.
-- `GET /api/recurring` — list of `{id, description, amount, category, start_month,
-  end_month}` (months `YYYY-MM`, `end_month` may be `null`).
+- `GET /api/recurring` — list of `{id, description, amount_minor, currency, category, start_month,
+  end_month}` (the template keeps its amount in its own currency, unconverted; months `YYYY-MM`, `end_month` may be `null`).
 - `GET /api/recurring/options` — `{"categories": [...]}`.
 - `GET /api/recurring/<id>` — the item plus `generated`: its expenses (expense items, newest first).
-- `POST /api/recurring`, `PUT /api/recurring/<id>` — `{description, amount, category,
+- `POST /api/recurring`, `PUT /api/recurring/<id>` — `{description, amount, currency, category,
   start_month, end_month?}` → `{data: <item with generated>, notices: ["Recurring expense
   saved; N expense(s) generated."]}`; only months not yet generated are affected
   (`decision 16: changing a recurring expense template only affects months not yet generated`).
 - `DELETE /api/recurring/<id>` — → `{data: null, notices: ["Recurring expense deleted;
   the expenses it generated are kept."]}`.
-- `GET /api/rates?currency=` — optional currency filter (bad value → `422`) → list of
-  `{date, currency, rate}` (`rate` the stored integer, COP × 100).
-- `POST /api/rates` — `{date, currency, rate}` (`rate` as typed, up to 2 decimals) →
-  `{data: <item>, notices: ["Exchange rate saved. N booking(s) still need an exchange rate."]}`
-  (or "… No booking needs an exchange rate.").
-- `PUT /api/rates/<YYYY-MM-DD>/<currency>` — `{rate}` → same response as `POST`.
-- `DELETE /api/rates/<YYYY-MM-DD>/<currency>` — → `{data: null, notices: ["Exchange rate deleted. …"]}`.
-- `GET /api/settings` — `{long_term_rent_cop_per_month,
-  per_booking_allocation, backup_keep, listings, last_backup}` (`listings` array of strings, integers as pesos / counts;
+- `GET /api/rates/waiting` — `{waiting}`: how many entries (expenses, bookings with a waiting line,
+  the long-term rent) wait for a rate.
+- `POST /api/rates/fetch` — fetches the rates of all waiting or provisional entries now (the "Fetch
+  rates now" button) → `{data: {waiting}, notices: [<info "All entries are converted to USD." or
+  warning "N entries wait for an exchange rate …">]}`. There are no endpoints to type or list rates.
+- `GET /api/settings` — `{long_term_rent_usd, long_term_rent_entered,
+  per_booking_allocation, backup_keep, listings, last_backup}` (`listings` array of strings; the rent
+  is US cents, `null` while it waits for a rate, `long_term_rent_entered` is `{original_minor,
+  currency, date, rate, rate_date}` as typed (`decision 41: settings amounts are stored in USD and typed in any currency at the rate of the day they are saved`);
   `last_backup` is `{time, file, error}` of the latest backup attempt, `null` before the first;
   `decision 45: backups while the app runs: at start, then every hour when something changed, plus at stop`).
-- `GET /api/settings/options` — `{"allocations": ["check_in", "spread"], "listings": [names known from bookings]}`.
-- `PUT /api/settings` — `{long_term_rent_cop_per_month, per_booking_allocation,
+- `GET /api/settings/options` — `{"allocations": ["check_in", "spread"], "listings": [names known from bookings], "currencies", "default_currency"}`.
+- `PUT /api/settings` — `{long_term_rent, long_term_rent_currency, per_booking_allocation,
   backup_keep, listings: [..]}` → `{data: <settings>, notices: ["Settings saved."]}`.
 - `GET /api/dashboard?month=&from=&to=` — periods chosen by query parameters
   (`decision 18: dashboard layout: which periods are shown and which period the cost breakdown uses`)
-  → `{form: {month, from, to}, needing_rate, empty, columns: [{label, start, end}],
+  → `{form: {month, from, to}, waiting, empty, columns: [{label, start, end}],
   rows: [{key, label, kind: int|pct|money, values}], rolling_90: [{date, adr, revpar, occupancy}],
   breakdown: {start, end, items: [{key, label, amount, share}]} | null, notices}`. `form` holds the
   effective choices (`month` `YYYY-MM`, default last month, or the raw text when invalid). One value per
   column, `null` where uncomputable (`decision 10: a figure that cannot be computed is shown as empty, not as zero`);
-  `pct` is a ratio, `money` whole pesos. Rows end with `capex_book_value`.
+  `pct` is a ratio, `money` US cents. Rows end with `capex_book_value`.
   `rolling_90` is empty before 90 days of history (`decision 13: the rolling 90-day chart starts once 90 days of history exist`);
   `empty` (no data at all) leaves `columns`, `rows` empty and `breakdown` `null`. Invalid periods are `error` notices, not `422`.
 - `POST /api/import/airbnb` — `multipart/form-data` with `file` → `{data: {token, needs_listing_choice,
@@ -241,12 +254,10 @@ Endpoints (method, path, request → response):
   `booking` is `{code, listing, guest, check_in, check_out, lines, changes: [{field, old, new}]}`; no or
   unreadable file → `422 {errors: {file}}`. Nothing is imported yet; the upload is kept under `token`.
 - `POST /api/import/airbnb/apply` — `{token, listings?: [..], other_listing?}` → `{data: {new, updated,
-  lines_added, needing_rate, skipped, problems, warnings}, notices: []}`; no listing chosen while one is
+  lines_added, waiting, skipped, problems, warnings}, notices: []}`; no listing chosen while one is
   needed → `422 {errors: {listings}, preview: <the data of the upload step>}`; unknown or gone `token` →
   `422 {errors: {token}}` (a malformed token is `404`).
 - `DELETE /api/import/airbnb/<token>` — drops the kept upload → `{data: null, notices: ["Import cancelled; nothing was changed."]}`.
-- `POST /api/import/rates` — `multipart/form-data` with `file` and `currency` → `{data: {added, changed,
-  lines_recomputed, needing_rate, problems: [{line, message}]}, notices: []}`; bad input → `422 {errors: {currency | file}}`.
 
 ## 4. Tests
 
@@ -320,11 +331,12 @@ Checked against `airbnb_.csv` (144 rows, 10/2021 – 10/2026).
 
 - One booking per confirmation code. The rows of a code are stored as
   **booking lines** (new table `booking_lines`: booking, type, date, currency,
-  original amount, rate, amount in COP, plus service fee / cleaning fee / gross in
-  the original currency).
+  original amount, rate, rate date, amount in US cents, plus service fee / cleaning fee / gross in
+  the original currency and, converted, in US cents).
 - Booking totals are sums over its lines:
-  `net_payout` = Σ `Amount` in COP of all lines except co-host payouts, `gross` = Σ `Gross earnings` in COP,
-  `airbnb_fee` = Σ `Service fee` in COP. `check_in`/`check_out` from the dates.
+  `net_payout` = Σ `Amount` in US cents of all lines except co-host payouts, `gross` = Σ `Gross earnings`
+  in US cents, `airbnb_fee` = Σ `Service fee` in US cents (the `booking_totals` view, which also says
+  whether a line is `waiting`). `check_in`/`check_out` from the dates.
 - **Dedup and re-import:** a line is identified by (code, type, date, amount). A
   re-import adds unknown lines and leaves known ones alone, so importing the same or an
   overlapping export twice changes nothing. Fields the user edited on the booking
@@ -345,23 +357,47 @@ Alternative (not v1): real multi-property support with costs per property.
 
 ### Currencies
 
-Reservations are in COP and USD; payouts in EUR (and USD to PayPal); the app
-reports in integer COP.
+Reservations are in COP and USD; payouts in EUR (and USD to PayPal). The books run on
+**US cents** (`decision 34: money is stored in US cents, and every converted entry keeps what was typed`).
 
-- Each booking line keeps **original currency, original amount** (integer minor
-  units, e.g. US cents), **the rate used, and the derived integer COP**.
-  COP lines: rate 1, amount rounded half away from zero to whole pesos.
-- Rates live in a new table **`exchange_rates`** (date, currency, COP per unit as
-  an integer in hundredths, e.g. 4123.45 → 412345). The rate for a line is the
-  latest one **on or before the line's `Date`** (the day Airbnb released that money).
-- **Where rates come from:** the app has no network access, so the user loads them:
-  either by importing the official Colombian TRM history as CSV (downloaded by hand
-  from datos.gov.co, "Tasa de Cambio Representativa del Mercado – Histórico"), or by
-  typing a rate in the exchange-rate screen. One TRM file covers all years.
-- A USD line with no rate on or before its date is imported with COP empty; the
-  booking is flagged "needs exchange rate", the dashboard shows how many there are,
-  and adding rates recomputes the COP of those lines. Changing a rate recomputes
-  every line that uses it.
+- Every converted entry (booking line, expense) keeps **what was typed** (original amount in
+  minor units, currency), **the rate** (currency units per USD × 1 000 000) **and its date**, and the
+  derived USD amount: `usd = original × 1 000 000 ÷ rate`, rounded half away from zero. USD entries
+  use rate 1 000 000 and need no fetch. Recurring templates and the long-term rent keep their amount
+  in the currency typed.
+- **Where rates come from** (`decision 35: exchange rates: TRM from datos.gov.co for COP, ECB via Frankfurter for EUR, cached per day`),
+  both without a key, fetched by date range with Python's `urllib` (10 s timeout, a User-Agent;
+  `rates.py`):
+  - COP: the official TRM from datos.gov.co, dataset `32sa-8pi3`, SODA JSON API
+    (`https://www.datos.gov.co/resource/32sa-8pi3.json`); a rate is valid from `vigenciadesde` to
+    `vigenciahasta` (weekends and holidays carry the Friday rate).
+  - EUR: the ECB's reference rates through Frankfurter v2
+    (`https://api.frankfurter.dev/v2/rates`, `base=USD`, `quotes=EUR`, `providers=ECB`); working days only.
+  Network, HTTP and format problems are one error, `RateUnavailable`.
+- **Cache:** table `exchange_rates` (date, currency, rate), plus `rate_coverage` (currency, the day
+  up to which the source has answered). The rate for a day is the latest cached one on or before it. A
+  miss fetches a range for all missing days of the currency at once and stores the answer; the same range
+  is not asked again within five minutes unless the user presses "Fetch rates now".
+- **Reference date** (`decision 36: reference date of a conversion: check-in for Airbnb income, the entry's own date for expenses`):
+  every line of a booking (Airbnb or hand-entered) uses the booking's check-in; an expense its date; a
+  generated monthly expense the 1st of its month; the long-term rent the day it was saved. Changing that
+  date, the amount or the currency converts the entry again.
+- **Waiting entries** (`decision 37: when no exchange rate can be fetched, entries are saved and wait for their rate`):
+  saving and importing never fail for lack of a rate. The entry is stored with its original amount and
+  USD empty (`NULL`), is left out of allocation and metrics, and a `warning` notice says so; the
+  dashboard, bookings and expenses screens show how many wait, with a "Fetch rates now" button. Conversion
+  is retried (`convert_waiting`) when the app starts (after migrating and generating recurring expenses),
+  before the dashboard is built, after each save and Airbnb import, and by `POST /api/rates/fetch`. An entry
+  dated after the coverage (a future check-in, today's EUR rate before the ECB publishes it) is converted
+  with the latest known rate and converted again once coverage reaches its day.
+- **Migration of the peso books** (`decision 38: existing peso books are converted by the app itself after the migration`):
+  `0004_usd.sql` keeps every old amount as the original (COP, or the line's own currency), sets USD empty
+  and drops the old typed rates; the next start converts them through the steps above. There is no
+  one-off command. Offline, those entries wait until a connection exists
+  (`decision 40: the Rates page, typed rates and the TRM file import go; no offline fallback`: there is no
+  screen, CSV import or CLI command to enter rates by hand).
+- **Money entry:** an amount and a currency choice, on expenses, recurring templates, hand-entered
+  bookings and the settings; figures are shown in USD.
 - **EUR payouts are not used**: they are transfers of earnings already counted in
   the reservation rows, bundle several stays, and are converted by Airbnb at its own
   rate. Using them would count income twice.
@@ -371,8 +407,10 @@ reports in integer COP.
 - `bookings`: + `listing`, `guest_name`; `gross`, `airbnb_fee`, `net_payout` become
   sums derived from `booking_lines` for imported bookings (stays booked outside Airbnb, entered by hand,
   get one line of type `Manual`).
-- New tables `booking_lines` and `exchange_rates` as above.
-- `settings`: + `property_listings`, `backup_keep`; `currency` stays `COP`.
+- New tables `booking_lines`, `exchange_rates` and `rate_coverage` as above; `expenses` keeps
+  `amount` (US cents, nullable) + `original_minor`, `currency`, `rate`, `rate_date`.
+- `settings`: + `property_listings`, `backup_keep`, `long_term_rent_usd` and `long_term_rent_entered`
+  instead of the COP rent.
 - Co-host payout lines are a per-booking cost: the allocation engine adds them to
   `cost_per_booking` (check-in or spread, like other per-booking costs), so they show
-  in the cost breakdown and in variable cost per night, and follow rate changes.
+  in the cost breakdown and in variable cost per night, and are left out while waiting for a rate.

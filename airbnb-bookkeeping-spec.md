@@ -34,9 +34,9 @@ every time window is then a sum over a date range.
 | check_in | date | |
 | check_out | date | exclusive |
 | guests | int | |
-| gross | int | COP |
-| airbnb_fee | int | COP |
-| net_payout | int | COP; source of truth for income |
+| gross | int | USD cents |
+| airbnb_fee | int | USD cents |
+| net_payout | int | USD cents; source of truth for income |
 | notes | text | |
 
 ### `expenses`
@@ -44,7 +44,7 @@ every time window is then a sum over a date range.
 |---|---|---|
 | id | int | |
 | date | date | |
-| amount | int | COP |
+| amount | int? | USD cents; empty while the entry waits for its exchange rate (original amount, currency, rate and rate date are kept too) |
 | category | enum | `fixed`, `per_night`, `per_booking`, `maintenance`, `capex`, `tax` |
 | booking_id | int? | for `per_booking` costs |
 | useful_life_days | int? | required for `capex` |
@@ -52,12 +52,12 @@ every time window is then a sum over a date range.
 
 ### `recurring_expenses`
 Templates for fixed monthly costs (admin fee, internet, insurance, utilities base).
-Fields: description, amount, category, start_month, end_month?. The app generates
+Fields: description, amount and currency (as typed), category, start_month, end_month?. The app generates
 `expenses` rows from these each month.
 
 ### `settings`
-Key-value: long-term rental benchmark (net COP/month),
-currency, default per-booking allocation mode.
+Key-value: long-term rental benchmark (net USD/month, stored in US cents; typed in any currency and converted at the rate of the day it is saved),
+default per-booking allocation mode.
 
 The per-day view starts on the earliest check-in or the first day any expense is spread over
 (`decision 44: the per-day view starts on the first day any input is spread over, without blocked days or own time`).
@@ -108,9 +108,14 @@ Also: total capex not yet amortized (remaining book value).
 
 ## Conventions
 
-- Money stored as integers in COP (no floats).
+- Money stored as integers in US cents (no floats); every entry typed or imported in COP or EUR keeps
+  its original amount, currency, exchange rate and the rate's date next to the USD amount.
+- Exchange rates are fetched automatically for the date of each entry (Airbnb income: the booking's
+  check-in; expenses: their own date; monthly expenses: the 1st of the month): COP from the official TRM
+  (datos.gov.co), EUR from the ECB via Frankfurter, cached per day. An entry whose rate cannot be fetched
+  is saved, waits, and is left out of the figures until the rate arrives.
 - Dates as ISO `YYYY-MM-DD`; check-out exclusive.
-- Single property; no multi-user, no auth, no network access.
+- Single property; no multi-user, no auth; network only to fetch exchange rates, no CDN or web fonts.
 
 ## Open decisions
 
