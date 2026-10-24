@@ -55,18 +55,18 @@ Templates for fixed monthly costs (admin fee, internet, insurance, utilities bas
 Fields: description, amount, category, start_month, end_month?. The app generates
 `expenses` rows from these each month.
 
-### `time_log`
-date, hours, booking_id?, description. Own time spent on hosting.
-
 ### `settings`
-Key-value: hourly value of own time, long-term rental benchmark (net COP/month),
+Key-value: long-term rental benchmark (net COP/month),
 currency, default per-booking allocation mode.
+
+The per-day view starts on the earliest check-in or the first day any expense is spread over
+(`decision 44: the per-day view starts on the first day any input is spread over, without blocked days or own time`).
 
 ## Derived daily view
 
 A view (or materialized table) `days` with one row per date:
 `date, occupied, income, cost_fixed, cost_per_night, cost_per_booking,
-cost_maintenance, cost_capex, cost_tax, hours, profit`.
+cost_maintenance, cost_capex, cost_tax, profit`.
 
 ## Metrics (for any date range)
 
@@ -77,7 +77,6 @@ cost_maintenance, cost_capex, cost_tax, hours, profit`.
 - **Variable cost per night** = (per-night + per-booking costs) ÷ occupied nights
 - **Break-even occupancy** = fixed costs per day ÷ (ADR − variable cost per night)
 - **Profit vs. long-term rental** = profit − benchmark for the same period
-- **Profit per hour** = profit ÷ logged hours; and profit after valuing own time
 
 Standard ranges: all-time, last 30 days, last 90 days, calendar month, custom.
 Also: total capex not yet amortized (remaining book value).
@@ -85,7 +84,7 @@ Also: total capex not yet amortized (remaining book value).
 ## Features
 
 ### v1
-- CRUD for bookings, expenses, recurring expenses, time log
+- CRUD for bookings, expenses, recurring expenses; stays booked outside Airbnb are entered by hand, all other bookings come in through the CSV
 - Import Airbnb transaction-history CSV → bookings (dedup by confirmation code)
 - Dashboard: metrics for the standard ranges side by side
 - Chart: rolling 90-day RevPAR, ADR, occupancy over time
@@ -102,9 +101,10 @@ Also: total capex not yet amortized (remaining book value).
 - Live database stays local (e.g. `~/.local/share/airbnb-books/books.db`), never opened
   from inside Dropbox.
 - Backups via `sqlite3 books.db ".backup <dropbox>/airbnb-books/books-YYYY-MM-DD.db"`:
-  on app exit and via a daily systemd user timer (NixOS module / home-manager).
+  while the app runs (right after start, then hourly when something changed) and on app exit;
+  a daily systemd user timer (NixOS module / home-manager) stays optional.
 - Keep the last N backups (e.g. 30).
-- Restore = copy a backup over the live file while the app is closed.
+- Restore = copy a backup over the live file while the app is stopped.
 
 ## Conventions
 

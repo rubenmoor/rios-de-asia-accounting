@@ -17,13 +17,12 @@ Binding: `decision 24: client-side framework: React with TypeScript, built by Vi
   and the built client bundle.
 - **UI: a single-page app in the normal browser.** `rios-de-asia-accounting` starts the
   server on a free port and opens the browser tab. The app is a classic web app whose
-  server happens to run locally. A "Quit" button in the header sends `POST /api/quit`
-  and the app then shows a "stopped" screen;
-  Ctrl-C also stops the server.
+  server happens to run locally. The server never stops by itself: Ctrl-C or
+  SIGTERM stops it (with a backup).
 - **Client stack** (in `frontend/`, built by Vite):
   - React 19 with TypeScript in strict mode;
   - React Router, with the app's URLs: `/` (dashboard) and the `NAV` paths of
-    `frontend/src/nav.ts` (`/bookings`, `/expenses`, `/recurring`, `/time`,
+    `frontend/src/nav.ts` (`/bookings`, `/expenses`, `/recurring`,
     `/rates`, `/import`, `/settings`), plus a not-found page;
   - TanStack Query for server data; `frontend/src/api.ts` is the only place that calls
     `fetch` (relative URLs, JSON in and out, an `ApiError` carrying status, field
@@ -90,7 +89,7 @@ src/rios_de_asia_accounting/
     db.py           connection, migrations runner
     migrations/     0001_init.sql, 0002_….sql
     repo.py         all SQL lives here: CRUD, loading the inputs of the engine
-  allocation.py     pure: bookings, expenses, time log → list[Day]
+  allocation.py     pure: bookings, expenses → list[Day]
   metrics.py        pure: list[Day] + range → metrics, rolling series, breakdown
   importer/
     airbnb_csv.py   parse the CSV → import plan; apply it through repo
@@ -154,7 +153,7 @@ client's TypeScript types mirror the endpoint list at the end of this section.
   arrays of strings. It is read by `read_form()` into `Form(data, lists)`, so the
   parsers and messages are the server's. A body that is not such an object → `400`.
   File uploads are `multipart/form-data`.
-- **Output values:** money as integer pesos, minutes as integer minutes, exchange
+- **Output values:** money as integer pesos, exchange
   rates as the stored integer (COP × 100), dates `YYYY-MM-DD`, months `YYYY-MM`,
   ratios as plain numbers (0.42, not 42 %). A figure that cannot be computed is
   `null`, never `0` (`decision 10: a figure that cannot be computed is shown as empty, not as zero`).
@@ -173,8 +172,6 @@ client's TypeScript types mirror the endpoint list at the end of this section.
 
 Endpoints (method, path, request → response):
 
-- `POST /api/quit` — no body → `200 {"data": null, "notices": []}`; the server shuts
-  down after the response.
 - `GET /api/bookings?from=&to=&listing=` — filters optional (`from`/`to` are days;
   a bad one → `422 {"errors": {"from": …}}`) → list, newest check-in first, of
   `{id, check_in, check_out, guest_name, listing, nights, net_payout, needs_rate}`;
@@ -214,14 +211,6 @@ Endpoints (method, path, request → response):
   (`decision 16: changing a recurring expense template only affects months not yet generated`).
 - `DELETE /api/recurring/<id>` — → `{data: null, notices: ["Recurring expense deleted;
   the expenses it generated are kept."]}`.
-- `GET /api/time?from=&to=` — optional day filters (bad value → `422`) → list, newest
-  first, of `{id, date, minutes, booking_id, description}` (`minutes` integer).
-- `GET /api/time/options` — `{"bookings": [{"id", "label"}]}`.
-- `GET /api/time/<id>` — one such item.
-- `POST /api/time`, `PUT /api/time/<id>` — `{date, hours, booking_id?, description?}`;
-  `hours` as typed (`1.5`, `1,5` or `1:30`, `decision 15: data entry forms: how money and hours are typed`)
-  → `{data: <item>, notices: ["Time entry saved."]}`.
-- `DELETE /api/time/<id>` — → `{data: null, notices: ["Time entry deleted."]}`.
 - `GET /api/rates?currency=` — optional currency filter (bad value → `422`) → list of
   `{date, currency, rate}` (`rate` the stored integer, COP × 100).
 - `POST /api/rates` — `{date, currency, rate}` (`rate` as typed, up to 2 decimals) →
@@ -229,19 +218,21 @@ Endpoints (method, path, request → response):
   (or "… No booking needs an exchange rate.").
 - `PUT /api/rates/<YYYY-MM-DD>/<currency>` — `{rate}` → same response as `POST`.
 - `DELETE /api/rates/<YYYY-MM-DD>/<currency>` — → `{data: null, notices: ["Exchange rate deleted. …"]}`.
-- `GET /api/settings` — `{hourly_value_cop, long_term_rent_cop_per_month,
-  per_booking_allocation, backup_keep, listings}` (`listings` array of strings, integers as pesos / counts).
+- `GET /api/settings` — `{long_term_rent_cop_per_month,
+  per_booking_allocation, backup_keep, listings, last_backup}` (`listings` array of strings, integers as pesos / counts;
+  `last_backup` is `{time, file, error}` of the latest backup attempt, `null` before the first;
+  `decision 45: backups while the app runs: at start, then every hour when something changed, plus at stop`).
 - `GET /api/settings/options` — `{"allocations": ["check_in", "spread"], "listings": [names known from bookings]}`.
-- `PUT /api/settings` — `{hourly_value_cop, long_term_rent_cop_per_month, per_booking_allocation,
+- `PUT /api/settings` — `{long_term_rent_cop_per_month, per_booking_allocation,
   backup_keep, listings: [..]}` → `{data: <settings>, notices: ["Settings saved."]}`.
 - `GET /api/dashboard?month=&from=&to=` — periods chosen by query parameters
   (`decision 18: dashboard layout: which periods are shown and which period the cost breakdown uses`)
   → `{form: {month, from, to}, needing_rate, empty, columns: [{label, start, end}],
-  rows: [{key, label, kind: int|pct|money|minutes, values}], rolling_90: [{date, adr, revpar, occupancy}],
+  rows: [{key, label, kind: int|pct|money, values}], rolling_90: [{date, adr, revpar, occupancy}],
   breakdown: {start, end, items: [{key, label, amount, share}]} | null, notices}`. `form` holds the
   effective choices (`month` `YYYY-MM`, default last month, or the raw text when invalid). One value per
   column, `null` where uncomputable (`decision 10: a figure that cannot be computed is shown as empty, not as zero`);
-  `pct` is a ratio, `money` whole pesos, `minutes` whole minutes. Rows end with `capex_book_value`.
+  `pct` is a ratio, `money` whole pesos. Rows end with `capex_book_value`.
   `rolling_90` is empty before 90 days of history (`decision 13: the rolling 90-day chart starts once 90 days of history exist`);
   `empty` (no data at all) leaves `columns`, `rows` empty and `breakdown` `null`. Invalid periods are `error` notices, not `422`.
 - `POST /api/import/airbnb` — `multipart/form-data` with `file` → `{data: {token, needs_listing_choice,
@@ -284,7 +275,10 @@ Endpoints (method, path, request → response):
   `~/Dropbox/rios-de-asia-accounting`; keep the last 30 (`--keep`).
 - **Backups** use SQLite's online backup API (Python's `Connection.backup`, the same
   mechanism as `sqlite3 … ".backup"`), file `books-YYYY-MM-DD.db`; a second backup on
-  the same day overwrites that day's file. Run on server shutdown and by the timer.
+  the same day overwrites that day's file. Taken by a background thread of `serve` right after start and then
+  every hour, skipped when nothing was written since the last one (`decision 45: backups while the app runs: at start, then every hour when something changed, plus at stop`),
+  once more on server shutdown (Ctrl-C, SIGTERM), and by the optional timer. A failure goes to stderr and
+  to `last_backup`; the app keeps running.
 - **Migrations:** numbered SQL files in `storage/migrations/`; the DB's
   `PRAGMA user_version` is the last applied number. On every start the app applies
   the missing ones, each in a transaction, after taking a backup if the DB is not
@@ -375,7 +369,7 @@ reports in integer COP.
 ## 7. Schema additions to the product spec
 
 - `bookings`: + `listing`, `guest_name`; `gross`, `airbnb_fee`, `net_payout` become
-  sums derived from `booking_lines` for imported bookings (bookings entered by hand
+  sums derived from `booking_lines` for imported bookings (stays booked outside Airbnb, entered by hand,
   get one line of type `Manual`).
 - New tables `booking_lines` and `exchange_rates` as above.
 - `settings`: + `property_listings`, `backup_keep`; `currency` stays `COP`.
