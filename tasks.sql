@@ -987,6 +987,45 @@ INSERT INTO plan (id, milestone_id, subject, priority, body, intro, created_at, 
 3. **Blocked days, time, rate and settings forms on the slip** (requires 1): same treatment for `pages/Blocked.tsx`, `pages/Time.tsx`, `pages/Rates.tsx`, `pages/Settings.tsx` (listing checkboxes as daisyUI `checkbox` rows inside the slip''s fieldset).
 4. **Import forms** (requires 1): `pages/Import.tsx` Airbnb upload and TRM upload as slips ("file-input" styled, Currency short input), preview form''s listing choice and Import/Cancel via `FormActions`; success message stays `alert-success` (part 4 adds the stamp).
 5. **List filter toolbars** (requires 1): the filter bars of Bookings, Expenses, Blocked days, Time, Rates as one compact `Toolbar` strip (`base-200`, bordered, `input-sm`/`select-sm`, Filter `btn-sm btn-secondary` or `btn-soft`, the "New …" link `btn-sm btn-primary` pushed to the right), matching the dashboard''s formula-bar look from `plan 20: spreadsheet-style tables and dashboard` (reuse its class if it exists by then, else define `Toolbar` and let part 2 reuse it); filter errors stay below the strip.', 'Every screen where something is typed in (a booking, an expense, hours worked, an exchange rate, the settings, a file to import) is going to look like a filled-in journal entry slip from an old-fashioned ledger: a paper card with ruled lines, tidy labelled fields and clear hints and error messages. Buttons get a consistent meaning by colour: the main action stands out, cancel and reset are quiet, and delete is red and still asks before doing anything. What each form asks for, in which order, and how it checks the input stays exactly as it is.', '2026-10-24T00:14:53Z', 59);
+INSERT INTO plan (id, milestone_id, subject, priority, body, intro, created_at, created_by_task) VALUES (22, 2, 'playful bookkeeping touches and favicon', 200, 'Part 4 of `plan 11: masterplan` (`milestone 2: visual design update`): favicon, logo, section icons, empty states, totals, import stamp, stopped page. It decorates finished pages: builds on `plan 19: styling foundation` (read its "Where things stand": the app is React, `decision 26: Once the in-browser screens are done, how does the visual design update continue?`), `plan 20: spreadsheet-style tables and dashboard` and `plan 21: forms and actions`.
+
+## Where things stand
+
+- Shell: `frontend/src/App.tsx` (app-name link, nav from `frontend/src/nav.ts`, Quit), `frontend/index.html` (`<title>rios-de-asia-accounting</title>`, no icon), `frontend/src/pages/Stopped.tsx` (one h1 "rios-de-asia-accounting has stopped, you can close this tab").
+- Empty lists: `DataTable`''s `empty` text row ("No bookings.", "No expenses.", "None yet." …); dashboard "Nothing here yet: …" (`pages/Dashboard.tsx`).
+- Totals: footer rows of Expenses and Time (`<th>Total</th>`), restyled by part 2 (heavier top rule).
+- Import summary: `SummaryStep` in `pages/Import.tsx` ("Import done", a list of counts, problems/warnings); TRM success `alert-success`.
+- **Favicon path caveat:** Flask (`src/rios_de_asia_accounting/web/app.py`) serves only `/assets/*` as static files and answers every other GET with `index.html`. A file in `frontend/public/` lands at the bundle root (e.g. `/favicon.svg`) and would get `index.html` back. So put the icon files in `frontend/src/assets/` and link them from `index.html` (`<link rel="icon" href="/src/assets/favicon.svg">`): Vite then hashes them into `/assets/`. No server change; `/favicon.ico` requests keep getting `index.html` (harmless; browsers use the `<link>`).
+
+## Ground rules (every task)
+
+- No functional change: same routes, texts of existing labels, headings, messages and empty texts, numbers and formats (`decision 10: a figure that cannot be computed is shown as empty, not as zero`, `decision 15: data entry forms: how money and hours are typed`). New wording only in decorative extras (a doodle caption, a stamp), never replacing an existing text.
+- Decorations are `aria-hidden="true"` (or `role="img"` + `aria-label` only for the logo), never cover or push out a number or label; readable at the narrow window width.
+- Offline: inline SVG components and plain CSS only; no icon fonts, web fonts, new npm dependencies or new JavaScript behaviour (CSS animations, if any, short and under `prefers-reduced-motion: no-preference`). One light theme (`decision 28: visual design: one light ledger theme, no dark mode`); colours from the theme variables (`--ledger-rule`, `primary`, `error` …), `currentColor` in icons.
+- Icons live in `frontend/src/components/icons.tsx` (small stroke icons, `viewBox="0 0 24 24"`, `className` prop), as the README "Styling conventions" section from part 1 announces; add what this part introduces to that section.
+- Checks: in `frontend/`: `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`; `pytest`; `nix flake check`. Look at the pages in the running app (`rios-de-asia-accounting --no-browser`), with data and empty.
+
+## Tasks
+
+1. **Favicon and logo** (requires part 1''s app-shell task)
+   - `frontend/src/assets/favicon.svg`: a ledger motif (e.g. an open ledger book with green rules and a red margin line, or an abacus), legible at 16×16; plus `favicon-32.png` and `apple-touch-icon.png` (180×180) rendered once from the SVG with a tool at hand (e.g. `rsvg-convert` via `nix shell`) and committed. Linked from `index.html` (`rel="icon" type="image/svg+xml"`, PNG fallback, `apple-touch-icon`).
+   - `Logo` in `icons.tsx` (same motif, inline SVG) next to the app-name link in the navbar; the link text "rios-de-asia-accounting" stays.
+   - Done when the browser tab shows the icon in the built app served by Flask (check `/assets/…` in the page source) and the navbar shows the logo.
+2. **Section icons** (requires 1, and part 1''s PageTitle task)
+   - One icon per nav entry in `icons.tsx`: Bookings (calendar/bed), Expenses (receipt), Recurring (circular arrows), Blocked days (calendar with a cross), Time (clock), Rates (coins/exchange), Import (tray with arrow), Settings (gear), Dashboard (bar chart / ledger) for the home link if part 1 shows one.
+   - `nav.ts` entries get an `icon`; the sheet tabs show icon + same label; `PageTitle`''s icon slot used on each section''s pages (list, form, detail). Same labels and order.
+   - Done when every tab and page title carries its icon and the nav still reads the same.
+3. **Friendly empty states** (requires part 2''s `DataTable` task and dashboard task)
+   - `DataTable`''s empty row: above the unchanged `empty` text, a small doodle (blank ledger page, pencil) and a muted decorative caption such as "The ledger is blank", `aria-hidden`; still one row spanning all columns.
+   - Dashboard "Nothing here yet: …" (text and links unchanged) on a light card with a larger doodle (empty ledger / sleeping calculator).
+   - Done when every empty list and the empty dashboard show the doodle and the same text.
+4. **Totals underline and import stamp** (requires part 2''s `DataTable` task, part 3''s import-forms task)
+   - Accountant''s double underline under total figures: a `total` class (`border-bottom: 3px double` in ink colour, on the figure cell) in `index.css`, used on the Expenses and Time footer total cells (and dashboard totals only if a row is a sum, e.g. none; don''t invent one).
+   - Import summary (`SummaryStep`): a rubber-stamp badge beside "Import done" (rotated a few degrees, outlined, ledger green, uppercase, e.g. "POSTED ✓"; `aria-hidden`); the counts as a tidy ledger list; problems/warnings unchanged. Optionally the same small stamp on the TRM "rates loaded" success alert. The stamp is always shown: it says the import was posted, not that anything balanced, so no "balanced" claim.
+   - Done when the summary shows the stamp with all its counts and links unchanged, and totals are double underlined.
+5. **Stopped page** (requires 1)
+   - `pages/Stopped.tsx` on part 1''s paper card: the same h1 text, the logo, a "books closed" doodle (closed ledger with a ribbon), and a muted decorative line (e.g. "The books are closed for today.").
+   - Done when Quit leads to the decorated page with the same sentence.', 'The last step of the bookkeeping app''s new look adds the small, playful touches that make it feel like a well-kept ledger: a browser-tab icon and a little logo, a tiny picture for each section of the app, friendly drawings where a list is still empty, a double line under totals like an accountant draws, an ink-stamp on the import result and a nicer goodbye page after quitting. None of it changes what the app does or what any figure or message says; it only decorates screens that the earlier design steps have already finished.', '2026-10-24T00:15:56Z', 60);
 
 INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (1, 1, 'write the masterplan of milestone 1: first version build', 'masterplan', 'done', NULL, '2026-10-23, plan 1 body and intro (no files)', 'Write `plan 1: masterplan`, the masterplan of `milestone 1: first version build`: expand on everything that needs to be done to achieve it,
 divided into parts, with an intro in plain English (`pm plan edit 1 --intro "…" --body -`). State in the masterplan that its own tasks are not implementation work: each of them writes the
@@ -2046,13 +2085,82 @@ Files: `frontend/src/charts/chartMath.ts`, `LineChart.tsx`, `BarChart.tsx` (`cha
 - Colours via CSS variables through `style` or Tailwind `stroke-*`/`fill-*` classes: SVG presentation attributes don''t resolve `var()`. The theme stays the single source of colour.
 
 Done when the charts match the theme in the running app (`rios-de-asia-accounting --no-browser`, with data) and `npm run typecheck`, `npm run lint`, `npm test`, `npm run build` (in `frontend/`), `pytest` and `nix flake check` pass.', '2026-10-24T00:14:27Z', NULL, 106, 0, NULL, 'main');
-INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (111, 21, 'create tasks for plan 21: forms and actions', 'split', 'open', 1000, NULL, 'Split `plan 21: forms and actions` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (111, 21, 'create tasks for plan 21: forms and actions', 'split', 'done', 1000, '2026-10-23, tasks 112, 113, 114, 115, 116', 'Split `plan 21: forms and actions` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
 done and dropped ones stay as they are (pm refuses to change them): drop the open ones that no longer fit and add
 tasks for what the plan asks beyond them. A task that writes a plan gets `--kind plan`. A task that needs another
 task''s result (in this plan or another, in any work tree) requires it: `pm task add … --requires <task id>`, or
 `pm task requires <task id> <prerequisite id>` for an existing one; priority is only a hint and orders nothing across
 work trees. When you drop an open task that others require and add one in its place, drop it with
-`--replaced-by <new task id>`.', '2026-10-24T00:14:53Z', NULL, 59, 0, NULL, NULL);
+`--replaced-by <new task id>`.', '2026-10-24T00:14:53Z', '2026-10-24T00:15:54Z', 59, 0, NULL, NULL);
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (112, 21, 'form building blocks: FormSlip, Field, FormActions, FormError, ConfirmDelete', 'work', 'open', NULL, NULL, 'Part of `plan 21: forms and actions`; follow its ground rules (no functional change, same texts, offline, no new npm deps, inline SVG only, light only: `decision 28: visual design: one light ledger theme, no dark mode`; inputs stay plain text: `decision 15: data entry forms: how money and hours are typed`). Uses part 1''s theme, `num`, `--ledger-rule` variables and README "Styling conventions" (`plan 19: styling foundation`).
+
+Files: `frontend/src/components/` (new `FormSlip.tsx`, `FormActions.tsx`, `FormError.tsx` or one `forms.tsx`; `Field.tsx`, `inputs.tsx`, `ConfirmDelete.tsx`), `frontend/src/index.css` if a class is needed, `README.md`.
+
+- `FormSlip`: the "journal entry slip" around a form
+  - paper `base-100` card, thin border, `max-w-lg`
+  - header strip (`base-200`, ruled bottom line) with a small-caps label passed in (e.g. "Entry") and an optional decorative entry-number/date slot, `aria-hidden`
+  - red vertical margin rule on the left like ledger paper (CSS, error colour at low opacity or a `--ledger-rule` variable)
+  - children are the form
+- `Field`: daisyUI 5 `fieldset` + `label` styling; controls full width inside the slip; hint as a muted line; error as `text-error` with a small inline-SVG warning mark, still right under its field.
+- `inputs.tsx`: `MoneyInput`, `HoursInput`, `RateInput` get `num` (tabular, right-aligned). Nothing else about the inputs changes.
+- Read-only values (Airbnb bookings, `decision 17: bookings from the Airbnb import: dates, listing and guest name are read-only in the edit form`): if they are text today, a small "inked" class for them; if they are inputs today, leave them.
+- `FormActions`: row `flex flex-wrap gap-2 mt-4` with a ruled top border like the slip''s foot; primary first, then secondary.
+- `FormError`: page-level `alert alert-error` with an icon (reuse the error icon from the app''s notices if `Notices.tsx` has one); same props as the Expenses `FormError` (`message?`, renders nothing when empty).
+- Button roles: submit `btn btn-primary`; Cancel/Back/Reset `btn btn-ghost` (or `btn-soft`); Delete trigger `btn btn-error btn-outline btn-sm` under a thin rule ("void entry" area).
+- `ConfirmDelete`: dialog as a small slip (`modal-box` with the same header strip, question, muted detail), Delete `btn-error`, Cancel `btn-ghost`; same texts, same `pending`/`disabled` handling, still `showModal()`.
+- README "Styling conventions": add `FormSlip`, `FormActions`, `FormError`, the button roles (and say `Toolbar` comes with the filter-bar task).
+- Don''t move pages onto the new components yet (except what `Field`/`inputs`/`ConfirmDelete` change by themselves); the next tasks do that.
+
+Done when the components exist, `ConfirmDelete` is restyled, the README is updated; `npm run typecheck`, `npm run lint`, `npm test`, `npm run build` (in `frontend/`), `pytest` and `nix flake check` pass; forms still work in the running app (`rios-de-asia-accounting --no-browser`).', '2026-10-24T00:15:51Z', NULL, 111, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (113, 21, 'booking and expense forms on the entry slip', 'work', 'open', NULL, NULL, 'Part of `plan 21: forms and actions`; follow its ground rules (no functional change: same fields, labels, hints, order, conditions, read-only rules, errors, button labels, links, pending handling). Uses the components from `task 112: form building blocks: FormSlip, Field, FormActions, FormError, ConfirmDelete`.
+
+Files: `frontend/src/pages/Bookings.tsx`, `frontend/src/pages/Expenses.tsx`.
+
+- Booking form, expense form, recurring expense form: wrap in `FormSlip` (label e.g. "Booking", "Expense", "Recurring expense"), actions via `FormActions` (Save `btn-primary`, Cancel `btn-ghost`), Delete via the restyled `ConfirmDelete` in the "void entry" area.
+- Page-level errors via `FormError`; remove the local `FormError` from Expenses and replace the repeated `<div role="alert" className="alert alert-error mb-4">` in these two pages.
+- Two-column grid for paired fields (Check-in/Check-out, Date/Amount) only where they are already side by side; stacks on narrow windows.
+- Airbnb bookings keep their read-only fields (`decision 17: bookings from the Airbnb import: dates, listing and guest name are read-only in the edit form`), shown in the "inked" style where they are text.
+- Expense form: category-dependent Booking / Useful life fields show exactly when they do today.
+- Booking detail: Edit `btn-primary`, Back `btn-ghost`, in a `FormActions`-style row.
+- Leave the list filter bars alone (a later task turns them into a toolbar).
+
+Done when these forms show the slip with the same fields, conditions and errors (checked empty, filled and with server errors in the running app, `rios-de-asia-accounting --no-browser`), and `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`, `pytest`, `nix flake check` pass.', '2026-10-24T00:15:51Z', NULL, 111, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (114, 21, 'blocked days, time, rate and settings forms on the entry slip', 'work', 'open', NULL, NULL, 'Part of `plan 21: forms and actions`; follow its ground rules (no functional change). Same treatment as `task 113: booking and expense forms on the entry slip`, with the components from `task 112: form building blocks: FormSlip, Field, FormActions, FormError, ConfirmDelete`.
+
+Files: `frontend/src/pages/Blocked.tsx`, `Time.tsx`, `Rates.tsx`, `Settings.tsx`.
+
+- Each entry form in `FormSlip` (label e.g. "Blocked days", "Time entry", "Exchange rate", "Settings"), actions via `FormActions`, Delete via `ConfirmDelete` in the "void entry" area, page-level errors via `FormError` instead of the repeated `alert alert-error` divs.
+- Settings: listing checkboxes as daisyUI `checkbox` rows inside the slip''s fieldset; same names, labels and order.
+- Leave the list filter bars alone (a later task turns them into a toolbar).
+
+Done when these forms show the slip with the same fields and errors (checked empty, filled and with server errors in `rios-de-asia-accounting --no-browser`), and `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`, `pytest`, `nix flake check` pass.', '2026-10-24T00:15:51Z', NULL, 111, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (115, 21, 'import forms on the entry slip', 'work', 'open', NULL, NULL, 'Part of `plan 21: forms and actions`; follow its ground rules (no functional change). Uses the components from `task 112: form building blocks: FormSlip, Field, FormActions, FormError, ConfirmDelete`.
+
+File: `frontend/src/pages/Import.tsx`.
+
+- Airbnb CSV upload and TRM upload each as a `FormSlip`: styled daisyUI `file-input`, Currency as a short input, Upload / "Load rates" `btn-primary` in `FormActions`.
+- Preview form: listing checkboxes and "Another listing name" inside a slip, Import (`btn-primary`) / Cancel (`btn-ghost`) via `FormActions`. Don''t touch the preview tables (`plan 20: spreadsheet-style tables and dashboard` restyles them).
+- Replace the local `Alert` with `FormError` (same texts).
+- The success message stays `alert-success` (a later part adds a stamp).
+
+Done when the import screens look like slips with the same fields, texts and flow (upload a CSV, preview, import, cancel; a wrong file for the error), and `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`, `pytest`, `nix flake check` pass.', '2026-10-24T00:15:51Z', NULL, 111, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (116, 21, 'list filter bars as a compact Toolbar strip', 'work', 'open', NULL, NULL, 'Part of `plan 21: forms and actions`; follow its ground rules (no functional change: same filter fields, names, URL parameters, labels, links). Builds on `task 112: form building blocks: FormSlip, Field, FormActions, FormError, ConfirmDelete` and on the dashboard''s "formula bar" from `task 109: dashboard: metric tables as sheets, formula-bar period form, headings and warning`.
+
+Files: new `frontend/src/components/Toolbar.tsx` (or reuse what task 109 made), `pages/Bookings.tsx`, `Expenses.tsx`, `Blocked.tsx`, `Time.tsx`, `Rates.tsx`, `README.md`.
+
+- A shared `Toolbar` strip with the formula-bar look: `base-200`, bordered, `input-sm`/`select-sm` controls with short labels, Filter `btn-sm btn-secondary` (or `btn-soft`), the "New …" link `btn-sm btn-primary` pushed to the right; wraps on narrow windows.
+- If task 109 left the formula bar as inline classes in `Dashboard.tsx`, extract them into `Toolbar` and use it there too (same look, same form behaviour).
+- Replace the `flex flex-wrap items-end gap-2` filter bars on the five list pages; filter errors stay below the strip.
+- README "Styling conventions": add `Toolbar`.
+
+Done when all five list pages and the dashboard use the same strip with the same filters and links, and `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`, `pytest`, `nix flake check` pass; checked in the running app.', '2026-10-24T00:15:51Z', NULL, 111, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (117, 22, 'create tasks for plan 22: playful bookkeeping touches and favicon', 'split', 'open', 1000, NULL, 'Split `plan 22: playful bookkeeping touches and favicon` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
+done and dropped ones stay as they are (pm refuses to change them): drop the open ones that no longer fit and add
+tasks for what the plan asks beyond them. A task that writes a plan gets `--kind plan`. A task that needs another
+task''s result (in this plan or another, in any work tree) requires it: `pm task add … --requires <task id>`, or
+`pm task requires <task id> <prerequisite id>` for an existing one; priority is only a hint and orders nothing across
+work trees. When you drop an open task that others require and add one in its place, drop it with
+`--replaced-by <new task id>`.', '2026-10-24T00:15:56Z', NULL, 60, 0, NULL, NULL);
 
 INSERT INTO decision (id, subject, status, options, body, intro, answer, reason, created_at, closed_at, created_by_task, signoff, kind, decided_by_task, consequences) VALUES (1, 'Sign off the masterplan of milestone 1: first version build', 'answered', '["approve"]', '', 'This is the overall roadmap for building the first working version of a small, private bookkeeping app for one Airbnb apartment. The app turns every booking and every cost into amounts per calendar day, so it can answer whether hosting pays off, whether prices are set well, and how things are trending. The roadmap splits the build into parts, starting with a short architecture document the owner approves before anything else is built, and ending with a check against the real Airbnb export.
 
@@ -2201,7 +2309,9 @@ INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, b
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (99, 102, '2026-10-24T00:12:13Z', '2026-10-24T00:12:46Z', 'done', NULL, 0, '60af466d68fa04280c7173655afd9f5145df96e0', NULL, 'claude-opus-5-5', '76bf5cd6-5dda-4964-b8f3-e9fe109d32e2', NULL, 6, 12, 3429, 170307, 23907, 0.2939454, 36205, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (100, 58, '2026-10-24T00:12:32Z', '2026-10-24T00:14:03Z', 'done', NULL, 0, '60af466d68fa04280c7173655afd9f5145df96e0', 'main', 'claude-opus-5-5', '94f5837e-d1e5-474d-8f0e-31840a50b471', NULL, 12, 24, 7618, 508799, 43789, 0.60452780000000006, 55659, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (101, 106, '2026-10-24T00:13:49Z', '2026-10-24T00:14:34Z', 'done', NULL, 0, '072e8b2830e12142a69ac1b7f9949c815dec5a8c', NULL, 'claude-opus-5-5', '5bf806c8-9e01-4d20-b5e9-cfb14ba30404', NULL, 8, 16, 4290, 278646, 32829, 0.4042252, 44700, 60, 1465683);
-INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (102, 59, '2026-10-24T00:14:03Z', NULL, 'running', NULL, NULL, '072e8b2830e12142a69ac1b7f9949c815dec5a8c', 'main', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (102, 59, '2026-10-24T00:14:03Z', '2026-10-24T00:15:02Z', 'done', NULL, 0, '072e8b2830e12142a69ac1b7f9949c815dec5a8c', 'main', 'claude-opus-5-5', '2f5a2dd8-42ee-4a9a-895a-9d355d7eaa8e', NULL, 8, 16, 5439, 302613, 40479, 0.49319860000000004, 52955, 60, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (103, 111, '2026-10-24T00:14:55Z', '2026-10-24T00:16:01Z', 'done', NULL, 0, '9b4c33450fb744cd7278d4519a95b4495bbb33d9', NULL, 'claude-opus-5-5', 'dc4200da-c7a2-4a8b-b40a-cb830ff040a6', NULL, 8, 16, 5452, 291292, 37232, 0.4652184, 49109, 60, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (104, 60, '2026-10-24T00:15:02Z', NULL, 'running', NULL, NULL, '9b4c33450fb744cd7278d4519a95b4495bbb33d9', 'main', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1465683);
 
 INSERT INTO task_decision (task_id, decision_id) VALUES (2, 1);
 INSERT INTO task_decision (task_id, decision_id) VALUES (4, 2);
@@ -2354,3 +2464,12 @@ INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (107, 105)
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (108, 107);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (109, 107);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (110, 103);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (112, 103);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (112, 104);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (112, 105);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (113, 112);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (114, 112);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (115, 112);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (116, 109);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (116, 112);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (117, 111);
