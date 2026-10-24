@@ -17,6 +17,7 @@ import {
 } from "../components/inputs";
 import { useNotices } from "../components/Notices";
 import { PageTitle, SectionTitle } from "../components/Titles";
+import { Toolbar, ToolbarField } from "../components/Toolbar";
 import { formatMoney, showMoney } from "../format";
 import { useSave } from "../useSave";
 
@@ -110,23 +111,34 @@ export function BookingList() {
   return (
     <div>
       <PageTitle>Bookings</PageTitle>
-      <form onSubmit={apply} className="flex flex-wrap items-end gap-2 mb-4">
-        <Field label="From" error={filterErrors.from}>
+      <Toolbar
+        onSubmit={apply}
+        errors={[filterErrors.from, filterErrors.to]}
+        action={
+          <Link className="btn btn-primary btn-sm" to="/bookings/new">
+            New booking
+          </Link>
+        }
+      >
+        <ToolbarField label="From">
           <DateInput
+            className="input-sm"
             name="from"
             value={draft.from}
             onChange={(v) => setDraft({ ...draft, from: v })}
           />
-        </Field>
-        <Field label="To" error={filterErrors.to}>
+        </ToolbarField>
+        <ToolbarField label="To">
           <DateInput
+            className="input-sm"
             name="to"
             value={draft.to}
             onChange={(v) => setDraft({ ...draft, to: v })}
           />
-        </Field>
-        <Field label="Listing">
+        </ToolbarField>
+        <ToolbarField label="Listing">
           <Select
+            className="select-sm"
             name="listing"
             value={draft.listing}
             onChange={(v) => setDraft({ ...draft, listing: v })}
@@ -138,14 +150,11 @@ export function BookingList() {
               </option>
             ))}
           </Select>
-        </Field>
-        <button type="submit" className="btn">
+        </ToolbarField>
+        <button type="submit" className="btn btn-secondary btn-sm">
           Filter
         </button>
-        <Link className="btn btn-primary" to="/bookings/new">
-          New booking
-        </Link>
-      </form>
+      </Toolbar>
       {bookings.isError && !invalid && (
         <div role="alert" className="alert alert-error mb-4">
           {bookings.error.message}

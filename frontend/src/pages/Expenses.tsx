@@ -20,6 +20,7 @@ import {
   TextField,
 } from "../components/inputs";
 import { PageTitle, SectionTitle } from "../components/Titles";
+import { Toolbar, ToolbarField } from "../components/Toolbar";
 import { formatMoney, showMoney } from "../format";
 import { useSave } from "../useSave";
 
@@ -118,23 +119,34 @@ export function ExpenseList() {
   return (
     <div>
       <PageTitle>Expenses</PageTitle>
-      <form onSubmit={apply} className="flex flex-wrap items-end gap-2 mb-4">
-        <Field label="From" error={filterErrors.from}>
+      <Toolbar
+        onSubmit={apply}
+        errors={[filterErrors.from, filterErrors.to, filterErrors.category]}
+        action={
+          <Link className="btn btn-primary btn-sm" to="/expenses/new">
+            New expense
+          </Link>
+        }
+      >
+        <ToolbarField label="From">
           <DateInput
+            className="input-sm"
             name="from"
             value={draft.from}
             onChange={(v) => setDraft({ ...draft, from: v })}
           />
-        </Field>
-        <Field label="To" error={filterErrors.to}>
+        </ToolbarField>
+        <ToolbarField label="To">
           <DateInput
+            className="input-sm"
             name="to"
             value={draft.to}
             onChange={(v) => setDraft({ ...draft, to: v })}
           />
-        </Field>
-        <Field label="Category" error={filterErrors.category}>
+        </ToolbarField>
+        <ToolbarField label="Category">
           <Select
+            className="select-sm"
             name="category"
             value={draft.category}
             onChange={(v) => setDraft({ ...draft, category: v })}
@@ -144,14 +156,11 @@ export function ExpenseList() {
               <option key={c}>{c}</option>
             ))}
           </Select>
-        </Field>
-        <button type="submit" className="btn">
+        </ToolbarField>
+        <button type="submit" className="btn btn-secondary btn-sm">
           Filter
         </button>
-        <Link className="btn btn-primary" to="/expenses/new">
-          New expense
-        </Link>
-      </form>
+      </Toolbar>
       {expenses.isError &&
         !(
           expenses.error instanceof ApiError && expenses.error.status === 422

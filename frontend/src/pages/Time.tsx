@@ -14,6 +14,7 @@ import { FormError } from "../components/FormError";
 import { FormSlip } from "../components/FormSlip";
 import { DateInput, HoursInput, Select, TextField } from "../components/inputs";
 import { PageTitle } from "../components/Titles";
+import { Toolbar, ToolbarField } from "../components/Toolbar";
 import { formatHours, showHours } from "../format";
 import { useSave } from "../useSave";
 
@@ -65,28 +66,35 @@ export function TimeList() {
   return (
     <div>
       <PageTitle>Time</PageTitle>
-      <form onSubmit={apply} className="flex flex-wrap items-end gap-2 mb-4">
-        <Field label="From" error={filterErrors.from}>
+      <Toolbar
+        onSubmit={apply}
+        errors={[filterErrors.from, filterErrors.to]}
+        action={
+          <Link className="btn btn-primary btn-sm" to="/time/new">
+            New time entry
+          </Link>
+        }
+      >
+        <ToolbarField label="From">
           <DateInput
+            className="input-sm"
             name="from"
             value={draft.from}
             onChange={(v) => setDraft({ ...draft, from: v })}
           />
-        </Field>
-        <Field label="To" error={filterErrors.to}>
+        </ToolbarField>
+        <ToolbarField label="To">
           <DateInput
+            className="input-sm"
             name="to"
             value={draft.to}
             onChange={(v) => setDraft({ ...draft, to: v })}
           />
-        </Field>
-        <button type="submit" className="btn">
+        </ToolbarField>
+        <button type="submit" className="btn btn-secondary btn-sm">
           Filter
         </button>
-        <Link className="btn btn-primary" to="/time/new">
-          New time entry
-        </Link>
-      </form>
+      </Toolbar>
       {entries.isError &&
         !(
           entries.error instanceof ApiError && entries.error.status === 422

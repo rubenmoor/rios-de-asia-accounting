@@ -10,6 +10,7 @@ import { FormError } from "../components/FormError";
 import { FormSlip } from "../components/FormSlip";
 import { DateInput, RateInput, TextField } from "../components/inputs";
 import { PageTitle } from "../components/Titles";
+import { Toolbar, ToolbarField } from "../components/Toolbar";
 import { formatRate } from "../format";
 import { useSave } from "../useSave";
 
@@ -49,17 +50,27 @@ export function RateList() {
   return (
     <div>
       <PageTitle>Exchange rates</PageTitle>
-      <form onSubmit={apply} className="flex flex-wrap items-end gap-2 mb-4">
-        <Field label="Currency" error={filterErrors.currency}>
-          <TextField name="currency" value={draft} onChange={setDraft} />
-        </Field>
-        <button type="submit" className="btn">
+      <Toolbar
+        onSubmit={apply}
+        errors={[filterErrors.currency]}
+        action={
+          <Link className="btn btn-primary btn-sm" to="/rates/new">
+            New rate
+          </Link>
+        }
+      >
+        <ToolbarField label="Currency">
+          <TextField
+            className="input-sm"
+            name="currency"
+            value={draft}
+            onChange={setDraft}
+          />
+        </ToolbarField>
+        <button type="submit" className="btn btn-secondary btn-sm">
           Filter
         </button>
-        <Link className="btn btn-primary" to="/rates/new">
-          New rate
-        </Link>
-      </form>
+      </Toolbar>
       {rates.isError &&
         !(rates.error instanceof ApiError && rates.error.status === 422) && (
           <div role="alert" className="alert alert-error mb-4">

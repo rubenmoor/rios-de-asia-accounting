@@ -10,6 +10,7 @@ import { FormError } from "../components/FormError";
 import { FormSlip } from "../components/FormSlip";
 import { DateInput, Select, TextField } from "../components/inputs";
 import { PageTitle } from "../components/Titles";
+import { Toolbar, ToolbarField } from "../components/Toolbar";
 import { useSave } from "../useSave";
 
 type BlockedDay = { date: string; reason: string; note: string | null };
@@ -59,28 +60,35 @@ export function BlockedList() {
   return (
     <div>
       <PageTitle>Blocked days</PageTitle>
-      <form onSubmit={apply} className="flex flex-wrap items-end gap-2 mb-4">
-        <Field label="From" error={filterErrors.from}>
+      <Toolbar
+        onSubmit={apply}
+        errors={[filterErrors.from, filterErrors.to]}
+        action={
+          <Link className="btn btn-primary btn-sm" to="/blocked-days/new">
+            Block days
+          </Link>
+        }
+      >
+        <ToolbarField label="From">
           <DateInput
+            className="input-sm"
             name="from"
             value={draft.from}
             onChange={(v) => setDraft({ ...draft, from: v })}
           />
-        </Field>
-        <Field label="To" error={filterErrors.to}>
+        </ToolbarField>
+        <ToolbarField label="To">
           <DateInput
+            className="input-sm"
             name="to"
             value={draft.to}
             onChange={(v) => setDraft({ ...draft, to: v })}
           />
-        </Field>
-        <button type="submit" className="btn">
+        </ToolbarField>
+        <button type="submit" className="btn btn-secondary btn-sm">
           Filter
         </button>
-        <Link className="btn btn-primary" to="/blocked-days/new">
-          Block days
-        </Link>
-      </form>
+      </Toolbar>
       {days.isError &&
         !(days.error instanceof ApiError && days.error.status === 422) && (
           <div role="alert" className="alert alert-error mb-4">
