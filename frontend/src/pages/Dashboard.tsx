@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { type FormEvent, type ReactNode, useState } from "react";
+import { type FormEvent, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { api, type Notice } from "../api";
 import { BarChart } from "../charts/BarChart";
@@ -7,6 +7,7 @@ import { LineChart } from "../charts/LineChart";
 import { DateInput, MonthInput } from "../components/inputs";
 import { NoticeIcon } from "../components/Notices";
 import { PageTitle, SectionTitle } from "../components/Titles";
+import { Toolbar, ToolbarField } from "../components/Toolbar";
 import { DASH, formatMoney } from "../format";
 
 type Kind = "int" | "pct" | "money" | "minutes";
@@ -74,63 +75,34 @@ function PeriodForm({
     setParams(next);
   };
 
-  const bar = (label: string, input: ReactNode) => (
-    // biome-ignore lint/a11y/noLabelWithoutControl: the input is the child
-    <label className="flex items-center gap-1 text-xs font-semibold">
-      {label}
-      {input}
-    </label>
-  );
-
   return (
-    <form onSubmit={apply} className="mb-4">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border border-base-300 bg-base-200 rounded-box px-3 py-2">
-        <span
-          aria-hidden="true"
-          className="italic font-serif font-bold text-primary border-r border-base-300 pr-3 select-none"
-        >
-          fx
-        </span>
-        {bar(
-          "Month",
-          <MonthInput
-            name="month"
-            value={month}
-            onChange={setMonth}
-            className="input-sm"
-          />,
-        )}
-        {bar(
-          "From",
-          <DateInput
-            name="from"
-            value={from}
-            onChange={setFrom}
-            className="input-sm"
-          />,
-        )}
-        {bar(
-          "To",
-          <DateInput
-            name="to"
-            value={to}
-            onChange={setTo}
-            className="input-sm"
-          />,
-        )}
-        <button type="submit" className="btn btn-primary btn-sm">
-          Apply
-        </button>
-        <Link to="/" className="btn btn-ghost btn-sm">
-          Reset
-        </Link>
-      </div>
-      {errors.map((n) => (
-        <p key={n.text} className="text-error mt-2">
-          {n.text}
-        </p>
-      ))}
-    </form>
+    <Toolbar onSubmit={apply} errors={errors.map((n) => n.text)}>
+      <ToolbarField label="Month">
+        <MonthInput
+          name="month"
+          value={month}
+          onChange={setMonth}
+          className="input-sm"
+        />
+      </ToolbarField>
+      <ToolbarField label="From">
+        <DateInput
+          name="from"
+          value={from}
+          onChange={setFrom}
+          className="input-sm"
+        />
+      </ToolbarField>
+      <ToolbarField label="To">
+        <DateInput name="to" value={to} onChange={setTo} className="input-sm" />
+      </ToolbarField>
+      <button type="submit" className="btn btn-primary btn-sm">
+        Apply
+      </button>
+      <Link to="/" className="btn btn-ghost btn-sm">
+        Reset
+      </Link>
+    </Toolbar>
   );
 }
 

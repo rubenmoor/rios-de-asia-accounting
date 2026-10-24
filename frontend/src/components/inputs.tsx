@@ -58,10 +58,11 @@ export function Select({
   value,
   onChange,
   children,
-}: InputProps & { children: ReactNode }) {
+  className = "",
+}: InputProps & { children: ReactNode; className?: string }) {
   return (
     <select
-      className="select w-full"
+      className={`select w-full ${className}`}
       name={name}
       value={value}
       onChange={(e) => onChange(e.target.value)}
