@@ -78,6 +78,7 @@ The look is one light daisyUI theme, `ledger` (`frontend/src/index.css`). Pages 
 
 - **Numbers:** class `num` (monospace, tabular, right-aligned); negatives also get `neg` (red ink).
 - **Tables:** only through `DataTable`; pages add no table classes of their own. It renders `table sheet` (the `sheet` class in `index.css`: grid lines in the ledger rule colour, `base-200` header cells, zebra rows, row hover, heavier rule above footer rows) inside `overflow-x-auto`, with a decorative frame like a spreadsheet's: a letter row (A, B, C …) above the header and a row-number gutter on the left, both `aria-hidden`.
+- **Key/value sheets:** a `table sheet` whose rows start with a `th` label (styled `base-200` by `sheet`); money values `num`.
 - **Table footers (totals):** pass `<SheetFooterRow>` (from `DataTable.tsx`, adds the gutter cell) as `footer`; total cells get `num`.
 - **Negative cells:** `negative?: (row) => boolean` on a `Column` adds `neg`; only the colour changes, never the text.
 - **Headings:** `PageTitle` (h1) and `SectionTitle` (h2) from `components/Titles.tsx`, never hand-written heading classes.

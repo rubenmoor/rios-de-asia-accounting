@@ -217,7 +217,7 @@ export function BookingDetail() {
   const money = (label: string, v: number | null) => (
     <tr>
       <th>{label}</th>
-      <td>{v === null ? "–" : `${formatMoney(v)} COP`}</td>
+      <td className="num">{v === null ? "–" : `${formatMoney(v)} COP`}</td>
     </tr>
   );
   return (
@@ -235,38 +235,40 @@ export function BookingDetail() {
           </span>
         </div>
       )}
-      <table className="table w-auto">
-        <tbody>
-          <tr>
-            <th>Guest</th>
-            <td>{dash(b.guest_name)}</td>
-          </tr>
-          <tr>
-            <th>Listing</th>
-            <td>{dash(b.listing)}</td>
-          </tr>
-          <tr>
-            <th>Confirmation code</th>
-            <td>{dash(b.airbnb_code)}</td>
-          </tr>
-          <tr>
-            <th>Guests</th>
-            <td>{dash(b.guests)}</td>
-          </tr>
-          <tr>
-            <th>Notes</th>
-            <td>{dash(b.notes)}</td>
-          </tr>
-          <tr>
-            <th>Nights</th>
-            <td>{b.nights}</td>
-          </tr>
-          {money("Net payout", b.net_payout)}
-          {money("Gross", b.gross)}
-          {money("Airbnb fee", b.airbnb_fee)}
-          {money("Co-host cost", b.cohost_cost)}
-        </tbody>
-      </table>
+      <div className="overflow-x-auto">
+        <table className="table sheet w-auto">
+          <tbody>
+            <tr>
+              <th>Guest</th>
+              <td>{dash(b.guest_name)}</td>
+            </tr>
+            <tr>
+              <th>Listing</th>
+              <td>{dash(b.listing)}</td>
+            </tr>
+            <tr>
+              <th>Confirmation code</th>
+              <td>{dash(b.airbnb_code)}</td>
+            </tr>
+            <tr>
+              <th>Guests</th>
+              <td>{dash(b.guests)}</td>
+            </tr>
+            <tr>
+              <th>Notes</th>
+              <td>{dash(b.notes)}</td>
+            </tr>
+            <tr>
+              <th>Nights</th>
+              <td>{b.nights}</td>
+            </tr>
+            {money("Net payout", b.net_payout)}
+            {money("Gross", b.gross)}
+            {money("Airbnb fee", b.airbnb_fee)}
+            {money("Co-host cost", b.cohost_cost)}
+          </tbody>
+        </table>
+      </div>
       <SectionTitle className="mt-6 mb-2">Lines</SectionTitle>
       <DataTable
         columns={LINE_COLUMNS}

@@ -69,6 +69,13 @@
     font-size: 0.75rem;
     font-weight: 600;
   }
+  /* Key/value sheets: the first column holds the labels. */
+  & tbody th {
+    background-color: var(--color-base-200);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-align: left;
+  }
   & tbody tr:nth-child(even) td:not(.gutter) {
     background-color: color-mix(
       in oklab,
