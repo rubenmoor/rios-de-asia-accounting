@@ -167,7 +167,7 @@ client's TypeScript types mirror the endpoint list at the end of this section.
   `rate_date`); dates `YYYY-MM-DD`, months `YYYY-MM`,
   ratios as plain numbers (0.42, not 42 %). A figure that cannot be computed is
   `null`, never `0` (`decision 10: a figure that cannot be computed is shown as empty, not as zero`).
-  Display formatting is the client's.
+  Display formatting is the client's (see the display currency below).
 - **Reads (`GET`):** return the resource JSON directly. Options a form needs come
   with a small `GET /api/<resource>/options`.
 - **Writes (`POST` create, `PUT` update, `DELETE`):** `200 {"data": <saved item or null>, "notices": [...]}`
@@ -238,6 +238,12 @@ Endpoints (method, path, request → response):
 - `GET /api/settings/options` — `{"allocations": ["check_in", "spread"], "listings": [names known from bookings], "currencies", "default_currency"}`.
 - `PUT /api/settings` — `{long_term_rent, long_term_rent_currency, per_booking_allocation,
   backup_keep, listings: [..]}` → `{data: <settings>, notices: ["Settings saved."]}`.
+- `GET /api/display` — `{currency, rate, rate_date, currencies}`: the display currency and its rate
+  (currency units per USD × 1 000 000; USD: `1000000`, `rate_date` `null`).
+- `PUT /api/display` — `{currency}` (`USD`, `COP` or `EUR`, else `422`) → `{data: <display>, notices}`. USD needs
+  no rate; otherwise today's rate is fetched (`rate_on`) and stored with the currency
+  (`decision 48: display currency: kept in settings with the rate fetched when it was chosen, switched and shown in the page header`).
+  If no rate can be had nothing is saved, the answer is the unchanged display and a `warning` notice.
 - `GET /api/dashboard?month=&from=&to=` — periods chosen by query parameters
   (`decision 18: dashboard layout: which periods are shown and which period the cost breakdown uses`)
   → `{form: {month, from, to}, waiting, empty, columns: [{label, start, end}],
@@ -397,7 +403,17 @@ Reservations are in COP and USD; payouts in EUR (and USD to PayPal). The books r
   (`decision 40: the Rates page, typed rates and the TRM file import go; no offline fallback`: there is no
   screen, CSV import or CLI command to enter rates by hand).
 - **Money entry:** an amount and a currency choice, on expenses, recurring templates, hand-entered
-  bookings and the settings; figures are shown in USD.
+  bookings and the settings.
+- **Display currency** (`decision 46: display currency: amounts are converted in the browser, the server keeps answering in USD`,
+  `decision 47: display currency: number formats per currency`, decision 48): the API keeps answering in US
+  cents. Settings keys `currency` (default `USD`; `0005_display_currency.sql` resets old values) and
+  `display_rate` (JSON `{rate, rate_date}`, absent for USD) hold the choice and the rate fetched when it was
+  made, kept until the next switch. The client (`useDisplay()`, query key `["display"]`; `format.ts`
+  `toDisplay`, `formatDisplay`) multiplies cents by that rate, rounded half away from zero, and formats:
+  COP whole pesos, USD and EUR two decimals, `.` for thousands and `,` for decimals, the code never a symbol.
+  Chart series are converted before plotting. A USD / COP / EUR select in the page header switches it
+  (`PUT /api/display`) and shows "1 USD = 4.123,45 COP · rate of 2026-10-23" (hidden for USD). Hover texts,
+  edit forms and the booking line's original amount and rate keep showing what was typed.
 - **EUR payouts are not used**: they are transfers of earnings already counted in
   the reservation rows, bundle several stays, and are converted by Airbnb at its own
   rate. Using them would count income twice.
@@ -409,7 +425,7 @@ Reservations are in COP and USD; payouts in EUR (and USD to PayPal). The books r
   get one line of type `Manual`).
 - New tables `booking_lines`, `exchange_rates` and `rate_coverage` as above; `expenses` keeps
   `amount` (US cents, nullable) + `original_minor`, `currency`, `rate`, `rate_date`.
-- `settings`: + `property_listings`, `backup_keep`, `long_term_rent_usd` and `long_term_rent_entered`
+- `settings`: + `currency`, `display_rate`, `property_listings`, `backup_keep`, `long_term_rent_usd` and `long_term_rent_entered`
   instead of the COP rent.
 - Co-host payout lines are a per-booking cost: the allocation engine adds them to
   `cost_per_booking` (check-in or spread, like other per-booking costs), so they show

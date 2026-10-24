@@ -76,6 +76,7 @@ has no page for. Checks: `npm run typecheck`, `npm run lint`, `npm test`.
 
 The look is one light daisyUI theme, `ledger` (`frontend/src/index.css`). Pages stick to these conventions so the design can change in one place:
 
+- **Money:** figures are shown through `useDisplay().money(cents)` (`frontend/src/useDisplay.ts`; `AmountCell` and `showMoney` use it), never by calling `formatMoney` directly; charts convert their series with `convert`. Hover texts, edit forms and the booking line's "Original" and "Rate" columns keep showing what was typed.
 - **Numbers:** class `num` (monospace, tabular, right-aligned); negatives also get `neg` (red ink).
 - **Tables:** only through `DataTable`; pages add no table classes of their own. It renders `table sheet` (the `sheet` class in `index.css`: grid lines in the ledger rule colour, `base-200` header cells, zebra rows, row hover, heavier rule above footer rows) inside `overflow-x-auto`, with a decorative frame like a spreadsheet's: a letter row (A, B, C …) above the header and a row-number gutter on the left, both `aria-hidden`.
 - **Key/value sheets:** a `table sheet` whose rows start with a `th` label (styled `base-200` by `sheet`); money values `num`.
@@ -122,6 +123,18 @@ app fetches the exchange rate of its date and keeps both the amount you typed an
   when the app starts, after each save and import, and when you press **Fetch rates now**. Rates cannot be
   typed or loaded from a file. Existing peso books are converted this way on the first start after the
   upgrade, so connect to the internet then.
+
+## Display currency
+
+The books are kept in US dollars, but every screen can show its figures in USD, COP or EUR.
+
+- **Where:** the currency select in the page header, next to the navigation. It is remembered across reloads.
+- **The rate line:** for COP and EUR the header adds, for example, "1 USD = 4.123,45 COP · rate of 2026-10-23":
+  the rate every figure is multiplied by and the day it was valid. The rate is fetched once, when you
+  switch, and kept until you switch again; choose the currency again to refresh it. USD shows no rate line.
+- **Offline:** if no rate can be fetched, the select stays where it was and a warning says so.
+- **Formats:** COP in whole pesos (1.234.567), USD and EUR with two decimals (1.234,56); the currency is
+  named by its code, never a symbol. Money fields keep their own currency select.
 
 ## Backup
 
