@@ -1,3 +1,5 @@
+from flask import current_app
+
 from rios_de_asia_accounting.model import Settings
 from rios_de_asia_accounting.storage import repo
 from rios_de_asia_accounting.web.api.bookings import listing_names
@@ -26,7 +28,7 @@ def _item(s: Settings) -> dict:
 
 @bp.get("/settings")
 def get_settings():
-    return _item(repo.load_settings(get_db()))
+    return {**_item(repo.load_settings(get_db())), "last_backup": current_app.config["LAST_BACKUP"]}
 
 
 @bp.get("/settings/options")

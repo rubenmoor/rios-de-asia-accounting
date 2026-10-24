@@ -9,7 +9,6 @@ from rios_de_asia_accounting.web.api import (  # noqa: F401  (register their rou
     importing,
     rates,
     settings,
-    system,
 )
 from rios_de_asia_accounting.web.api.common import bp
 

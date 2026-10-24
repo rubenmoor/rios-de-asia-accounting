@@ -1,4 +1,4 @@
-"""End to end through the web app: import, rates, expenses, time, dashboard, quit, restore.
+"""End to end through the web app: import, rates, expenses, time, dashboard, backup, restore.
 
 The expected numbers for October 2026 were recomputed by hand from the CSV rows (not with
 the app's code) and match the same run on the real export. Today is fixed at 2026-10-23, so
@@ -55,7 +55,7 @@ BREAKDOWN = {
 
 
 def _app(db, backup_dir):
-    app = create_app(db, shutdown=lambda: backup_on_exit(db, str(backup_dir)))
+    app = create_app(db)
     app.config["TODAY"] = TODAY
     return app.test_client()
 
@@ -141,9 +141,7 @@ def test_october_2026_end_to_end(tmp_path):
     before = _october(client)
     assert before == (OCTOBER, BREAKDOWN)
 
-    response = client.post("/api/quit")
-    assert response.status_code == 200
-    response.close()  # runs the shutdown callback: the backup at exit
+    backup_on_exit(db, str(backup_dir))
     (backup,) = backup_dir.glob("books-*.db")
 
     # restore as the README says: copy the backup over the live database, start again

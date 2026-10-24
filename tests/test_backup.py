@@ -1,4 +1,6 @@
+import time
 from datetime import date
+from pathlib import Path
 
 import pytest
 
@@ -120,18 +122,6 @@ def test_cli_backup(db, tmp_path, capsys):
     assert "backup" in capsys.readouterr().err
 
 
-def test_quit_triggers_shutdown_after_response(db):
-    from rios_de_asia_accounting.web.app import create_app
-
-    calls = []
-    client = create_app(db, shutdown=lambda: calls.append(1)).test_client()
-    resp = client.post("/api/quit")
-    assert calls == []
-    resp.close()
-    assert calls == [1]
-    assert client.get("/api/quit").status_code == 405
-
-
 def test_serve_backs_up_once_even_with_repeated_signals(db, tmp_path, monkeypatch):
     import signal
 
@@ -152,7 +142,7 @@ def test_serve_backs_up_once_even_with_repeated_signals(db, tmp_path, monkeypatc
     monkeypatch.setattr(cli, "create_server", lambda *a, **k: FakeServer())
     old = signal.getsignal(signal.SIGINT), signal.getsignal(signal.SIGTERM)
     try:
-        cli.serve(db, 1, False, str(tmp_path / "bk"))
+        cli.serve(db, 1, False, str(tmp_path / "bk"), None)
     finally:
         signal.signal(signal.SIGINT, old[0])
         signal.signal(signal.SIGTERM, old[1])
@@ -166,3 +156,33 @@ def test_failed_exit_backup_is_reported_not_raised(db, tmp_path, capsys):
     blocker.write_text("x")
     cli.backup_on_exit(db, str(blocker))
     assert "backup at exit failed" in capsys.readouterr().err
+
+
+def test_backup_loop_backs_up_at_start_and_only_after_changes(db, tmp_path):
+    import threading
+
+    from rios_de_asia_accounting import cli
+
+    out = tmp_path / "bk"
+    config = {}
+    stop = threading.Event()
+    t = threading.Thread(target=cli.backup_loop, args=(db, str(out), config, stop, 0.05))
+    t.start()
+    try:
+        deadline = time.time() + 5
+        while config.get("LAST_BACKUP") is None and time.time() < deadline:
+            time.sleep(0.01)
+        first = config["LAST_BACKUP"]
+        assert first["error"] is None and Path(first["file"]).is_file()
+        time.sleep(0.3)  # several ticks, nothing written: no new attempt
+        assert config["LAST_BACKUP"] is first
+        conn = connect(db)
+        conn.execute("INSERT INTO settings (key, value) VALUES ('x', '1')")
+        conn.commit()
+        conn.close()
+        while config["LAST_BACKUP"] is first and time.time() < deadline:
+            time.sleep(0.01)
+        assert config["LAST_BACKUP"] is not first
+    finally:
+        stop.set()
+        t.join()
