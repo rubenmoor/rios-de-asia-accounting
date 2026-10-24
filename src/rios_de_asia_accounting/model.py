@@ -91,7 +91,9 @@ class Settings:
     long_term_rent_usd: int | None = 0  # US cents per month, None while waiting for a rate
     # what was typed: original_minor, currency, date (the reference day), rate, rate_date
     long_term_rent_entered: dict | None = None
-    currency: str = "COP"
+    # display currency (decision 48) and its rate: {rate, rate_date}, None for USD
+    currency: str = "USD"
+    display_rate: dict | None = None
     per_booking_allocation: str = "check_in"  # or "spread"
     property_listings: list[str] = field(default_factory=list)
     backup_keep: int = 30

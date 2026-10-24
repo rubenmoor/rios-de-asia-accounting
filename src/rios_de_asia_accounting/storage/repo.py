@@ -495,6 +495,8 @@ def load_settings(conn: sqlite3.Connection) -> Settings:
             setattr(settings, key, stored[key])
     if "property_listings" in stored:
         settings.property_listings = list(json.loads(stored["property_listings"]))
+    if "display_rate" in stored:
+        settings.display_rate = json.loads(stored["display_rate"])
     if "long_term_rent_entered" in stored:
         settings.long_term_rent_entered = json.loads(stored["long_term_rent_entered"])
         usd = stored.get("long_term_rent_usd")
@@ -513,13 +515,15 @@ def save_settings(conn: sqlite3.Connection, settings: Settings) -> None:
         "per_booking_allocation": settings.per_booking_allocation,
         "property_listings": json.dumps(settings.property_listings),
     }
+    if settings.display_rate is not None:
+        values["display_rate"] = json.dumps(settings.display_rate)
     entered = settings.long_term_rent_entered
     if entered is not None:
         values["long_term_rent_entered"] = json.dumps(entered)
         if settings.long_term_rent_usd is not None:
             values["long_term_rent_usd"] = str(settings.long_term_rent_usd)
     with transaction(conn):
-        for key in ("long_term_rent_entered", "long_term_rent_usd"):
+        for key in ("long_term_rent_entered", "long_term_rent_usd", "display_rate"):
             if key not in values:  # no rent, or the rent waits for a rate
                 conn.execute("DELETE FROM settings WHERE key = ?", (key,))
         for key, value in values.items():
