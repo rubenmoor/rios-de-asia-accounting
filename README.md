@@ -89,7 +89,7 @@ The look is one light daisyUI theme, `ledger` (`frontend/src/index.css`). Pages 
 - **Errors:** page-level `FormError` / `alert alert-error`; field-level under the field (done by `Field`).
 - **Hints:** `Field`'s `hint`. Muted notes: `opacity-70`.
 - **Icons:** inline SVG components in `frontend/src/components/icons.tsx` (no icon fonts, no CDN). `Logo` (the open-ledger mark) sits before the app name in the navbar.
-- **Section icons:** one per nav entry in `icons.tsx` (`BookingsIcon`, `ExpensesIcon`, `RecurringIcon`, `ImportIcon`, `SettingsIcon`; stroke, `currentColor`, `aria-hidden`, `className` prop). `nav.ts` entries carry `icon`, shown on the sheet tabs; every page of a section passes the same icon as `PageTitle`'s `icon` prop (`<PageTitle icon={<ExpensesIcon />}>`). The dashboard has no tab, so no icon.
+- **Section icons:** one per nav entry in `icons.tsx` (`BookingsIcon`, `ExpensesIcon`, `RecurringIcon`, `SettingsIcon`; stroke, `currentColor`, `aria-hidden`, `className` prop). `nav.ts` entries carry `icon`, shown on the sheet tabs; every page of a section passes the same icon as `PageTitle`'s `icon` prop (`<PageTitle icon={<ExpensesIcon />}>`). The dashboard has no tab, so no icon.
 - **Empty states:** `BlankLedgerDoodle` (icons.tsx, `aria-hidden`): `DataTable`'s empty row shows it small with a muted "The ledger is blank" caption above the unchanged `empty` text; the empty dashboard shows it larger on a `base-200` card beside its text.
 - **Totals and stamp:** `total` (double underline, `border-bottom: 3px double`) on the figure cell of a footer total (Expenses). `stamp` is the rotated green rubber-stamp badge (`aria-hidden`, "Posted ✓") on the import summary; `ledger-list` rules a `ul` like ledger entries.
 - **Favicon:** `frontend/src/assets/favicon.svg` plus `favicon-32.png` and `apple-touch-icon.png` (rendered once from the SVG with `rsvg-convert`), linked from `index.html` as `/src/assets/…`. They are not in `frontend/public/`: Flask serves only `/assets/*` as files and answers every other GET with `index.html`, so Vite must hash them into `/assets/`.
@@ -98,7 +98,7 @@ The look is one light daisyUI theme, `ledger` (`frontend/src/index.css`). Pages 
 
 1. On airbnb.com open your Transaction history (under Earnings), choose all dates and download
    the CSV (menu names may change; it is the file with a "Confirmation code" column).
-2. In the app open **Import**, choose the file under "Airbnb earnings CSV" and press **Preview**,
+2. In the app open **Bookings**, press **Import CSV**, choose the file and press **Preview**,
    look at what would change, then press **Import** (**Cancel** drops the upload).
    On the first import you are asked which of the listings in the file are your apartment.
 3. Re-importing is safe: bookings are matched by confirmation code, known lines are skipped and

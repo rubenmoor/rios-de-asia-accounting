@@ -81,16 +81,6 @@ export function RecurringIcon(props: IconProps) {
   );
 }
 
-/** Tray with a down arrow. */
-export function ImportIcon(props: IconProps) {
-  return (
-    <StrokeIcon {...props}>
-      <path d="M12 3v11M8 10l4 4 4-4" />
-      <path d="M4 14v5h16v-5" />
-    </StrokeIcon>
-  );
-}
-
 /** Gear. */
 export function SettingsIcon(props: IconProps) {
   return (

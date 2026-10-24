@@ -668,16 +668,15 @@ function RecurringEntryRow({
         {err("start_month")}
       </td>
       <td>
-        <MonthInput
-          className="input-sm"
-          name="end_month"
-          form={RECURRING_ENTRY_FORM}
-          ariaLabel="Until (empty = open)"
-          value={form.end_month}
-          onChange={set("end_month")}
-        />
-        {err("end_month")}
-        <div className="mt-1 flex gap-2">
+        <div className="flex items-center gap-2">
+          <MonthInput
+            className="input-sm min-w-36"
+            name="end_month"
+            form={RECURRING_ENTRY_FORM}
+            ariaLabel="Until (empty = open)"
+            value={form.end_month}
+            onChange={set("end_month")}
+          />
           <button
             type="submit"
             form={RECURRING_ENTRY_FORM}
@@ -694,6 +693,7 @@ function RecurringEntryRow({
             Cancel
           </button>
         </div>
+        {err("end_month")}
       </td>
     </SheetEntryRow>
   );

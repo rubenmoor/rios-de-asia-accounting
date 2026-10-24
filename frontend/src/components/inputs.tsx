@@ -110,18 +110,18 @@ export function AmountInput({
   small?: boolean;
 }) {
   return (
-    <div className="flex gap-2">
+    <div className="flex min-w-40 gap-1">
       <TextInput
         name={name}
         value={value}
         onChange={onChange}
         inputMode="decimal"
-        className={small ? "num input-sm" : "num"}
+        className={`min-w-0 flex-1 ${small ? "num input-sm" : "num"}`}
         form={form}
         ariaLabel={ariaLabel}
       />
       <select
-        className={`select shrink-0 ${small ? "select-sm w-24" : "w-28"}`}
+        className={`select currency w-20 shrink-0 ${small ? "select-sm" : ""}`}
         name="currency"
         form={form}
         aria-label="Currency"

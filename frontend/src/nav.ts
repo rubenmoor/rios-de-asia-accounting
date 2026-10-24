@@ -3,7 +3,6 @@ import {
   BookingsIcon,
   ExpensesIcon,
   type IconProps,
-  ImportIcon,
   RecurringIcon,
   SettingsIcon,
 } from "./components/icons";
@@ -17,6 +16,5 @@ export const NAV: {
   { path: "/bookings", label: "Bookings", icon: BookingsIcon },
   { path: "/expenses", label: "Expenses", icon: ExpensesIcon },
   { path: "/recurring", label: "Recurring", icon: RecurringIcon },
-  { path: "/import", label: "Import", icon: ImportIcon },
   { path: "/settings", label: "Settings", icon: SettingsIcon },
 ];

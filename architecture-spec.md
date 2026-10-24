@@ -23,7 +23,7 @@ Binding: `decision 24: client-side framework: React with TypeScript, built by Vi
   - React 19 with TypeScript in strict mode;
   - React Router, with the app's URLs: `/` (dashboard) and the `NAV` paths of
     `frontend/src/nav.ts` (`/bookings`, `/expenses`, `/recurring`,
-    `/import`, `/settings`), plus a not-found page;
+    `/settings`), plus a not-found page; the Airbnb CSV import is a panel on the Bookings page;
   - TanStack Query for server data; `frontend/src/api.ts` is the only place that calls
     `fetch` (relative URLs, JSON in and out, an `ApiError` carrying status, field
     errors and text);

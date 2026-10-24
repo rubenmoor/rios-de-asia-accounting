@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { ApiError, api } from "../api";
+import { AirbnbImport } from "../components/AirbnbImport";
 import { ConfirmDelete } from "../components/ConfirmDelete";
 import { type Column, DataTable } from "../components/DataTable";
 import { Field } from "../components/Field";
@@ -101,6 +102,7 @@ export function BookingList() {
   const to = params.get("to") ?? "";
   const listing = params.get("listing") ?? "";
   const [draft, setDraft] = useState({ from, to, listing });
+  const [importing, setImporting] = useState(false);
   const options = useOptions();
   const query = new URLSearchParams();
   if (from) query.set("from", from);
@@ -128,19 +130,26 @@ export function BookingList() {
     <div>
       <PageTitle icon={<BookingsIcon />}>Bookings</PageTitle>
       <p className="mb-3 text-sm opacity-70">
-        Airbnb stays come in through the CSV export on the{" "}
-        <Link className="link" to="/import">
-          Import
-        </Link>{" "}
-        page; adding one by hand is only for stays booked elsewhere.
+        Airbnb stays come in through the CSV export (Import CSV); adding one by
+        hand is only for stays booked elsewhere.
       </p>
       <Toolbar
         onSubmit={apply}
         errors={[filterErrors.from, filterErrors.to]}
         action={
-          <Link className="btn btn-primary btn-sm" to="/bookings/new">
-            Add a stay booked outside Airbnb
-          </Link>
+          <>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              disabled={importing}
+              onClick={() => setImporting(true)}
+            >
+              Import CSV
+            </button>
+            <Link className="btn btn-primary btn-sm" to="/bookings/new">
+              Add a stay booked outside Airbnb
+            </Link>
+          </>
         }
       >
         <ToolbarField label="From">
@@ -178,6 +187,7 @@ export function BookingList() {
           Filter
         </button>
       </Toolbar>
+      {importing && <AirbnbImport onClose={() => setImporting(false)} />}
       <WaitingNotice />
       {bookings.isError && !invalid && (
         <div role="alert" className="alert alert-error mb-4">

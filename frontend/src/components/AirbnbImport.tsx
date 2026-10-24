@@ -1,15 +1,13 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { type FormEvent, useState } from "react";
-import { Link } from "react-router";
+import { type FormEvent, type ReactNode, useState } from "react";
 import { ApiError, api, postFile, type Written } from "../api";
-import { type Column, DataTable } from "../components/DataTable";
-import { Field } from "../components/Field";
-import { FormActions } from "../components/FormActions";
-import { FormError } from "../components/FormError";
-import { FormSlip } from "../components/FormSlip";
-import { ImportIcon } from "../components/icons";
-import { useNotices } from "../components/Notices";
-import { PageTitle, SectionTitle } from "../components/Titles";
+import { type Column, DataTable } from "./DataTable";
+import { Field } from "./Field";
+import { FormActions } from "./FormActions";
+import { FormError } from "./FormError";
+import { FormSlip } from "./FormSlip";
+import { useNotices } from "./Notices";
+import { SectionTitle } from "./Titles";
 
 type Change = { field: string; old: string | null; new: string };
 type PlannedBooking = {
@@ -281,7 +279,7 @@ function PreviewStep({
 
   return (
     <div>
-      <PageTitle icon={<ImportIcon />}>Import preview</PageTitle>
+      <SectionTitle>Import preview</SectionTitle>
       <FormError message={error ?? undefined} />
       <form
         onSubmit={(e) => {
@@ -357,13 +355,17 @@ function PreviewStep({
   );
 }
 
-function SummaryStep({ summary }: { summary: Summary }) {
+function SummaryStep({
+  summary,
+  onClose,
+}: {
+  summary: Summary;
+  onClose: () => void;
+}) {
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center gap-4">
-        <PageTitle icon={<ImportIcon />} className="">
-          Import done
-        </PageTitle>
+        <SectionTitle className="mb-0">Import done</SectionTitle>
         <span className="stamp" aria-hidden="true">
           Posted ✓
         </span>
@@ -387,23 +389,27 @@ function SummaryStep({ summary }: { summary: Summary }) {
         problems={summary.problems}
         warnings={summary.warnings}
       />
-      <p className="mt-4">
-        <Link className="link" to="/bookings">
-          Bookings
-        </Link>
-      </p>
+      <button
+        type="button"
+        className="btn btn-ghost btn-sm mt-4"
+        onClick={onClose}
+      >
+        Close
+      </button>
     </div>
   );
 }
 
-export function ImportPage() {
+// The Airbnb CSV import as a panel: upload, preview, result. `onClose` hides it.
+export function AirbnbImport({ onClose }: { onClose: () => void }) {
   const [preview, setPreview] = useState<Preview | null>(null);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  if (summary) return <SummaryStep summary={summary} />;
-  if (preview) {
-    return (
+  let step: ReactNode;
+  if (summary) step = <SummaryStep summary={summary} onClose={onClose} />;
+  else if (preview) {
+    step = (
       <PreviewStep
         preview={preview}
         onSummary={setSummary}
@@ -413,11 +419,19 @@ export function ImportPage() {
         }}
       />
     );
-  }
+  } else step = <UploadStep error={error} onPreview={setPreview} />;
   return (
-    <div>
-      <PageTitle icon={<ImportIcon />}>Import</PageTitle>
-      <UploadStep error={error} onPreview={setPreview} />
+    <div className="mb-6 rounded-box border border-base-300 p-4">
+      {step}
+      {!summary && (
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm mt-2"
+          onClick={onClose}
+        >
+          Close
+        </button>
+      )}
     </div>
   );
 }

@@ -105,7 +105,7 @@
     vertical-align: top;
   }
   & tr.entry .input,
-  & tr.entry .select {
+  & tr.entry .select:not(.currency) {
     width: 100%;
     min-width: 0;
   }
