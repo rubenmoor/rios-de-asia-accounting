@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { NavLink, Route, Routes } from "react-router";
 import { api } from "./api";
+import { Logo } from "./components/icons";
 import { Notices, NoticesProvider } from "./components/Notices";
 import { NAV } from "./nav";
 import { BlockedEdit, BlockedList, BlockedNew } from "./pages/Blocked";
@@ -36,6 +37,7 @@ export function App() {
       <div className="min-h-screen bg-base-200">
         <header className="flex flex-wrap items-end gap-x-2 px-4 pt-3">
           <NavLink to="/" className="btn btn-ghost text-lg mb-1">
+            <Logo />
             rios-de-asia-accounting
           </NavLink>
           <nav className="tabs tabs-lift flex-1 overflow-x-auto">
