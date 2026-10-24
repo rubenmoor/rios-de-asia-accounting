@@ -11,7 +11,7 @@ import { PageTitle, SectionTitle } from "../components/Titles";
 import { Toolbar, ToolbarField } from "../components/Toolbar";
 import { DASH, formatMoney } from "../format";
 
-type Kind = "int" | "pct" | "money" | "minutes";
+type Kind = "int" | "pct" | "money";
 
 export type Dashboard = {
   form: { month: string; from: string; to: string };
@@ -46,8 +46,6 @@ function cell(value: number | null, kind: Kind): [string, boolean] {
   switch (kind) {
     case "pct":
       return [`${(value * 100).toFixed(1)} %`, false];
-    case "minutes":
-      return [(value / 60).toFixed(1), false];
     case "money":
       return [formatMoney(Math.trunc(value)).replace("-", MINUS), value < 0];
     default:

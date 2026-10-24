@@ -1,6 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
 import { NavLink, Route, Routes } from "react-router";
-import { api } from "./api";
 import { Logo } from "./components/icons";
 import { Notices, NoticesProvider } from "./components/Notices";
 import { NAV } from "./nav";
@@ -23,14 +21,8 @@ import { ImportPage } from "./pages/Import";
 import { NotFound } from "./pages/NotFound";
 import { RateEdit, RateList, RateNew } from "./pages/Rates";
 import { SettingsPage } from "./pages/Settings";
-import { Stopped } from "./pages/Stopped";
-import { TimeEdit, TimeList, TimeNew } from "./pages/Time";
 
 export function App() {
-  const quit = useMutation({ mutationFn: () => api("POST", "/api/quit") });
-
-  if (quit.isSuccess) return <Stopped />;
-
   return (
     <NoticesProvider>
       <div className="min-h-screen bg-base-200">
@@ -53,21 +45,8 @@ export function App() {
               </NavLink>
             ))}
           </nav>
-          <button
-            type="button"
-            className="btn btn-outline btn-sm mb-1"
-            disabled={quit.isPending}
-            onClick={() => quit.mutate()}
-          >
-            Quit
-          </button>
         </header>
         <main className="card bg-base-100 shadow mx-4 mb-6 max-w-6xl p-6 xl:mx-auto">
-          {quit.isError && (
-            <div role="alert" className="alert alert-error mb-4">
-              {quit.error.message}
-            </div>
-          )}
           <Notices />
           <Routes>
             <Route path="/" element={<DashboardPage />} />
@@ -75,9 +54,6 @@ export function App() {
             <Route path="/bookings/new" element={<BookingNew />} />
             <Route path="/bookings/:id" element={<BookingDetail />} />
             <Route path="/bookings/:id/edit" element={<BookingEdit />} />
-            <Route path="/time" element={<TimeList />} />
-            <Route path="/time/new" element={<TimeNew />} />
-            <Route path="/time/:id/edit" element={<TimeEdit />} />
             <Route path="/expenses" element={<ExpenseList />} />
             <Route path="/expenses/new" element={<ExpenseNew />} />
             <Route path="/expenses/:id/edit" element={<ExpenseEdit />} />
