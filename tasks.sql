@@ -1595,12 +1595,12 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 - Buttons: primary Save/Apply, secondary Cancel/Reset links, danger Delete with the confirm dialogs kept; a "journal entry slip" feel for form cards.
 - Build on the conventions from part 1''s plan (`styling foundation`); its implementation tasks `--requires` the part 1 implementation tasks they need.
 - Keep the ground rules: no functional change, tests keep passing, offline, no new JavaScript.', '2026-10-23T22:36:12Z', '2026-10-24T00:14:55Z', 56, 0, NULL, 'main');
-INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (60, 11, 'write the plan for part 4: playful bookkeeping touches and favicon', 'plan', 'open', 1000, NULL, 'Write the plan for part 4 of `plan 11: masterplan` (see its body): **Playful bookkeeping touches and favicon**, `pm plan add 2 "playful bookkeeping touches and favicon" --priority 200 --intro "…"`.
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (60, 11, 'write the plan for part 4: playful bookkeeping touches and favicon', 'plan', 'done', 1000, '2026-10-24, plan 22: playful bookkeeping touches and favicon (priority 200); split task 117 requires task 111 (part 3''s split)', 'Write the plan for part 4 of `plan 11: masterplan` (see its body): **Playful bookkeeping touches and favicon**, `pm plan add 2 "playful bookkeeping touches and favicon" --priority 200 --intro "…"`.
 
 - Covers: favicon (ledger/abacus/calculator motif as SVG plus PNG/ICO fallback in `web/static/`, linked from `base.html`); app title/logo in the navbar; inline-SVG section icons; friendly empty states; a styled "stopped" page after Quit; double underline under totals; a "balanced ✓" / rubber-stamp look on the import summary.
 - Only decorative wording may change; existing messages and labels stay.
 - It decorates finished pages: its implementation tasks `--requires` the implementation tasks of parts 2 and 3 (`spreadsheet-style tables and dashboard`, `forms and actions`) that touch the same templates.
-- Keep the ground rules: no functional change, offline (inline SVG / plain CSS only), readability first.', '2026-10-23T22:36:12Z', NULL, 56, 0, NULL, 'main');
+- Keep the ground rules: no functional change, offline (inline SVG / plain CSS only), readability first.', '2026-10-23T22:36:12Z', '2026-10-24T00:16:03Z', 56, 0, NULL, 'main');
 INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (61, 12, 'write the masterplan of milestone 3: add a proper client-side framework', 'masterplan', 'done', NULL, '2026-10-23, plan 12 body and intro; decision 24 recorded, decision 25 raised', 'Write `plan 12: masterplan`, the masterplan of `milestone 3: add a proper client-side framework`: expand on everything that needs to be done to achieve it,
 divided into parts, with an intro in plain English (`pm plan edit 12 --intro "…" --body -`). State in the masterplan that its own tasks are not implementation work: each of them writes the
 plan for one part.', '2026-10-23T22:40:12Z', '2026-10-23T22:42:16Z', NULL, 0, NULL, NULL);
@@ -1984,7 +1984,7 @@ task''s result (in this plan or another, in any work tree) requires it: `pm task
 `pm task requires <task id> <prerequisite id>` for an existing one; priority is only a hint and orders nothing across
 work trees. When you drop an open task that others require and add one in its place, drop it with
 `--replaced-by <new task id>`.', '2026-10-24T00:12:11Z', '2026-10-24T00:12:41Z', 57, 0, NULL, NULL);
-INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (103, 19, 'ledger theme and shared number classes', 'work', 'open', NULL, NULL, 'Part of `plan 19: styling foundation`; follow the plan''s ground rules (no functional change, offline, no new npm deps, light only: `decision 28: visual design: one light ledger theme, no dark mode`).
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (103, 19, 'ledger theme and shared number classes', 'work', 'done', NULL, '2026-10-23, frontend/src/index.css, frontend/index.html', 'Part of `plan 19: styling foundation`; follow the plan''s ground rules (no functional change, offline, no new npm deps, light only: `decision 28: visual design: one light ledger theme, no dark mode`).
 
 Files: `frontend/src/index.css`, `frontend/index.html`.
 
@@ -2000,7 +2000,7 @@ Files: `frontend/src/index.css`, `frontend/index.html`.
 - Contrast: body text and `error` on `base-100` at least WCAG AA (check the ratios with a quick ad-hoc calculation).
 - Don''t apply `num`/`neg` to pages yet; that is later work.
 
-Done when: `npm run typecheck`, `npm run lint`, `npm test`, `npm run build` (in `frontend/`), `pytest` and `nix flake check` pass, and every page renders in the new colours with nothing else changed (look at it via `rios-de-asia-accounting --no-browser`).', '2026-10-24T00:12:39Z', NULL, 102, 0, NULL, 'main');
+Done when: `npm run typecheck`, `npm run lint`, `npm test`, `npm run build` (in `frontend/`), `pytest` and `nix flake check` pass, and every page renders in the new colours with nothing else changed (look at it via `rios-de-asia-accounting --no-browser`).', '2026-10-24T00:12:39Z', '2026-10-24T00:16:50Z', 102, 0, NULL, 'main');
 INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (104, 19, 'app shell: sheet tabs, paper card, notices', 'work', 'open', NULL, NULL, 'Part of `plan 19: styling foundation`; follow the plan''s ground rules (no functional change, offline, no new npm deps, icons as inline SVG).
 
 Files: `frontend/src/App.tsx`, `frontend/src/components/Notices.tsx`, `frontend/src/pages/Stopped.tsx`.
@@ -2154,13 +2154,63 @@ Files: new `frontend/src/components/Toolbar.tsx` (or reuse what task 109 made), 
 - README "Styling conventions": add `Toolbar`.
 
 Done when all five list pages and the dashboard use the same strip with the same filters and links, and `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`, `pytest`, `nix flake check` pass; checked in the running app.', '2026-10-24T00:15:51Z', NULL, 111, 0, NULL, 'main');
-INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (117, 22, 'create tasks for plan 22: playful bookkeeping touches and favicon', 'split', 'open', 1000, NULL, 'Split `plan 22: playful bookkeeping touches and favicon` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (117, 22, 'create tasks for plan 22: playful bookkeeping touches and favicon', 'split', 'done', 1000, '2026-10-24, tasks 118-122', 'Split `plan 22: playful bookkeeping touches and favicon` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
 done and dropped ones stay as they are (pm refuses to change them): drop the open ones that no longer fit and add
 tasks for what the plan asks beyond them. A task that writes a plan gets `--kind plan`. A task that needs another
 task''s result (in this plan or another, in any work tree) requires it: `pm task add … --requires <task id>`, or
 `pm task requires <task id> <prerequisite id>` for an existing one; priority is only a hint and orders nothing across
 work trees. When you drop an open task that others require and add one in its place, drop it with
-`--replaced-by <new task id>`.', '2026-10-24T00:15:56Z', NULL, 60, 0, NULL, NULL);
+`--replaced-by <new task id>`.', '2026-10-24T00:15:56Z', '2026-10-24T00:16:50Z', 60, 0, NULL, NULL);
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (118, 22, 'favicon and navbar logo', 'work', 'open', NULL, NULL, 'Part of `plan 22: playful bookkeeping touches and favicon`; follow its ground rules (no functional change, offline, inline SVG, `currentColor`, theme colours, one light theme per `decision 28: visual design: one light ledger theme, no dark mode`).
+
+Files: `frontend/src/assets/favicon.svg`, `frontend/src/assets/favicon-32.png`, `frontend/src/assets/apple-touch-icon.png`, `frontend/index.html`, `frontend/src/components/icons.tsx` (create it if part 1 hasn''t), `frontend/src/App.tsx`, `README.md`.
+
+- Favicon: a ledger motif (e.g. an open ledger book with green rules and a red margin line, or an abacus), legible at 16×16, as `frontend/src/assets/favicon.svg`.
+- PNGs rendered once from the SVG with a tool at hand (e.g. `nix shell nixpkgs#librsvg -c rsvg-convert -w 32 -h 32 …`) and committed: `favicon-32.png` (32×32) and `apple-touch-icon.png` (180×180).
+- **Path caveat:** Flask serves only `/assets/*` as files and answers every other GET with `index.html`, so don''t use `frontend/public/` (that lands at `/favicon.svg` and gets HTML back). Link the files from `index.html` as `/src/assets/…`; Vite hashes them into `/assets/`. No server change.
+  - `<link rel="icon" type="image/svg+xml" href="/src/assets/favicon.svg">`, a PNG fallback `<link rel="icon" type="image/png" sizes="32x32" …>`, and `<link rel="apple-touch-icon" …>`. Title unchanged.
+- `Logo` component in `icons.tsx` (same motif, inline SVG, `className` prop, `role="img"` + `aria-label`, or `aria-hidden` if the link text already names it) placed before the app-name link text in the navbar; the text "rios-de-asia-accounting" stays.
+- README "Styling conventions": mention the favicon files, the `src/assets` path reason, and `Logo`.
+
+Done when the browser tab shows the icon in the built app served by Flask (`rios-de-asia-accounting --no-browser`; the page source links `/assets/…` and those URLs return the images, not HTML), the navbar shows the logo next to the unchanged name, and `npm run typecheck`, `npm run lint`, `npm test`, `npm run build` (in `frontend/`), `pytest` and `nix flake check` pass.', '2026-10-24T00:16:43Z', NULL, 117, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (119, 22, 'section icons on sheet tabs and page titles', 'work', 'open', NULL, NULL, 'Part of `plan 22: playful bookkeeping touches and favicon`; follow its ground rules (decorative icons `aria-hidden`, inline SVG, `currentColor`, no new dependencies, no functional change).
+
+Files: `frontend/src/components/icons.tsx`, `frontend/src/nav.ts`, `frontend/src/App.tsx`, the section pages in `frontend/src/pages/`, `README.md`.
+
+- One small stroke icon per nav entry in `icons.tsx` (`viewBox="0 0 24 24"`, `className` prop): Bookings (calendar/bed), Expenses (receipt), Recurring (circular arrows), Blocked days (calendar with a cross), Time (clock), Rates (coins/exchange), Import (tray with arrow), Settings (gear); Dashboard (bar chart/ledger) only if the shell shows a home tab.
+- `nav.ts` entries get an `icon` field; the sheet tabs render icon + the same label, in the same order and paths.
+- `PageTitle`''s icon slot (from `task 105: PageTitle/SectionTitle components and README styling conventions`) filled on each section''s pages: list, form and detail pages use their section''s icon.
+- README "Styling conventions": list the section icons and how to use them with `nav.ts` and `PageTitle`.
+
+Done when every tab and page title carries its icon, the nav reads the same (labels, order, links), it still fits/wraps at narrow width, and `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`, `pytest`, `nix flake check` pass; checked in the running app.', '2026-10-24T00:16:44Z', NULL, 117, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (120, 22, 'friendly empty states: doodles in empty tables and on the empty dashboard', 'work', 'open', NULL, NULL, 'Part of `plan 22: playful bookkeeping touches and favicon`; follow its ground rules (existing texts unchanged, decorations `aria-hidden`, inline SVG with `currentColor` and theme colours, no new dependencies).
+
+Files: `frontend/src/components/icons.tsx` (doodles), `frontend/src/components/DataTable.tsx`, `frontend/src/pages/Dashboard.tsx`, `README.md`.
+
+- `DataTable`''s empty row: above the unchanged `empty` text ("No bookings.", "No expenses.", "None yet." …), a small doodle (blank ledger page, pencil) and a muted decorative caption such as "The ledger is blank", both `aria-hidden`. Still one row spanning all columns (plus the row-number gutter from `task 107: sheet table style and DataTable spreadsheet frame`).
+- Dashboard "Nothing here yet: …" (text and links unchanged) on a light card (`base-200`/paper look) with a larger doodle (empty ledger or sleeping calculator).
+- Doodles as components in `icons.tsx`; README "Styling conventions" mentions them.
+
+Done when every empty list (bookings, expenses list/recurring/generated, blocked days, time, rates, booking detail lines if they can be empty) and the empty dashboard show the doodle with the same text, checked in the running app with an empty database (e.g. a fresh data dir via `XDG_DATA_HOME`), and `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`, `pytest`, `nix flake check` pass.', '2026-10-24T00:16:44Z', NULL, 117, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (121, 22, 'double underline under totals and POSTED stamp on the import summary', 'work', 'open', NULL, NULL, 'Part of `plan 22: playful bookkeeping touches and favicon`; follow its ground rules (same numbers, texts, counts and links; decorations `aria-hidden`; theme colours; CSS only, no new JavaScript behaviour).
+
+Files: `frontend/src/index.css`, `frontend/src/pages/Expenses.tsx`, `frontend/src/pages/Time.tsx`, `frontend/src/pages/Import.tsx`, `README.md`.
+
+- Accountant''s double underline: a `total` class in `index.css` (`border-bottom: 3px double` in the ink colour, on the figure cell), used on the total figure cells of the Expenses and Time footer rows (`<th>Total</th>` rows). Dashboard: only where a row is a sum; none is today, so don''t invent one.
+- Import summary (`SummaryStep` in `pages/Import.tsx`):
+  - a rubber-stamp badge beside "Import done": outlined, ledger green, uppercase, rotated a few degrees, e.g. "POSTED ✓", `aria-hidden`. Always shown; it says the import was posted, never that anything balanced.
+  - the counts as a tidy ledger list (label left, count right with `num`, thin rules); problems/warnings unchanged.
+  - optionally the same small stamp on the TRM "rates loaded" `alert-success`.
+- README "Styling conventions": the `total` class and the stamp class.
+
+Done when the import summary shows the stamp with all its counts and links unchanged (import a sample Airbnb CSV and a TRM file in the running app), the Expenses and Time totals are double underlined, and `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`, `pytest`, `nix flake check` pass.', '2026-10-24T00:16:44Z', NULL, 117, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (122, 22, 'stopped page: logo and books-closed doodle', 'work', 'open', NULL, NULL, 'Part of `plan 22: playful bookkeeping touches and favicon`; follow its ground rules (same h1 text, decorations `aria-hidden`, inline SVG, no new dependencies).
+
+Files: `frontend/src/pages/Stopped.tsx`, `frontend/src/components/icons.tsx`.
+
+- On part 1''s paper card: the `Logo` from `task 118: favicon and navbar logo`, the unchanged h1 "rios-de-asia-accounting has stopped, you can close this tab", a "books closed" doodle (closed ledger with a ribbon bookmark) in `icons.tsx`, and a muted decorative line such as "The books are closed for today." (`aria-hidden`).
+
+Done when Quit leads to the decorated page with the same sentence (check in the running app; the server stops, so the page must render without further requests), and `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`, `pytest`, `nix flake check` pass.', '2026-10-24T00:16:44Z', NULL, 117, 0, NULL, 'main');
 
 INSERT INTO decision (id, subject, status, options, body, intro, answer, reason, created_at, closed_at, created_by_task, signoff, kind, decided_by_task, consequences) VALUES (1, 'Sign off the masterplan of milestone 1: first version build', 'answered', '["approve"]', '', 'This is the overall roadmap for building the first working version of a small, private bookkeeping app for one Airbnb apartment. The app turns every booking and every cost into amounts per calendar day, so it can answer whether hosting pays off, whether prices are set well, and how things are trending. The roadmap splits the build into parts, starting with a short architecture document the owner approves before anything else is built, and ending with a check against the real Airbnb export.
 
@@ -2311,7 +2361,10 @@ INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, b
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (101, 106, '2026-10-24T00:13:49Z', '2026-10-24T00:14:34Z', 'done', NULL, 0, '072e8b2830e12142a69ac1b7f9949c815dec5a8c', NULL, 'claude-opus-5-5', '5bf806c8-9e01-4d20-b5e9-cfb14ba30404', NULL, 8, 16, 4290, 278646, 32829, 0.4042252, 44700, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (102, 59, '2026-10-24T00:14:03Z', '2026-10-24T00:15:02Z', 'done', NULL, 0, '072e8b2830e12142a69ac1b7f9949c815dec5a8c', 'main', 'claude-opus-5-5', '2f5a2dd8-42ee-4a9a-895a-9d355d7eaa8e', NULL, 8, 16, 5439, 302613, 40479, 0.49319860000000004, 52955, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (103, 111, '2026-10-24T00:14:55Z', '2026-10-24T00:16:01Z', 'done', NULL, 0, '9b4c33450fb744cd7278d4519a95b4495bbb33d9', NULL, 'claude-opus-5-5', 'dc4200da-c7a2-4a8b-b40a-cb830ff040a6', NULL, 8, 16, 5452, 291292, 37232, 0.4652184, 49109, 60, 1465683);
-INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (104, 60, '2026-10-24T00:15:02Z', NULL, 'running', NULL, NULL, '9b4c33450fb744cd7278d4519a95b4495bbb33d9', 'main', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (104, 60, '2026-10-24T00:15:02Z', '2026-10-24T00:16:10Z', 'done', NULL, 0, '9b4c33450fb744cd7278d4519a95b4495bbb33d9', 'main', 'claude-opus-5-5', '857b7591-aca9-4031-9544-5ebe771ef686', NULL, 10, 20, 6113, 381991, 38142, 0.5038742, 50631, 60, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (105, 117, '2026-10-24T00:16:01Z', '2026-10-24T00:16:54Z', 'done', NULL, 0, 'c02fc7f8355a537ee1f6a5618522bea3aec11794', NULL, 'claude-opus-5-5', '8d0c492d-23aa-4382-bb5b-76b2573cc007', NULL, 8, 16, 5596, 253515, 31780, 0.41692700000000005, 44070, 60, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (106, 103, '2026-10-24T00:16:10Z', '2026-10-24T00:16:54Z', 'done', NULL, 0, 'c02fc7f8355a537ee1f6a5618522bea3aec11794', 'main', 'claude-sonnet-5-5', '1c5bedb7-b344-407b-9aef-31199b7b72ea', NULL, 7, 14, 2646, 192567, 20716, 0.12860870000000002, 33051, 60, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (107, 104, '2026-10-24T00:16:54Z', NULL, 'running', NULL, NULL, '8905c35fe5ae81beebf875ead37f87c4b64ebc3e', 'main', NULL, NULL, 106, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1465683);
 
 INSERT INTO task_decision (task_id, decision_id) VALUES (2, 1);
 INSERT INTO task_decision (task_id, decision_id) VALUES (4, 2);
@@ -2473,3 +2526,14 @@ INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (115, 112)
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (116, 109);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (116, 112);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (117, 111);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (118, 104);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (119, 105);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (119, 118);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (120, 107);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (120, 109);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (120, 118);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (121, 107);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (121, 115);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (121, 118);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (122, 105);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (122, 118);
