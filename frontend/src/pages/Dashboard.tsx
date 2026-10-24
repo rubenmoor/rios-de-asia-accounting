@@ -9,7 +9,8 @@ import { DateInput, MonthInput } from "../components/inputs";
 import { PageTitle, SectionTitle } from "../components/Titles";
 import { Toolbar, ToolbarField } from "../components/Toolbar";
 import { WaitingNotice } from "../components/WaitingNotice";
-import { DASH, formatMoney } from "../format";
+import { DASH, formatDisplay } from "../format";
+import { useDisplay } from "../useDisplay";
 
 type Kind = "int" | "pct" | "money";
 
@@ -40,13 +41,17 @@ export type Dashboard = {
 const MINUS = "−";
 
 // Text and sign of one table cell; null (not computable) is a dash.
-function cell(value: number | null, kind: Kind): [string, boolean] {
+function cell(
+  value: number | null,
+  kind: Kind,
+  money: (cents: number | null) => string,
+): [string, boolean] {
   if (value === null) return [DASH, false];
   switch (kind) {
     case "pct":
       return [`${(value * 100).toFixed(1)} %`, false];
     case "money":
-      return [formatMoney(Math.trunc(value)).replace("-", MINUS), value < 0];
+      return [money(Math.trunc(value)).replace("-", MINUS), value < 0];
     default:
       return [String(value), false];
   }
@@ -169,6 +174,7 @@ export function DashboardPage() {
 
 function DashboardBody({ data }: { data: Dashboard }) {
   const { breakdown } = data;
+  const { currency, money, convert } = useDisplay();
   const hasCosts = breakdown?.items.some((item) => item.amount !== 0);
   const hasHistory = data.rolling_90.length > 0;
 
@@ -178,7 +184,7 @@ function DashboardBody({ data }: { data: Dashboard }) {
         <table className="table sheet">
           <thead>
             <tr>
-              <th className="sticky left-0 z-10">USD unless stated</th>
+              <th className="sticky left-0 z-10">{currency} unless stated</th>
               {data.columns.map((c) => (
                 <th key={c.label} className="num">
                   {c.label}
@@ -195,7 +201,7 @@ function DashboardBody({ data }: { data: Dashboard }) {
               <tr key={row.key}>
                 <th className="sticky left-0 z-10">{row.label}</th>
                 {row.values.map((value, i) => {
-                  const [text, negative] = cell(value, row.kind);
+                  const [text, negative] = cell(value, row.kind, money);
                   return (
                     <td
                       // biome-ignore lint/suspicious/noArrayIndexKey: one value per column
@@ -219,7 +225,7 @@ function DashboardBody({ data }: { data: Dashboard }) {
         <p>The 90-day chart starts once 90 days of history exist.</p>
       ) : (
         <>
-          <h3 className="text-lg font-bold">ADR and RevPAR (USD)</h3>
+          <h3 className="text-lg font-bold">ADR and RevPAR ({currency})</h3>
           {data.rolling_90.every((p) => p.adr === null && p.revpar === null) ? (
             <p>Nothing to chart.</p>
           ) : (
@@ -229,18 +235,18 @@ function DashboardBody({ data }: { data: Dashboard }) {
                   label: "ADR",
                   points: data.rolling_90.map((p) => ({
                     date: p.date,
-                    value: p.adr,
+                    value: p.adr === null ? null : convert(p.adr),
                   })),
                 },
                 {
                   label: "RevPAR",
                   points: data.rolling_90.map((p) => ({
                     date: p.date,
-                    value: p.revpar,
+                    value: p.revpar === null ? null : convert(p.revpar),
                   })),
                 },
               ]}
-              yFormat={(v) => formatMoney(Math.round(v))}
+              yFormat={(v) => formatDisplay(Math.round(v), currency)}
               yMin={0}
               width={800}
               height={280}
@@ -285,16 +291,16 @@ function DashboardBody({ data }: { data: Dashboard }) {
               <BarChart
                 items={breakdown.items.map((i) => ({
                   label: i.label,
-                  value: i.amount,
+                  value: convert(i.amount),
                 }))}
-                valueFormat={(v) => formatMoney(Math.round(v))}
+                valueFormat={(v) => formatDisplay(Math.round(v), currency)}
               />
               <div className="overflow-x-auto">
                 <table className="table sheet w-auto">
                   <thead>
                     <tr>
                       <th className="sticky left-0 z-10">Category</th>
-                      <th className="num">USD</th>
+                      <th className="num">{currency}</th>
                       <th className="num">Share</th>
                     </tr>
                   </thead>
@@ -303,7 +309,7 @@ function DashboardBody({ data }: { data: Dashboard }) {
                       <tr key={item.key}>
                         <th className="sticky left-0 z-10">{item.label}</th>
                         <td className="num">
-                          {formatMoney(Math.trunc(item.amount))}
+                          {money(Math.trunc(item.amount))}
                         </td>
                         <td className="num">
                           {item.share === null

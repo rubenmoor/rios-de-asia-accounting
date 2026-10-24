@@ -1,6 +1,9 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { NavLink, Route, Routes } from "react-router";
+import { api, type Written } from "./api";
 import { Logo } from "./components/icons";
-import { Notices, NoticesProvider } from "./components/Notices";
+import { Notices, NoticesProvider, useNotices } from "./components/Notices";
+import { formatAmount } from "./format";
 import { NAV } from "./nav";
 import {
   BookingDetail,
@@ -17,6 +20,45 @@ import {
 } from "./pages/Expenses";
 import { NotFound } from "./pages/NotFound";
 import { SettingsPage } from "./pages/Settings";
+import { type Display, useDisplay } from "./useDisplay";
+
+// The display currency switch (decision 48): choosing COP or EUR fetches today's
+// rate on the server; on a refusal the select stays at the stored value.
+function CurrencySwitch() {
+  const display = useDisplay();
+  const client = useQueryClient();
+  const { setNotices } = useNotices();
+  const change = useMutation({
+    mutationFn: (currency: string) =>
+      api<Written<Display>>("PUT", "/api/display", { currency }),
+    onSuccess: (result) => {
+      setNotices(result.notices);
+      client.invalidateQueries({ queryKey: ["display"] });
+    },
+    onError: (error) => setNotices([{ level: "error", text: error.message }]),
+  });
+  return (
+    <div className="flex items-center gap-2 mb-1 text-sm">
+      {display.currency !== "USD" && (
+        <span className="opacity-70">
+          1 USD = {formatAmount(Math.round(display.rate / 10_000), "USD")}{" "}
+          {display.currency} · rate of {display.rate_date}
+        </span>
+      )}
+      <select
+        aria-label="Display currency"
+        className="select select-sm w-auto"
+        value={display.currency}
+        disabled={change.isPending}
+        onChange={(e) => change.mutate(e.target.value)}
+      >
+        {display.currencies.map((c) => (
+          <option key={c}>{c}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
 
 export function App() {
   return (
@@ -41,6 +83,7 @@ export function App() {
               </NavLink>
             ))}
           </nav>
+          <CurrencySwitch />
         </header>
         <main className="card bg-base-100 shadow mx-4 mb-6 max-w-6xl p-6 xl:mx-auto">
           <Notices />

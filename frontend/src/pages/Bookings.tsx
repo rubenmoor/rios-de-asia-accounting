@@ -22,13 +22,8 @@ import { useNotices } from "../components/Notices";
 import { PageTitle, SectionTitle } from "../components/Titles";
 import { Toolbar, ToolbarField } from "../components/Toolbar";
 import { WaitingNotice } from "../components/WaitingNotice";
-import {
-  DASH,
-  formatAmount,
-  formatMoney,
-  showMoney,
-  showOriginal,
-} from "../format";
+import { DASH, formatAmount, showOriginal } from "../format";
+import { useDisplay } from "../useDisplay";
 import { useSave } from "../useSave";
 
 type Summary = {
@@ -64,10 +59,12 @@ type Detail = Summary & {
 };
 type Options = { listings: string[]; default_currency: string };
 
+type Money = (cents: number | null) => string;
+
 const dash = (text: string | number | null | undefined) =>
   text === null || text === undefined || text === "" ? "-" : String(text);
 
-const COLUMNS: Column<Summary>[] = [
+const columns = (currency: string, money: Money): Column<Summary>[] => [
   {
     header: "Check-in",
     cell: (b) => b.check_in,
@@ -78,12 +75,12 @@ const COLUMNS: Column<Summary>[] = [
   { header: "Listing", cell: (b) => dash(b.listing) },
   { header: "Nights", cell: (b) => b.nights, numeric: true },
   {
-    header: "Net payout (USD)",
+    header: `Net payout (${currency})`,
     cell: (b) =>
       b.waiting ? (
         <span className="text-warning">waiting for rate</span>
       ) : (
-        showMoney(b.net_payout)
+        money(b.net_payout)
       ),
     numeric: true,
   },
@@ -97,6 +94,7 @@ function useOptions() {
 }
 
 export function BookingList() {
+  const { currency, money } = useDisplay();
   const [params, setParams] = useSearchParams();
   const from = params.get("from") ?? "";
   const to = params.get("to") ?? "";
@@ -195,7 +193,7 @@ export function BookingList() {
         </div>
       )}
       <DataTable
-        columns={COLUMNS}
+        columns={columns(currency, money)}
         rows={bookings.data ?? []}
         rowKey={(b) => b.id}
         empty="No bookings."
@@ -204,7 +202,7 @@ export function BookingList() {
   );
 }
 
-const LINE_COLUMNS: Column<Line>[] = [
+const lineColumns = (currency: string, money: Money): Column<Line>[] => [
   { header: "Date", cell: (l) => l.date },
   { header: "Type", cell: (l) => l.type },
   {
@@ -224,12 +222,12 @@ const LINE_COLUMNS: Column<Line>[] = [
     numeric: true,
   },
   {
-    header: "USD",
+    header: currency,
     cell: (l) =>
       l.amount_usd === null ? (
         <span className="text-warning">waiting for rate</span>
       ) : (
-        formatMoney(l.amount_usd)
+        money(l.amount_usd)
       ),
     numeric: true,
     negative: (l) => l.amount_usd !== null && l.amount_usd < 0,
@@ -263,14 +261,15 @@ const deleteQuestion = (imported: boolean) =>
     : undefined;
 
 export function BookingDetail() {
+  const { currency, money } = useDisplay();
   const { id } = useParams();
   const booking = useBooking(id);
   if (!booking.data) return <Loading query={booking} />;
   const b = booking.data;
-  const money = (label: string, v: number | null) => (
+  const row = (label: string, v: number | null) => (
     <tr>
       <th>{label}</th>
-      <td className="num">{v === null ? "–" : `${formatMoney(v)} USD`}</td>
+      <td className="num">{v === null ? "–" : `${money(v)} ${currency}`}</td>
     </tr>
   );
   return (
@@ -306,16 +305,16 @@ export function BookingDetail() {
               <th>Nights</th>
               <td>{b.nights}</td>
             </tr>
-            {money("Net payout", b.net_payout)}
-            {money("Gross", b.gross)}
-            {money("Airbnb fee", b.airbnb_fee)}
-            {money("Co-host cost", b.cohost_cost)}
+            {row("Net payout", b.net_payout)}
+            {row("Gross", b.gross)}
+            {row("Airbnb fee", b.airbnb_fee)}
+            {row("Co-host cost", b.cohost_cost)}
           </tbody>
         </table>
       </div>
       <SectionTitle className="mt-6 mb-2">Lines</SectionTitle>
       <DataTable
-        columns={LINE_COLUMNS}
+        columns={lineColumns(currency, money)}
         rows={b.lines}
         rowKey={(l) => `${l.date}${l.type}${l.currency}${l.amount_minor}`}
         empty="No lines."
@@ -335,6 +334,7 @@ export function BookingDetail() {
 type Form = Record<string, string>;
 
 function BookingForm({ booking }: { booking?: Detail }) {
+  const { currency, money } = useDisplay();
   const imported = booking?.imported ?? false;
   const options = useOptions();
   const navigate = useNavigate();
@@ -404,7 +404,7 @@ function BookingForm({ booking }: { booking?: Detail }) {
             <p className="inked mb-2">
               {booking.check_in} – {booking.check_out} ·{" "}
               {dash(booking.guest_name)} · {dash(booking.listing)} ·{" "}
-              {showMoney(booking.net_payout)} USD
+              {money(booking.net_payout)} {currency}
             </p>
           ) : (
             <>
