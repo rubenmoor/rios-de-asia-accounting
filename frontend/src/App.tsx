@@ -13,9 +13,8 @@ import {
 } from "./pages/Bookings";
 import { DashboardPage } from "./pages/Dashboard";
 import {
-  ExpenseEdit,
   ExpenseList,
-  RecurringEdit,
+  RecurringDetailPage,
   RecurringList,
 } from "./pages/Expenses";
 import { NotFound } from "./pages/NotFound";
@@ -94,9 +93,8 @@ export function App() {
             <Route path="/bookings/:id" element={<BookingDetail />} />
             <Route path="/bookings/:id/edit" element={<BookingEdit />} />
             <Route path="/expenses" element={<ExpenseList />} />
-            <Route path="/expenses/:id/edit" element={<ExpenseEdit />} />
             <Route path="/recurring" element={<RecurringList />} />
-            <Route path="/recurring/:id" element={<RecurringEdit />} />
+            <Route path="/recurring/:id" element={<RecurringDetailPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

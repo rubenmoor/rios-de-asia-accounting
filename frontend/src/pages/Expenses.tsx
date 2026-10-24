@@ -10,11 +10,7 @@ import {
   SheetEntryRow,
   SheetFooterRow,
 } from "../components/DataTable";
-import { Field } from "../components/Field";
 import { FieldError } from "../components/FieldError";
-import { FormActions } from "../components/FormActions";
-import { FormError } from "../components/FormError";
-import { FormSlip } from "../components/FormSlip";
 import { ExpensesIcon, RecurringIcon } from "../components/icons";
 import {
   AmountInput,
@@ -82,11 +78,7 @@ function Loaded<T>({
 }
 
 const expenseColumns = (currency: string): Column<Expense>[] => [
-  {
-    header: "Date",
-    cell: (e) => e.date,
-    href: (e) => `/expenses/${e.id}/edit`,
-  },
+  { header: "Date", cell: (e) => e.date },
   { header: "Category", cell: (e) => e.category },
   { header: "Description", cell: (e) => e.description },
   {
@@ -96,9 +88,19 @@ const expenseColumns = (currency: string): Column<Expense>[] => [
   },
   {
     header: "Source",
-    cell: (e) => (e.recurring_expense_id != null ? "generated" : ""),
+    cell: (e) =>
+      e.recurring_expense_id != null ? (
+        <Link className="link" to={`/recurring/${e.recurring_expense_id}`}>
+          generated
+        </Link>
+      ) : (
+        ""
+      ),
   },
 ];
+
+// What is open in a sheet: a new entry, the row with this id, or nothing.
+type Open = "new" | number | null;
 
 export function ExpenseList() {
   const { currency, money } = useDisplay();
@@ -115,17 +117,9 @@ export function ExpenseList() {
     queryKey: ["expenses", from, to, category],
     queryFn: () => api<Expense[]>("GET", `/api/expenses?${query}`),
   });
-  const options = useQuery({
-    queryKey: ["expenses", "options"],
-    queryFn: () => api<ExpenseOptions>("GET", "/api/expenses/options"),
-  });
-  const [adding, setAdding] = useState(false);
-  const adder = useSave({
-    method: "POST",
-    path: "/api/expenses",
-    resource: "expenses",
-    onSaved: () => setAdding(false),
-  });
+  const options = useExpenseOptions();
+  const [open, setOpen] = useState<Open>(null);
+  const close = () => setOpen(null);
   const filterErrors =
     expenses.error instanceof ApiError ? expenses.error.fieldErrors : {};
 
@@ -153,8 +147,8 @@ export function ExpenseList() {
             className="btn btn-primary btn-sm btn-square"
             aria-label="Add expense"
             title="Add expense"
-            disabled={adding}
-            onClick={() => setAdding(true)}
+            disabled={open !== null}
+            onClick={() => setOpen("new")}
           >
             +
           </button>
@@ -202,23 +196,28 @@ export function ExpenseList() {
             {expenses.error.message}
           </div>
         )}
-      <FormError message={adder.errors[""]} />
       <DataTable
         columns={expenseColumns(currency)}
         rows={rows}
         rowKey={(e) => e.id}
         empty="No expenses."
-        entry={
-          adding &&
+        onEdit={
+          open === null && options.data ? (e) => setOpen(e.id) : undefined
+        }
+        editing={open}
+        editRow={(e) =>
           options.data && (
             <ExpenseEntryRow
+              expense={e}
               options={options.data}
-              saver={adder}
-              onCancel={() => {
-                adder.resetErrors();
-                setAdding(false);
-              }}
+              onClose={close}
             />
+          )
+        }
+        entry={
+          open === "new" &&
+          options.data && (
+            <ExpenseEntryRow options={options.data} onClose={close} />
           )
         }
         footer={
@@ -242,32 +241,62 @@ function localToday() {
 
 const ENTRY_FORM = "expense-entry";
 
+// The row for typing an expense: empty (today) to add, prefilled to edit.
 function ExpenseEntryRow({
+  expense,
   options,
-  saver,
-  onCancel,
+  onClose,
 }: {
+  expense?: Expense;
   options: ExpenseOptions;
-  saver: ReturnType<typeof useSave>;
-  onCancel: () => void;
+  onClose: () => void;
 }) {
-  const [form, setForm] = useState<Form>({
-    date: localToday(),
-    amount: "",
-    currency: options.default_currency,
-    category: options.categories[0] ?? "",
-    booking_id: "",
-    useful_life_days: "",
-    description: "",
-  });
+  const [form, setForm] = useState<Form>(
+    expense
+      ? {
+          date: expense.date,
+          amount: formatAmount(expense.original_minor, expense.currency),
+          currency: expense.currency,
+          category: expense.category,
+          booking_id:
+            expense.booking_id != null ? String(expense.booking_id) : "",
+          useful_life_days:
+            expense.useful_life_days != null
+              ? String(expense.useful_life_days)
+              : "",
+          description: expense.description,
+        }
+      : {
+          date: localToday(),
+          amount: "",
+          currency: options.default_currency,
+          category: options.categories[0] ?? "",
+          booking_id: "",
+          useful_life_days: "",
+          description: "",
+        },
+  );
   const set = (name: string) => (value: string) =>
     setForm((f) => ({ ...f, [name]: value }));
+  const saver = useSave({
+    method: expense ? "PUT" : "POST",
+    path: expense ? `/api/expenses/${expense.id}` : "/api/expenses",
+    resource: "expenses",
+    onSaved: onClose,
+  });
+  const remover = useSave({
+    method: "DELETE",
+    path: `/api/expenses/${expense?.id}`,
+    resource: "expenses",
+    onSaved: onClose,
+  });
   const { errors } = saver;
   const err = (name: string) =>
     errors[name] && <FieldError small>{errors[name]}</FieldError>;
+  const generated = expense?.recurring_expense_id != null;
 
   return (
-    <SheetEntryRow>
+    <SheetEntryRow mark={expense ? "✎" : "+"} onEscape={onClose}>
       <td>
         <form
           id={ENTRY_FORM}
@@ -276,22 +305,15 @@ function ExpenseEntryRow({
             saver.save(form);
           }}
         />
-        {/* biome-ignore lint/a11y/noStaticElementInteractions: Escape cancels from any input of the row */}
-        <div
-          onKeyDown={(e) => {
-            if (e.key === "Escape") onCancel();
-          }}
-        >
-          <DateInput
-            className="input-sm"
-            name="date"
-            form={ENTRY_FORM}
-            ariaLabel="Date"
-            value={form.date}
-            onChange={set("date")}
-          />
-          {err("date")}
-        </div>
+        <DateInput
+          className="input-sm"
+          name="date"
+          form={ENTRY_FORM}
+          ariaLabel="Date"
+          value={form.date}
+          onChange={set("date")}
+        />
+        {err("date")}
       </td>
       <td>
         <Select
@@ -366,6 +388,11 @@ function ExpenseEntryRow({
         {err("currency")}
       </td>
       <td>
+        {generated && (
+          <div className="mb-1 text-sm opacity-70">
+            generated · your edits are kept
+          </div>
+        )}
         <div className="flex gap-2">
           <button
             type="submit"
@@ -378,160 +405,27 @@ function ExpenseEntryRow({
           <button
             type="button"
             className="btn btn-ghost btn-sm"
-            onClick={onCancel}
+            onClick={onClose}
           >
             Cancel
           </button>
+          {expense && (
+            <ConfirmDelete
+              label="Delete"
+              question="Delete this expense?"
+              detail={
+                generated
+                  ? "It was generated from a recurring expense, so it comes back the next time months are generated."
+                  : undefined
+              }
+              pending={remover.pending}
+              onConfirm={() => remover.save()}
+            />
+          )}
         </div>
+        {err("")}
       </td>
     </SheetEntryRow>
-  );
-}
-
-function ExpenseForm({
-  expense,
-  options,
-}: {
-  expense: Expense;
-  options: ExpenseOptions;
-}) {
-  const [form, setForm] = useState<Form>({
-    date: expense.date,
-    amount: formatAmount(expense.original_minor, expense.currency),
-    currency: expense.currency,
-    category: expense.category,
-    booking_id: expense.booking_id != null ? String(expense.booking_id) : "",
-    useful_life_days:
-      expense.useful_life_days != null ? String(expense.useful_life_days) : "",
-    description: expense.description,
-  });
-  const set = (name: string) => (value: string) =>
-    setForm((f) => ({ ...f, [name]: value }));
-
-  const saver = useSave({
-    method: "PUT",
-    path: `/api/expenses/${expense.id}`,
-    resource: "expenses",
-    redirectTo: () => "/expenses",
-  });
-  const remover = useSave({
-    method: "DELETE",
-    path: `/api/expenses/${expense.id}`,
-    resource: "expenses",
-    redirectTo: () => "/expenses",
-  });
-  const { errors } = saver;
-
-  return (
-    <div>
-      <PageTitle icon={<ExpensesIcon />}>Edit expense</PageTitle>
-      {expense.recurring_expense_id != null && (
-        <p className="opacity-70 mb-4">
-          Generated from a{" "}
-          <Link
-            className="link"
-            to={`/recurring/${expense.recurring_expense_id}`}
-          >
-            recurring expense
-          </Link>
-          ; your edits are kept.
-        </p>
-      )}
-      <FormError message={errors[""]} />
-      <FormSlip label="Expense">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            saver.save(form);
-          }}
-        >
-          <Field label="Date" error={errors.date}>
-            <DateInput name="date" value={form.date} onChange={set("date")} />
-          </Field>
-          <Field label="Amount" error={errors.amount}>
-            <AmountInput
-              name="amount"
-              value={form.amount}
-              currency={form.currency}
-              onChange={set("amount")}
-              onCurrencyChange={set("currency")}
-            />
-          </Field>
-          <Field label="Category" error={errors.category}>
-            <Select
-              name="category"
-              value={form.category}
-              onChange={set("category")}
-            >
-              {options.categories.map((c) => (
-                <option key={c}>{c}</option>
-              ))}
-            </Select>
-          </Field>
-          {form.category === "per_booking" && (
-            <Field
-              label="Booking"
-              hint="only for per_booking"
-              error={errors.booking_id}
-            >
-              <Select
-                name="booking_id"
-                value={form.booking_id}
-                onChange={set("booking_id")}
-              >
-                <option value="">–</option>
-                {options.bookings.map((b) => (
-                  <option key={b.id} value={String(b.id)}>
-                    {b.label}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-          )}
-          {form.category === "capex" && (
-            <Field
-              label="Useful life in days"
-              hint="only for capex; 3 years ≈ 1095"
-              error={errors.useful_life_days}
-            >
-              <NumberInput
-                name="useful_life_days"
-                value={form.useful_life_days}
-                onChange={set("useful_life_days")}
-              />
-            </Field>
-          )}
-          <Field label="Description" error={errors.description}>
-            <TextField
-              name="description"
-              value={form.description}
-              onChange={set("description")}
-              className="w-full"
-            />
-          </Field>
-          <FormActions>
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={saver.pending}
-            >
-              Save
-            </button>
-            <Link className="btn btn-ghost" to="/expenses">
-              Cancel
-            </Link>
-          </FormActions>
-        </form>
-        <div className="mt-6 border-t border-base-300 pt-4">
-          <ConfirmDelete
-            label="Delete expense"
-            question="Delete this expense?"
-            pending={remover.pending}
-            onConfirm={() => remover.save()}
-          />
-        </div>
-      </FormSlip>
-    </div>
   );
 }
 
@@ -542,30 +436,8 @@ function useExpenseOptions() {
   });
 }
 
-export function ExpenseEdit() {
-  const { id } = useParams();
-  const options = useExpenseOptions();
-  const expense = useQuery({
-    queryKey: ["expenses", id],
-    queryFn: () => api<Expense>("GET", `/api/expenses/${id}`),
-  });
-  return (
-    <Loaded query={expense}>
-      {(e) => (
-        <Loaded query={options}>
-          {(o) => <ExpenseForm key={e.id} expense={e} options={o} />}
-        </Loaded>
-      )}
-    </Loaded>
-  );
-}
-
 const RECURRING_COLUMNS: Column<Recurring>[] = [
-  {
-    header: "Description",
-    cell: (t) => t.description,
-    href: (t) => `/recurring/${t.id}`,
-  },
+  { header: "Description", cell: (t) => t.description },
   { header: "Category", cell: (t) => t.category },
   {
     header: "Amount / month",
@@ -583,31 +455,56 @@ function localMonth() {
 
 const RECURRING_ENTRY_FORM = "recurring-entry";
 
+// The row for typing a recurring expense: empty (this month) to add,
+// prefilled to edit.
 function RecurringEntryRow({
+  item,
   options,
-  saver,
-  onCancel,
+  onClose,
 }: {
-  options: { categories: string[]; default_currency: string };
-  saver: ReturnType<typeof useSave>;
-  onCancel: () => void;
+  item?: Recurring;
+  options: RecurringOptions;
+  onClose: () => void;
 }) {
-  const [form, setForm] = useState<Form>({
-    description: "",
-    category: options.categories[0] ?? "",
-    amount: "",
-    currency: options.default_currency,
-    start_month: localMonth(),
-    end_month: "",
-  });
+  const [form, setForm] = useState<Form>(
+    item
+      ? {
+          description: item.description,
+          category: item.category,
+          amount: formatAmount(item.amount_minor, item.currency),
+          currency: item.currency,
+          start_month: item.start_month,
+          end_month: item.end_month ?? "",
+        }
+      : {
+          description: "",
+          category: options.categories[0] ?? "",
+          amount: "",
+          currency: options.default_currency,
+          start_month: localMonth(),
+          end_month: "",
+        },
+  );
   const set = (name: string) => (value: string) =>
     setForm((f) => ({ ...f, [name]: value }));
+  const saver = useSave({
+    method: item ? "PUT" : "POST",
+    path: item ? `/api/recurring/${item.id}` : "/api/recurring",
+    resource: "recurring",
+    onSaved: onClose,
+  });
+  const remover = useSave({
+    method: "DELETE",
+    path: `/api/recurring/${item?.id}`,
+    resource: "recurring",
+    onSaved: onClose,
+  });
   const { errors } = saver;
   const err = (name: string) =>
     errors[name] && <FieldError small>{errors[name]}</FieldError>;
 
   return (
-    <SheetEntryRow>
+    <SheetEntryRow mark={item ? "✎" : "+"} onEscape={onClose}>
       <td>
         <form
           id={RECURRING_ENTRY_FORM}
@@ -616,22 +513,15 @@ function RecurringEntryRow({
             saver.save(form);
           }}
         />
-        {/* biome-ignore lint/a11y/noStaticElementInteractions: Escape cancels from any input of the row */}
-        <div
-          onKeyDown={(e) => {
-            if (e.key === "Escape") onCancel();
-          }}
-        >
-          <TextField
-            className="input-sm"
-            name="description"
-            form={RECURRING_ENTRY_FORM}
-            ariaLabel="Description"
-            value={form.description}
-            onChange={set("description")}
-          />
-          {err("description")}
-        </div>
+        <TextField
+          className="input-sm"
+          name="description"
+          form={RECURRING_ENTRY_FORM}
+          ariaLabel="Description"
+          value={form.description}
+          onChange={set("description")}
+        />
+        {err("description")}
       </td>
       <td>
         <Select
@@ -694,15 +584,41 @@ function RecurringEntryRow({
           <button
             type="button"
             className="btn btn-ghost btn-sm"
-            onClick={onCancel}
+            onClick={onClose}
           >
             Cancel
           </button>
+          {item && (
+            <ConfirmDelete
+              label="Delete"
+              question="Delete this template? Its generated expenses are kept."
+              pending={remover.pending}
+              onConfirm={() => remover.save()}
+            />
+          )}
         </div>
         {err("end_month")}
+        {err("")}
+        {item && (
+          <p className="mt-1 text-sm opacity-70">
+            Changes only affect months not generated yet.{" "}
+            <Link className="link" to={`/recurring/${item.id}`}>
+              Generated expenses
+            </Link>
+          </p>
+        )}
       </td>
     </SheetEntryRow>
   );
+}
+
+type RecurringOptions = { categories: string[]; default_currency: string };
+
+function useRecurringOptions() {
+  return useQuery({
+    queryKey: ["recurring", "options"],
+    queryFn: () => api<RecurringOptions>("GET", "/api/recurring/options"),
+  });
 }
 
 export function RecurringList() {
@@ -711,13 +627,8 @@ export function RecurringList() {
     queryFn: () => api<Recurring[]>("GET", "/api/recurring"),
   });
   const options = useRecurringOptions();
-  const [adding, setAdding] = useState(false);
-  const adder = useSave({
-    method: "POST",
-    path: "/api/recurring",
-    resource: "recurring",
-    onSaved: () => setAdding(false),
-  });
+  const [open, setOpen] = useState<Open>(null);
+  const close = () => setOpen(null);
   return (
     <div>
       <PageTitle icon={<RecurringIcon />}>Recurring expenses</PageTitle>
@@ -727,13 +638,12 @@ export function RecurringList() {
           className="btn btn-primary btn-sm btn-square"
           aria-label="Add recurring expense"
           title="Add recurring expense"
-          disabled={adding}
-          onClick={() => setAdding(true)}
+          disabled={open !== null}
+          onClick={() => setOpen("new")}
         >
           +
         </button>
       </p>
-      <FormError message={adder.errors[""]} />
       <Loaded query={items}>
         {(rows) => (
           <DataTable
@@ -741,17 +651,23 @@ export function RecurringList() {
             rows={rows}
             rowKey={(t) => t.id}
             empty="No recurring expenses."
-            entry={
-              adding &&
+            onEdit={
+              open === null && options.data ? (t) => setOpen(t.id) : undefined
+            }
+            editing={open}
+            editRow={(t) =>
               options.data && (
                 <RecurringEntryRow
+                  item={t}
                   options={options.data}
-                  saver={adder}
-                  onCancel={() => {
-                    adder.resetErrors();
-                    setAdding(false);
-                  }}
+                  onClose={close}
                 />
+              )
+            }
+            entry={
+              open === "new" &&
+              options.data && (
+                <RecurringEntryRow options={options.data} onClose={close} />
               )
             }
           />
@@ -761,11 +677,12 @@ export function RecurringList() {
   );
 }
 
+// Dates link to the expenses list narrowed to that day, where they are edited.
 const generatedColumns = (currency: string): Column<Expense>[] => [
   {
     header: "Date",
     cell: (e) => e.date,
-    href: (e) => `/expenses/${e.id}/edit`,
+    href: (e) => `/expenses?from=${e.date}&to=${e.date}`,
   },
   {
     header: `Amount (${currency})`,
@@ -774,145 +691,10 @@ const generatedColumns = (currency: string): Column<Expense>[] => [
   },
 ];
 
-function RecurringForm({
-  item,
-  categories,
-}: {
-  item: RecurringDetail;
-  categories: string[];
-}) {
-  const { currency } = useDisplay();
-  const [form, setForm] = useState<Form>({
-    description: item.description,
-    amount: formatAmount(item.amount_minor, item.currency),
-    currency: item.currency,
-    category: item.category,
-    start_month: item.start_month,
-    end_month: item.end_month ?? "",
-  });
-  const set = (name: string) => (value: string) =>
-    setForm((f) => ({ ...f, [name]: value }));
-
-  const saver = useSave<RecurringDetail>({
-    method: "PUT",
-    path: `/api/recurring/${item.id}`,
-    resource: "recurring",
-    redirectTo: () => `/recurring/${item.id}`,
-  });
-  const remover = useSave({
-    method: "DELETE",
-    path: `/api/recurring/${item.id}`,
-    resource: "recurring",
-    redirectTo: () => "/recurring",
-  });
-  const { errors } = saver;
-
-  return (
-    <div>
-      <PageTitle icon={<RecurringIcon />}>Edit recurring expense</PageTitle>
-      <p className="opacity-70 mb-4">
-        Changes only affect months not generated yet; the expenses below stay as
-        they are and are edited one by one.
-      </p>
-      <FormError message={errors[""]} />
-      <FormSlip label="Recurring expense">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            saver.save(form);
-          }}
-        >
-          <Field label="Description" error={errors.description}>
-            <TextField
-              name="description"
-              value={form.description}
-              onChange={set("description")}
-              className="w-full"
-            />
-          </Field>
-          <Field label="Amount per month" error={errors.amount}>
-            <AmountInput
-              name="amount"
-              value={form.amount}
-              currency={form.currency}
-              onChange={set("amount")}
-              onCurrencyChange={set("currency")}
-            />
-          </Field>
-          <Field label="Category" error={errors.category}>
-            <Select
-              name="category"
-              value={form.category}
-              onChange={set("category")}
-            >
-              {categories.map((c) => (
-                <option key={c}>{c}</option>
-              ))}
-            </Select>
-          </Field>
-          <Field label="Start month" error={errors.start_month}>
-            <MonthInput
-              name="start_month"
-              value={form.start_month}
-              onChange={set("start_month")}
-            />
-          </Field>
-          <Field label="End month" hint="optional" error={errors.end_month}>
-            <MonthInput
-              name="end_month"
-              value={form.end_month}
-              onChange={set("end_month")}
-            />
-          </Field>
-          <FormActions>
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={saver.pending}
-            >
-              Save
-            </button>
-            <Link className="btn btn-ghost" to="/recurring">
-              Cancel
-            </Link>
-          </FormActions>
-        </form>
-        <div className="mt-6 border-t border-base-300 pt-4">
-          <ConfirmDelete
-            label="Delete template"
-            question="Delete this template? Its generated expenses are kept."
-            pending={remover.pending}
-            onConfirm={() => remover.save()}
-          />
-        </div>
-      </FormSlip>
-      <>
-        <SectionTitle className="mt-6 mb-2">Generated expenses</SectionTitle>
-        <DataTable
-          columns={generatedColumns(currency)}
-          rows={item.generated}
-          rowKey={(e) => e.id}
-          empty="None yet."
-        />
-      </>
-    </div>
-  );
-}
-
-function useRecurringOptions() {
-  return useQuery({
-    queryKey: ["recurring", "options"],
-    queryFn: () =>
-      api<{ categories: string[]; default_currency: string }>(
-        "GET",
-        "/api/recurring/options",
-      ),
-  });
-}
-
-export function RecurringEdit() {
+// Read-only: the template's terms and the expenses generated from it.
+export function RecurringDetailPage() {
   const { id } = useParams();
-  const options = useRecurringOptions();
+  const { currency } = useDisplay();
   const item = useQuery({
     queryKey: ["recurring", id],
     queryFn: () => api<RecurringDetail>("GET", `/api/recurring/${id}`),
@@ -920,11 +702,24 @@ export function RecurringEdit() {
   return (
     <Loaded query={item}>
       {(t) => (
-        <Loaded query={options}>
-          {(o) => (
-            <RecurringForm key={t.id} item={t} categories={o.categories} />
-          )}
-        </Loaded>
+        <div>
+          <PageTitle icon={<RecurringIcon />}>{t.description}</PageTitle>
+          <p className="mb-4">
+            {showOriginal(t.amount_minor, t.currency)} per month · {t.category}{" "}
+            · from {t.start_month} until {t.end_month ?? "open"}.{" "}
+            <Link className="link" to="/recurring">
+              Edit it in the list
+            </Link>
+            ; changes only affect months not generated yet.
+          </p>
+          <SectionTitle className="mb-2">Generated expenses</SectionTitle>
+          <DataTable
+            columns={generatedColumns(currency)}
+            rows={t.generated}
+            rowKey={(e) => e.id}
+            empty="None yet."
+          />
+        </div>
       )}
     </Loaded>
   );

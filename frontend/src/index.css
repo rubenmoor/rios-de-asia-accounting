@@ -95,6 +95,9 @@
       transparent
     );
   }
+  & tbody tr.editable {
+    cursor: pointer;
+  }
   /* Entry row: the row being typed; inputs fill their cells. */
   & tbody tr.entry td:not(.gutter) {
     background-color: color-mix(
