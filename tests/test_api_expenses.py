@@ -1,5 +1,7 @@
 import pytest
 
+from rios_de_asia_accounting import conversion
+from rios_de_asia_accounting.rates import RateUnavailable
 from rios_de_asia_accounting.storage.db import connect, migrate
 from rios_de_asia_accounting.web.app import create_app
 
@@ -14,10 +16,12 @@ def client(tmp_path):
 
 
 def test_expense_create_filter_delete(client):
-    body = {"date": "2026-01-05", "amount": "1.500.000", "category": "fixed"}
+    body = {"date": "2026-01-05", "amount": "1.500,25", "currency": "EUR", "category": "fixed"}
     saved = client.post("/api/expenses", json=body).get_json()
-    assert saved["data"]["amount"] == 1500000
+    assert saved["data"]["amount"] == 187_531  # 1500.25 EUR at 0.8 per USD
+    assert (saved["data"]["original_minor"], saved["data"]["rate_date"]) == (150_025, "2026-01-05")
     assert saved["notices"] == [{"level": "info", "text": "Expense saved."}]
+    assert client.get("/api/expenses/options").get_json()["default_currency"] == "EUR"
     assert len(client.get("/api/expenses?category=fixed").get_json()) == 1
     assert client.get("/api/expenses?category=tax").get_json() == []
     assert client.delete(f"/api/expenses/{saved['data']['id']}").status_code == 200
@@ -30,10 +34,29 @@ def test_invalid_expense_is_422(client):
     assert {"date", "booking_id"} <= set(response.get_json()["errors"])
 
 
+def test_offline_save_waits_then_fetch_converts(client, monkeypatch):
+    def offline(start, end):
+        raise RateUnavailable("no connection")
+
+    fetch = conversion.FETCHERS["COP"]
+    monkeypatch.setitem(conversion.FETCHERS, "COP", offline)
+    body = {"date": "2026-01-05", "amount": "400.000", "currency": "COP", "category": "fixed"}
+    saved = client.post("/api/expenses", json=body).get_json()
+    assert saved["data"]["amount"] is None and saved["data"]["waiting"]
+    assert saved["notices"][0]["level"] == "warning"
+    assert "No COP rate for 2026-01-05" in saved["notices"][0]["text"]
+    assert client.get("/api/rates/waiting").get_json() == {"waiting": 1}
+
+    monkeypatch.setitem(conversion.FETCHERS, "COP", fetch)
+    assert client.post("/api/rates/fetch").get_json()["data"] == {"waiting": 0}
+    assert client.get("/api/expenses").get_json()[0]["amount"] == 10_000
+
+
 def test_recurring_generates_expenses(client):
     body = {
         "description": "Internet",
         "amount": "90.000",
+        "currency": "COP",
         "category": "fixed",
         "start_month": "2026-01",
     }
@@ -45,9 +68,20 @@ def test_recurring_generates_expenses(client):
 
 
 def test_expense_fields_ignored_for_other_categories(client):
-    booking = {"check_in": "2026-03-01", "check_out": "2026-03-03", "net_payout": "1"}
+    booking = {
+        "check_in": "2026-03-01",
+        "check_out": "2026-03-03",
+        "amount": "1",
+        "currency": "USD",
+    }
     bid = str(client.post("/api/bookings", json=booking).get_json()["data"]["id"])
-    body = {"date": "2026-03-05", "amount": "10.000", "booking_id": bid, "useful_life_days": "x"}
+    body = {
+        "date": "2026-03-05",
+        "amount": "10",
+        "currency": "USD",
+        "booking_id": bid,
+        "useful_life_days": "x",
+    }
     saved = client.post("/api/expenses", json={**body, "category": "fixed"}).get_json()["data"]
     assert saved["booking_id"] is None and saved["useful_life_days"] is None
     body["useful_life_days"] = "1095"
@@ -58,12 +92,12 @@ def test_expense_fields_ignored_for_other_categories(client):
 
 
 def test_recurring_edit_keeps_generated_rows(client):
-    body = {"description": "rent", "amount": "1.000.000", "category": "fixed"}
+    body = {"description": "rent", "amount": "1.000.000", "currency": "COP", "category": "fixed"}
     saved = client.post("/api/recurring", json={**body, "start_month": "2026-08"}).get_json()
     item = saved["data"]
     edited = client.put(
         f"/api/recurring/{item['id']}",
         json={**body, "amount": "2000000", "start_month": "2026-08"},
     ).get_json()["data"]
-    assert edited["amount"] == 2000000
+    assert (edited["amount_minor"], edited["currency"]) == (200_000_000, "COP")
     assert [e["amount"] for e in edited["generated"]] == [e["amount"] for e in item["generated"]]

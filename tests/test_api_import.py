@@ -38,14 +38,8 @@ def test_airbnb_preview_apply_flow(client):
     assert client.post("/api/import/airbnb/apply", json={"token": token}).status_code == 422
 
 
-def test_cancel_and_rates_import(client):
+def test_cancel(client):
     preview = client.post("/api/import/airbnb", data={"file": _file("airbnb_sample.csv")})
     token = preview.get_json()["data"]["token"]
     cancelled = client.delete(f"/api/import/airbnb/{token}").get_json()
     assert cancelled["notices"][0]["text"] == "Import cancelled; nothing was changed."
-
-    assert client.post("/api/import/rates", data={"currency": "USD"}).status_code == 422
-    done = client.post(
-        "/api/import/rates", data={"currency": "USD", "file": _file("trm_sample.csv")}
-    )
-    assert done.get_json()["data"]["added"] > 0

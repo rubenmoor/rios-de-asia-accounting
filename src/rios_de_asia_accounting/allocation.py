@@ -1,4 +1,4 @@
-"""The per-day view: bookings, expenses and time log → list[Day].
+"""The per-day view: bookings and expenses → list[Day], money in US cents.
 
 Pure: no database, no clock (`today` is a parameter). Every amount is split over its
 full span with `split`, so the days sum exactly to it; only days up to today are kept.
@@ -92,9 +92,8 @@ def _expense_span(
 def allocate(inputs: Inputs, today: date, start: date | None = None) -> list[Day]:
     """One Day per date from `start` to `today` inclusive.
 
-    The default start is the earliest day any input touches: a check-in, a time
-    entry, or the first day an expense is spread over (the 1st of its month for a fixed or
-    per-night cost).
+    The default start is the earliest day any input touches: a check-in or the first day
+    an expense is spread over (the 1st of its month for a fixed or per-night cost).
     """
     bookings = {b.id: b for b in inputs.bookings if b.id is not None}
     booked = {night for b in inputs.bookings for night in _nights(b)}
@@ -102,6 +101,7 @@ def allocate(inputs: Inputs, today: date, start: date | None = None) -> list[Day
     items = [
         (COLUMNS[e.category], _expense_span(e, bookings, booked, mode), e.amount)
         for e in inputs.expenses
+        if e.amount is not None  # waiting for a rate: left out
     ] + [
         ("cost_per_booking", _booking_cost_span(b, mode), b.cohost_cost)
         for b in inputs.bookings

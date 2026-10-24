@@ -1,11 +1,22 @@
-from datetime import date, timedelta
+from datetime import timedelta
 
 from flask import request
 
+from rios_de_asia_accounting.conversion import convert_waiting
 from rios_de_asia_accounting.model import Expense, RecurringExpense
 from rios_de_asia_accounting.recurring import generate_recurring
 from rios_de_asia_accounting.storage import repo
-from rios_de_asia_accounting.web.api.common import bp, info, invalid, ok, read_form
+from rios_de_asia_accounting.web.api.common import (
+    bp,
+    info,
+    invalid,
+    money_options,
+    ok,
+    read_form,
+    saved_notice,
+    today,
+    warning,
+)
 from rios_de_asia_accounting.web.app_db import get_db
 from rios_de_asia_accounting.web.forms import Form, booking_options
 
@@ -33,7 +44,8 @@ def _read_expense(form: Form) -> None:
 
 def _fill_expense(form: Form, expense: Expense) -> None:
     expense.date = form.values["date"]
-    expense.amount = form.values["amount"]
+    expense.original_minor = form.values["amount"]
+    expense.currency = form.values["currency"]
     expense.category = form.values["category"]
     expense.booking_id = form.values["booking_id"]
     expense.useful_life_days = form.values["useful_life_days"]
@@ -52,15 +64,22 @@ def _read_recurring(form: Form) -> None:
 
 def _fill_recurring(form: Form, item: RecurringExpense) -> None:
     item.description = form.values["description"]
-    item.amount = form.values["amount"]
+    item.amount_minor = form.values["amount"]
+    item.currency = form.values["currency"]
     item.category = form.values["category"]
     item.start_month = form.values["start_month"].isoformat()[:7]
     end = form.values["end_month"]
     item.end_month = end.isoformat()[:7] if end else None
 
 
-def _recurring_saved(created: int) -> str:
-    return f"Recurring expense saved; {created} expense(s) generated."
+def _recurring_saved(created: int, waiting: int) -> dict:
+    text = f"Recurring expense saved; {created} expense(s) generated."
+    if not waiting:
+        return info(text)
+    return warning(
+        f"{text} {waiting} of them wait for an exchange rate (no connection?) and are left"
+        " out of the figures until it is fetched."
+    )
 
 
 RECURRING_DELETED = "Recurring expense deleted; the expenses it generated are kept."
@@ -70,7 +89,12 @@ def _expense(e: Expense) -> dict:
     return {
         "id": e.id,
         "date": e.date.isoformat(),
-        "amount": e.amount,
+        "amount": e.amount,  # US cents, None while waiting for a rate
+        "original_minor": e.original_minor,
+        "currency": e.currency,
+        "rate": e.rate,
+        "rate_date": e.rate_date.isoformat() if e.rate_date else None,
+        "waiting": e.amount is None,
         "category": e.category,
         "booking_id": e.booking_id,
         "useful_life_days": e.useful_life_days,
@@ -83,7 +107,8 @@ def _recurring(r: RecurringExpense) -> dict:
     return {
         "id": r.id,
         "description": r.description,
-        "amount": r.amount,
+        "amount_minor": r.amount_minor,
+        "currency": r.currency,
         "category": r.category,
         "start_month": r.start_month,
         "end_month": r.end_month,
@@ -117,10 +142,12 @@ def list_expenses():
 
 @bp.get("/expenses/options")
 def expense_options():
-    bookings = booking_options(repo.list_bookings(get_db()))
+    conn = get_db()
+    bookings = booking_options(repo.list_bookings(conn))
     return {
         "categories": EXPENSE_CATEGORIES,
         "bookings": [{"id": i, "label": label} for i, label in bookings],
+        **money_options(conn),
     }
 
 
@@ -139,12 +166,15 @@ def _save_expense(expense: Expense, saving):
         form.apply(lambda: saving(conn, expense))
     if not form.ok:
         return invalid(form)
-    return ok(_expense(expense), [info("Expense saved.")])
+    convert_waiting(conn, today())
+    saved = repo.get_expense(conn, expense.id)
+    notice = saved_notice("expense", saved.amount is None, saved.currency, saved.date)
+    return ok(_expense(saved), [notice])
 
 
 @bp.post("/expenses")
 def create_expense():
-    return _save_expense(Expense(date.today(), 0, ""), repo.create_expense)
+    return _save_expense(Expense(today(), None, ""), repo.create_expense)
 
 
 @bp.put("/expenses/<int:expense_id>")
@@ -171,7 +201,7 @@ def list_recurring():
 
 @bp.get("/recurring/options")
 def recurring_options():
-    return {"categories": RECURRING_CATEGORIES}
+    return {"categories": RECURRING_CATEGORIES, **money_options(get_db())}
 
 
 @bp.get("/recurring/<int:item_id>")
@@ -190,8 +220,10 @@ def _save_recurring(item: RecurringExpense, saving):
         form.apply(lambda: saving(conn, item))
     if not form.ok:
         return invalid(form)
-    created = generate_recurring(conn, date.today())
-    return ok(_recurring_detail(conn, item), [info(_recurring_saved(created))])
+    created = generate_recurring(conn, today())
+    convert_waiting(conn, today())
+    waiting = sum(e.amount is None for e in repo.list_expenses_of_recurring(conn, item.id))
+    return ok(_recurring_detail(conn, item), [_recurring_saved(created, waiting)])
 
 
 @bp.post("/recurring")

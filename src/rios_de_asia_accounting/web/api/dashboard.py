@@ -2,16 +2,17 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import date
 
-from flask import current_app, request
+from flask import request
 
 from rios_de_asia_accounting import metrics
+from rios_de_asia_accounting.conversion import waiting_count
 from rios_de_asia_accounting.recurring import load_days
 from rios_de_asia_accounting.storage import repo
-from rios_de_asia_accounting.web.api.common import bp, error
+from rios_de_asia_accounting.web.api.common import bp, error, today
 from rios_de_asia_accounting.web.app_db import get_db
 from rios_de_asia_accounting.web.forms import parse_date, parse_month
 
-# (label, Metrics attribute, kind); money kinds are COP
+# (label, Metrics attribute, kind); money kinds are US cents
 ROWS = [
     ("Available nights", "available_nights", "int"),
     ("Occupied nights", "occupied_nights", "int"),
@@ -48,7 +49,7 @@ class Dashboard:
     """The dashboard's data before any formatting; turned into JSON by `dashboard()`."""
 
     messages: list[str]
-    needing: int
+    waiting: int
     form: dict[str, str]
     days: list = field(default_factory=list)
     columns: list[tuple[str, metrics.DateRange]] = field(default_factory=list)
@@ -91,7 +92,7 @@ def build_dashboard(conn, today: date, args: Mapping[str, str]) -> Dashboard:
     days = load_days(conn, today)
     result = Dashboard(
         messages=messages,
-        needing=sum(1 for b in repo.list_bookings(conn) if b.needs_rate),
+        waiting=waiting_count(conn),
         form={
             "month": month.strftime("%Y-%m") if month_ok else month_raw,
             "from": start_raw,
@@ -137,11 +138,10 @@ def _range(rng: metrics.DateRange) -> dict:
 
 @bp.get("/dashboard")
 def dashboard():
-    today = current_app.config.get("TODAY") or date.today()
-    data = build_dashboard(get_db(), today, request.args)
+    data = build_dashboard(get_db(), today(), request.args)
     body: dict = {
         "form": data.form,
-        "needing_rate": data.needing,
+        "waiting": data.waiting,
         "empty": data.empty,
         "columns": [],
         "rows": [],

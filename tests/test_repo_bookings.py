@@ -2,10 +2,15 @@ from datetime import date
 
 import pytest
 
-from rios_de_asia_accounting.model import Booking, BookingLine, ExchangeRate
-from rios_de_asia_accounting.money import to_cop
+from rios_de_asia_accounting import conversion
+from rios_de_asia_accounting.model import Booking, BookingLine
+from rios_de_asia_accounting.money import to_usd
+from rios_de_asia_accounting.rates import RateUnavailable
 from rios_de_asia_accounting.storage import repo
 from rios_de_asia_accounting.storage.db import connect, migrate
+
+TODAY = date(2026, 10, 23)
+COP = 4_000_000_000  # the fixed test rate, see conftest
 
 
 @pytest.fixture
@@ -26,25 +31,24 @@ def stay(code=None, cin="2026-01-01", cout="2026-01-04", **kw):
 @pytest.mark.parametrize(
     ("minor", "rate", "expected"),
     [
-        (10_000, 412345, 412_345),
-        (1, 5000, 1),  # 0.5 -> 1
-        (-1, 5000, -1),  # -0.5 -> -1
-        (1, 4999, 0),
-        (-1, 4999, 0),
-        (3, 5000, 2),  # 1.5 -> 2
-        (-3, 5000, -2),
-        (2, 5000, 1),  # exact
-        (0, 412345, 0),
-        (-10_000, 412345, -412_345),
+        (400_000, COP, 100),  # 4000 COP = 1.00 USD
+        (200_000, COP, 50),
+        (2, 4_000_000, 1),  # 0.5 -> 1
+        (-2, 4_000_000, -1),  # -0.5 -> -1
+        (1, 4_000_000, 0),
+        (8_829, 882_920, 10_000),  # EUR 88.29 at 0.88292 per USD
+        (10_000, 1_000_000, 10_000),  # USD
     ],
 )
-def test_to_cop(minor, rate, expected):
-    assert to_cop(minor, rate) == expected
+def test_to_usd(minor, rate, expected):
+    assert to_usd(minor, rate) == expected
 
 
 def test_manual_booking_round_trip(conn):
     b = stay(listing="L", guest_name="Ana", guests=2, notes="hi")
-    bid = repo.create_booking(conn, b, manual_amount_cop=300_000)
+    bid = repo.create_booking(conn, b, manual_amount=(120_000_000, "COP"))
+    assert repo.get_booking(conn, bid).waiting
+    conversion.convert_waiting(conn, TODAY)
     got = repo.get_booking(conn, bid)
     assert got == Booking(
         id=bid,
@@ -55,18 +59,19 @@ def test_manual_booking_round_trip(conn):
         guests=2,
         notes="hi",
         nights=3,
-        net_payout=300_000,
+        net_payout=30_000,
     )
     lines = repo.list_lines(conn, bid)
-    assert [(ln.type, ln.currency, ln.rate, ln.amount_cop) for ln in lines] == [
-        ("Manual", "COP", 100, 300_000)
+    assert [(ln.type, ln.currency, ln.rate, ln.rate_date, ln.amount_usd) for ln in lines] == [
+        ("Manual", "COP", COP, d("2026-01-01"), 30_000)
     ]
 
     got.guest_name = "Bea"
-    repo.update_booking(conn, got, manual_amount_cop=350_000)
+    repo.update_booking(conn, got, manual_amount=(350_00, "USD"))
+    conversion.convert_waiting(conn, TODAY)
     again = repo.get_booking(conn, bid)
     assert again.guest_name == "Bea"
-    assert again.net_payout == 350_000
+    assert again.net_payout == 350_00
     assert len(repo.list_lines(conn, bid)) == 1
 
     repo.delete_booking(conn, bid)
@@ -91,62 +96,59 @@ def test_find_by_code_and_lists(conn):
 def test_add_line_dedup_and_totals(conn):
     bid = repo.create_booking(conn, stay("A"))
     line = BookingLine(
-        bid, "Reservation", d("2026-01-04"), "COP", 50_000_000, gross_minor=60_000_000
+        bid, "Reservation", d("2026-01-04"), "COP", 200_000_000, gross_minor=240_000_000
     )
     assert repo.add_line(conn, line) is True
-    assert line.id is not None and line.amount_cop == 500_000
-    dup = BookingLine(bid, "Reservation", d("2026-01-04"), "COP", 50_000_000)
+    dup = BookingLine(bid, "Reservation", d("2026-01-04"), "COP", 200_000_000)
     assert repo.add_line(conn, dup) is False
-    cohost = BookingLine(bid, "Co-Host payout", d("2026-01-04"), "COP", -5_000_000)
+    cohost = BookingLine(bid, "Co-Host payout", d("2026-01-04"), "COP", -20_000_000)
     assert repo.add_line(conn, cohost) is True
+    assert conversion.convert_waiting(conn, TODAY) == 0
     got = repo.get_booking(conn, bid)
-    assert (got.net_payout, got.cohost_cost, got.gross) == (500_000, 50_000, 600_000)
-    assert got.needs_rate is False
+    assert (got.net_payout, got.cohost_cost, got.gross) == (50_000, 5_000, 60_000)
+    assert got.waiting is False
 
 
-def test_rate_for_on_or_before(conn):
-    repo.set_exchange_rate(conn, ExchangeRate(d("2026-01-10"), "USD", 400_000))
-    repo.set_exchange_rate(conn, ExchangeRate(d("2026-01-20"), "USD", 410_000))
-    assert repo.rate_for(conn, "USD", d("2026-01-09")) is None
-    assert repo.rate_for(conn, "USD", d("2026-01-10")) == 400_000
-    assert repo.rate_for(conn, "USD", d("2026-01-19")) == 400_000
-    assert repo.rate_for(conn, "USD", d("2026-01-20")) == 410_000
-    assert repo.rate_for(conn, "COP", d("2020-01-01")) == 100
-    assert [r.date for r in repo.list_exchange_rates(conn, "USD")] == [
-        d("2026-01-20"),
+def _rates(conn, *rows):
+    conn.executemany("INSERT INTO exchange_rates VALUES (?, 'COP', ?)", rows)
+    conn.execute("INSERT INTO rate_coverage VALUES ('COP', '2026-01-20')")
+
+
+def test_rate_on_or_before_from_the_cache(conn, monkeypatch):
+    monkeypatch.setitem(conversion.FETCHERS, "COP", None)  # any fetch would fail
+    _rates(conn, ("2026-01-10", 4_000_000_000), ("2026-01-17", 4_100_000_000))
+    assert conversion.rate_on(conn, "COP", d("2026-01-12"), TODAY) == (
+        4_000_000_000,
         d("2026-01-10"),
-    ]
+    )
+    assert conversion.rate_on(conn, "COP", d("2026-01-20"), TODAY) == (
+        4_100_000_000,
+        d("2026-01-17"),
+    )
+    assert conversion.rate_on(conn, "USD", d("2020-01-01"), TODAY) == (1_000_000, d("2020-01-01"))
 
 
-def test_recompute_after_adding_changing_and_deleting_rates(conn):
-    bid = repo.create_booking(conn, stay("A"))
-    usd = BookingLine(bid, "Reservation", d("2026-01-15"), "USD", 10_000)
-    assert repo.add_line(conn, usd)
-    assert usd.amount_cop is None
-    assert repo.get_booking(conn, bid).needs_rate is True
+def test_waiting_then_converted_and_provisional(conn, monkeypatch, capsys):
+    def offline(start, end):
+        raise RateUnavailable("no connection")
 
-    repo.set_exchange_rate(conn, ExchangeRate(d("2026-01-10"), "USD", 400_000))
+    fetch = conversion.FETCHERS["COP"]
+    monkeypatch.setitem(conversion.FETCHERS, "COP", offline)
+    bid = repo.create_booking(conn, stay("A", "2026-12-20", "2026-12-23"))  # after today
+    repo.add_line(conn, BookingLine(bid, "Reservation", d("2026-12-24"), "COP", 400_000))
+    assert conversion.convert_waiting(conn, TODAY) == 1
+    assert "no COP rates" in capsys.readouterr().err
+
+    monkeypatch.setitem(conversion.FETCHERS, "COP", fetch)
+    assert conversion.convert_waiting(conn, TODAY, force=True) == 0
     (line,) = repo.list_lines(conn, bid)
-    assert (line.rate, line.amount_cop) == (400_000, 400_000)
-    got = repo.get_booking(conn, bid)
-    assert (got.net_payout, got.needs_rate) == (400_000, False)
+    assert (line.amount_usd, line.rate_date) == (100, TODAY)  # provisional: latest known
 
-    repo.set_exchange_rate(conn, ExchangeRate(d("2026-01-10"), "USD", 420_000))
-    assert repo.get_booking(conn, bid).net_payout == 420_000
-
-    repo.set_exchange_rate(conn, ExchangeRate(d("2026-01-14"), "USD", 430_000))
-    assert repo.get_booking(conn, bid).net_payout == 430_000
-
-    repo.delete_exchange_rate(conn, d("2026-01-14"), "USD")
-    assert repo.get_booking(conn, bid).net_payout == 420_000
-    repo.delete_exchange_rate(conn, d("2026-01-10"), "USD")
-    got = repo.get_booking(conn, bid)
-    assert (got.net_payout, got.needs_rate) == (0, True)
-
-
-def test_add_line_uses_existing_rate(conn):
-    repo.set_exchange_rate(conn, ExchangeRate(d("2026-01-01"), "USD", 412_345))
-    bid = repo.create_booking(conn, stay("A"))
-    line = BookingLine(bid, "Reservation", d("2026-01-04"), "USD", 10_000)
-    repo.add_line(conn, line)
-    assert (line.rate, line.amount_cop) == (412_345, 412_345)
+    # the check-in moves into the coverage: converted again at the new check-in
+    booking = repo.get_booking(conn, bid)
+    booking.check_in, booking.check_out = d("2026-10-01"), d("2026-10-03")
+    repo.update_booking(conn, booking)
+    assert repo.get_booking(conn, bid).waiting
+    conversion.convert_waiting(conn, TODAY)
+    (line,) = repo.list_lines(conn, bid)
+    assert line.rate_date == d("2026-10-01")

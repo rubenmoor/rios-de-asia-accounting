@@ -23,9 +23,18 @@ def client(db_path):
 
 
 def test_create_overlap_warning_and_delete(client):
-    body = {"check_in": "2026-01-05", "check_out": "2026-01-08", "net_payout": "1.234.567"}
+    body = {
+        "check_in": "2026-01-05",
+        "check_out": "2026-01-08",
+        "amount": "4.000.000",
+        "currency": "COP",
+    }
     first = client.post("/api/bookings", json=body).get_json()
-    assert first["data"]["net_payout"] == 1234567
+    assert first["data"]["net_payout"] == 100_000  # at the test rate of 4000 COP per USD
+    assert (first["data"]["manual_amount"], first["data"]["manual_currency"]) == (
+        400_000_000,
+        "COP",
+    )
     assert first["notices"] == [{"level": "info", "text": "Booking saved."}]
     second = client.post("/api/bookings", json={**body, "check_in": "2026-01-06"}).get_json()
     assert [n["level"] for n in second["notices"]] == ["info", "warning"]
@@ -37,7 +46,7 @@ def test_create_overlap_warning_and_delete(client):
 def test_invalid_booking_is_422(client):
     response = client.post("/api/bookings", json={"check_in": "2026-01-05"})
     assert response.status_code == 422
-    assert set(response.get_json()["errors"]) == {"check_out", "net_payout"}
+    assert set(response.get_json()["errors"]) == {"check_out", "amount", "currency"}
     assert client.get("/api/bookings/99").status_code == 404
 
 
@@ -46,8 +55,8 @@ def test_imported_booking_only_takes_guests_and_notes(client, db_path):
     bid = repo.create_booking(
         conn, Booking(date(2026, 4, 1), date(2026, 4, 3), airbnb_code="IMP", guest_name="Bob")
     )
-    repo.add_line(conn, BookingLine(bid, "Reservation", date(2026, 4, 1), "COP", 100000000))
+    repo.add_line(conn, BookingLine(bid, "Reservation", date(2026, 4, 1), "COP", 400_000_000))
     body = {"check_in": "2030-01-01", "guest_name": "Eve", "guests": "2", "notes": "hi"}
     saved = client.put(f"/api/bookings/{bid}", json=body).get_json()["data"]
     assert (saved["check_in"], saved["guest_name"]) == ("2026-04-01", "Bob")
-    assert (saved["guests"], saved["notes"], saved["net_payout"]) == (2, "hi", 1000000)
+    assert (saved["guests"], saved["notes"], saved["net_payout"]) == (2, "hi", 100_000)

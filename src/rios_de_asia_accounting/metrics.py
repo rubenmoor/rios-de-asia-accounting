@@ -1,6 +1,6 @@
 """Metrics over the per-day view: list[Day] + a date range + settings → numbers.
 
-Pure: no database, no clock. Money is whole COP (`int`), rounded half away from zero;
+Pure: no database, no clock. Money is US cents (`int`), rounded half away from zero;
 ratios are `float`; a figure that cannot be computed is None.
 """
 
@@ -113,7 +113,7 @@ def summarize(days: list[Day], rng: DateRange, settings: Settings) -> Metrics:
         if margin > 0:
             break_even = float(Fraction(fixed, available) / margin)
 
-    monthly = settings.long_term_rent_cop_per_month
+    monthly = settings.long_term_rent_usd or 0
     benchmark = sum(benchmark_part(day.date, monthly) for day in selected) if monthly else 0
 
     return Metrics(
@@ -184,7 +184,7 @@ def capex_book_value(expenses: list[Expense], as_of: date) -> int:
     """Capex purchased on or before `as_of`, less what is depreciated on days up to `as_of`."""
     value = 0
     for expense in expenses:
-        if expense.category != "capex" or expense.date > as_of:
+        if expense.category != "capex" or expense.date > as_of or expense.amount is None:
             continue
         life = expense.useful_life_days
         elapsed = min((as_of - expense.date).days + 1, life)

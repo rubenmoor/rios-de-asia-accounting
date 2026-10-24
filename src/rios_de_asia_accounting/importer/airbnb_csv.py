@@ -9,6 +9,7 @@ from pathlib import Path
 from sqlite3 import Connection
 from typing import IO
 
+from rios_de_asia_accounting.conversion import convert_waiting
 from rios_de_asia_accounting.model import Booking, BookingLine
 from rios_de_asia_accounting.money import parse_minor
 from rios_de_asia_accounting.storage import repo
@@ -210,7 +211,7 @@ class ImportSummary:
     skipped_listings: Counter = field(default_factory=Counter)
     problems: list[Problem] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
-    needing_rate: int = 0  # imported or updated bookings still lacking a rate
+    waiting: int = 0  # lines of the imported or updated bookings still waiting for a rate
 
 
 def _line_key(r: Row | BookingLine) -> tuple:
@@ -282,20 +283,8 @@ def plan_import(
         if fresh or planned.changes:
             plan.updated.append(planned)
 
-    _warn_no_rate(conn, plan)
     _warn_overlaps(conn, plan)
     return plan
-
-
-def _warn_no_rate(conn: Connection, plan: ImportPlan) -> None:
-    for planned in plan.new + plan.updated:
-        missing = [r for r in planned.lines if repo.rate_for(conn, r.currency, r.date) is None]
-        if missing:
-            currencies = ", ".join(sorted({r.currency for r in missing}))
-            plan.warnings.append(
-                f"{planned.code}: {len(missing)} line(s) have no {currencies} exchange rate"
-                " on or before their date"
-            )
 
 
 def _warn_overlaps(conn: Connection, plan: ImportPlan) -> None:
@@ -327,8 +316,9 @@ def _to_line(booking_id: int, r: Row) -> BookingLine:
     )
 
 
-def apply_import(conn: Connection, plan: ImportPlan) -> ImportSummary:
-    """Do what `plan` says, in one transaction. `guests` and `notes` are never written."""
+def apply_import(conn: Connection, plan: ImportPlan, today: date | None = None) -> ImportSummary:
+    """Do what `plan` says, in one transaction, then convert what waits for a rate (one fetch
+    per currency). `guests` and `notes` are never written."""
     summary = ImportSummary(
         skipped_payouts=plan.skipped_payouts,
         skipped_known_lines=plan.skipped_known_lines,
@@ -364,8 +354,10 @@ def apply_import(conn: Connection, plan: ImportPlan) -> ImportSummary:
             touched.append(booking.id)
             summary.updated += 1
             summary.lines_added += _add_lines(conn, booking.id, p.lines)
-        repo.recompute_lines(conn)
-        summary.needing_rate = sum(repo.get_booking(conn, i).needs_rate for i in touched)
+    convert_waiting(conn, today or date.today())
+    summary.waiting = sum(
+        line.amount_usd is None for i in touched for line in repo.list_lines(conn, i)
+    )
     return summary
 
 

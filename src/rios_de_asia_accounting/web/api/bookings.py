@@ -2,9 +2,20 @@ from datetime import timedelta
 
 from flask import Response, request
 
+from rios_de_asia_accounting.conversion import convert_waiting
 from rios_de_asia_accounting.model import Booking, BookingLine
 from rios_de_asia_accounting.storage import repo
-from rios_de_asia_accounting.web.api.common import bp, info, invalid, ok, read_form, warning
+from rios_de_asia_accounting.web.api.common import (
+    bp,
+    info,
+    invalid,
+    money_options,
+    ok,
+    read_form,
+    saved_notice,
+    today,
+    warning,
+)
 from rios_de_asia_accounting.web.app_db import get_db
 from rios_de_asia_accounting.web.forms import Form
 
@@ -13,8 +24,8 @@ def _is_imported(lines: list) -> bool:
     return any(line.type != "Manual" for line in lines)
 
 
-def _manual_amount(lines: list) -> int | None:
-    return next((line.amount_cop for line in lines if line.type == "Manual"), None)
+def _manual_line(lines: list) -> BookingLine | None:
+    return next((line for line in lines if line.type == "Manual"), None)
 
 
 def _overlap_message(conn, booking: Booking) -> str | None:
@@ -49,7 +60,7 @@ def _read(form: Form, imported: bool) -> None:
     check_out = form.day("check_out", required=True)
     if check_in and check_out and check_out <= check_in:
         form.error("check_out", "check-out must be after check-in")
-    form.money("net_payout", required=True)
+    form.money("amount", required=True)
     form.text("airbnb_code")
     form.text("listing")
     form.text("guest_name")
@@ -61,7 +72,9 @@ def _line(line: BookingLine) -> dict:
         "type": line.type,
         "currency": line.currency,
         "amount_minor": line.amount_minor,
-        "amount_cop": line.amount_cop,
+        "amount_usd": line.amount_usd,
+        "rate": line.rate,
+        "rate_date": line.rate_date.isoformat() if line.rate_date else None,
     }
 
 
@@ -73,15 +86,16 @@ def _summary(b: Booking) -> dict:
         "guest_name": b.guest_name,
         "listing": b.listing,
         "nights": b.nights,
-        "net_payout": None if b.needs_rate else b.net_payout,
-        "needs_rate": b.needs_rate,
+        "net_payout": None if b.waiting else b.net_payout,
+        "waiting": b.waiting,
     }
 
 
 def _detail(conn, booking: Booking) -> dict:
     lines = repo.list_lines(conn, booking.id)
     imported = _is_imported(lines)
-    known = not booking.needs_rate
+    known = not booking.waiting
+    manual = None if imported else _manual_line(lines)
     return {
         **_summary(booking),
         "airbnb_code": booking.airbnb_code,
@@ -91,13 +105,18 @@ def _detail(conn, booking: Booking) -> dict:
         "gross": booking.gross if known else None,
         "airbnb_fee": booking.airbnb_fee if known else None,
         "cohost_cost": booking.cohost_cost if known else None,
-        "manual_amount": None if imported else _manual_amount(lines),
+        # what was typed for a hand-entered booking
+        "manual_amount": manual.amount_minor if manual else None,
+        "manual_currency": manual.currency if manual else None,
         "lines": [_line(line) for line in lines],
     }
 
 
 def _notices(conn, booking: Booking) -> list[dict]:
-    notices = [info("Booking saved.")]
+    lines = repo.list_lines(conn, booking.id)
+    waiting = [line for line in lines if line.amount_usd is None]
+    currency = waiting[0].currency if waiting else ""
+    notices = [saved_notice("booking", bool(waiting), currency, booking.check_in)]
     overlap = _overlap_message(conn, booking)
     if overlap:
         notices.append(warning(overlap))
@@ -120,7 +139,8 @@ def list_bookings():
 
 @bp.get("/bookings/options")
 def booking_options_api():
-    return {"listings": listing_names(get_db())}
+    conn = get_db()
+    return {"listings": listing_names(conn), **money_options(conn)}
 
 
 @bp.get("/bookings/<int:booking_id>")
@@ -148,11 +168,11 @@ def create_booking():
         guests=form.values["guests"],
         notes=form.values["notes"],
     )
-    form.apply(
-        lambda: repo.create_booking(conn, booking, manual_amount_cop=form.values["net_payout"])
-    )
+    amount = (form.values["amount"], form.values["currency"])
+    form.apply(lambda: repo.create_booking(conn, booking, manual_amount=amount))
     if not form.ok:
         return invalid(form)
+    convert_waiting(conn, today())
     return ok(_detail(conn, repo.get_booking(conn, booking.id)), _notices(conn, booking))
 
 
@@ -176,10 +196,11 @@ def update_booking(booking_id: int):
         booking.airbnb_code = form.values["airbnb_code"]
         booking.listing = form.values["listing"]
         booking.guest_name = form.values["guest_name"]
-        amount = form.values["net_payout"]
-    form.apply(lambda: repo.update_booking(conn, booking, manual_amount_cop=amount))
+        amount = (form.values["amount"], form.values["currency"])
+    form.apply(lambda: repo.update_booking(conn, booking, manual_amount=amount))
     if not form.ok:
         return invalid(form)
+    convert_waiting(conn, today())
     return ok(_detail(conn, repo.get_booking(conn, booking_id)), _notices(conn, booking))
 
 

@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from rios_de_asia_accounting import conversion
 from rios_de_asia_accounting.importer.airbnb_csv import (
     REQUIRED_COLUMNS,
     FileError,
@@ -12,8 +13,8 @@ from rios_de_asia_accounting.importer.airbnb_csv import (
     parse,
     plan_import,
 )
-from rios_de_asia_accounting.model import ExchangeRate
 from rios_de_asia_accounting.money import parse_minor
+from rios_de_asia_accounting.rates import RateUnavailable
 from rios_de_asia_accounting.storage import repo
 from rios_de_asia_accounting.storage.db import connect, migrate
 
@@ -229,21 +230,22 @@ def test_long_cop_stay_totals(conn):
     run(conn)
     b = repo.find_booking_by_code(conn, "HMMNWHZ252")
     assert b.nights == 266
-    # 9 monthly reservations + 2 resolution payouts, each line rounded to whole pesos
-    assert b.net_payout == 43_254_544
-    assert not b.needs_rate and b.cohost_cost == 0
+    # 9 monthly reservations + 2 resolution payouts at 4000 COP per USD, each line rounded
+    # to cents
+    assert b.net_payout == 1_081_364
+    (line, *_) = repo.list_lines(conn, b.id)
+    assert (line.rate, line.rate_date) == (4_000_000_000, b.check_in)
+    assert not b.waiting and b.cohost_cost == 0
 
 
-def test_usd_stay_totals_with_rate(conn):
-    repo.set_exchange_rate(conn, ExchangeRate(date(2026, 10, 1), "USD", 400_000))  # 4000.00
+def test_usd_stay_totals(conn):
     s = run(conn)
     b = repo.find_booking_by_code(conn, "HMECDBYSMK")
-    assert b.net_payout == 4_374_080  # 1093.52 * 4000
-    assert b.cohost_cost == 859_800  # 214.95 * 4000
-    assert b.gross == 4_536_000  # 1134.00 * 4000
-    assert b.airbnb_fee == 161_920  # 40.48 * 4000
-    assert not b.needs_rate
-    assert s.needing_rate > 0  # the older USD stays predate the rate
+    assert b.net_payout == 109_352
+    assert b.cohost_cost == 21_495
+    assert b.gross == 113_400
+    assert b.airbnb_fee == 4_048
+    assert not b.waiting and s.waiting == 0
 
 
 def test_second_import_changes_nothing(conn):
@@ -326,16 +328,19 @@ def test_user_edits_survive_reimport(conn):
     assert (b.guests, b.notes, b.guest_name) == (2, "arrives late", "Guest Two")
 
 
-def test_usd_stay_without_rate_is_flagged_then_filled(conn):
-    plan = plan_import(conn, parse(FIXTURE), ALL_LISTINGS)
-    assert any("HMECDBYSMK" in w and "USD" in w for w in plan.warnings)
-    s = apply_import(conn, plan)
-    assert s.needing_rate == 3  # the three USD stays
-    b = repo.find_booking_by_code(conn, "HMECDBYSMK")
-    assert b.needs_rate and b.net_payout == 0
-    repo.set_exchange_rate(conn, ExchangeRate(date(2024, 1, 1), "USD", 400_000))
-    b = repo.find_booking_by_code(conn, "HMECDBYSMK")
-    assert not b.needs_rate and b.net_payout == 4_374_080
+def test_offline_import_waits_then_converts(conn, monkeypatch):
+    def offline(start, end):
+        raise RateUnavailable("no connection")
+
+    fetch = conversion.FETCHERS["COP"]
+    monkeypatch.setitem(conversion.FETCHERS, "COP", offline)
+    s = run(conn)
+    assert s.new == 7 and s.waiting == 16  # the COP lines; USD needs no rate
+    b = repo.find_booking_by_code(conn, "HMMNWHZ252")
+    assert b.waiting and b.net_payout == 0
+    monkeypatch.setitem(conversion.FETCHERS, "COP", fetch)
+    assert conversion.convert_waiting(conn, date(2026, 10, 23), force=True) == 0
+    assert repo.find_booking_by_code(conn, "HMMNWHZ252").net_payout == 1_081_364
 
 
 def test_overlap_warning(conn):

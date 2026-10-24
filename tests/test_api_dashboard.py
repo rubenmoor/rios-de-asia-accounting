@@ -32,12 +32,13 @@ def test_dashboard_empty_has_form_defaults(db_path):
 def test_dashboard_figures_and_notice(db_path):
     conn = connect(db_path)
     repo.create_booking(
-        conn, Booking(date(2026, 3, 1), date(2026, 3, 4), airbnb_code="A"), 1_500_000
+        conn, Booking(date(2026, 3, 1), date(2026, 3, 4), airbnb_code="A"), (1_500_000, "USD")
     )
     repo.create_expense(conn, Expense(date(2026, 3, 1), 310_000, "fixed"))
     conn.close()
     body = _client(db_path).get("/api/dashboard?from=2026-03-01").get_json()
     assert [n["level"] for n in body["notices"]] == ["error"]
+    assert body["waiting"] == 0
     assert body["columns"][0] == {"label": "All time", "start": "2026-03-01", "end": "2026-03-10"}
     rows = {r["key"]: r for r in body["rows"]}
     assert rows["occupancy"]["values"][0] == pytest.approx(0.3)
