@@ -9,6 +9,9 @@ import {
   SheetFooterRow,
 } from "../components/DataTable";
 import { Field } from "../components/Field";
+import { FormActions } from "../components/FormActions";
+import { FormError } from "../components/FormError";
+import { FormSlip } from "../components/FormSlip";
 import { DateInput, HoursInput, Select, TextField } from "../components/inputs";
 import { PageTitle } from "../components/Titles";
 import { formatHours, showHours } from "../format";
@@ -141,69 +144,70 @@ function TimeForm({ entry }: { entry?: TimeEntry }) {
   return (
     <div>
       <PageTitle>{entry ? "Edit time entry" : "New time entry"}</PageTitle>
-      <form
-        className="max-w-lg"
-        onSubmit={(e) => {
-          e.preventDefault();
-          saver.save(form);
-        }}
-      >
-        {errors[""] && (
-          <div role="alert" className="alert alert-error mb-4">
-            {errors[""]}
+      <FormError message={errors[""]} />
+      <FormSlip label="Time entry">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            saver.save(form);
+          }}
+        >
+          <Field label="Date" error={errors.date}>
+            <DateInput name="date" value={form.date} onChange={set("date")} />
+          </Field>
+          <Field label="Hours" hint="1.5, 1,5 or 1:30" error={errors.hours}>
+            <HoursInput
+              name="hours"
+              value={form.hours}
+              onChange={set("hours")}
+            />
+          </Field>
+          <Field label="Booking" hint="optional" error={errors.booking_id}>
+            <Select
+              name="booking_id"
+              value={form.booking_id}
+              onChange={set("booking_id")}
+            >
+              <option value="">–</option>
+              {options.data?.bookings.map((b) => (
+                <option key={b.id} value={String(b.id)}>
+                  {b.label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Description" error={errors.description}>
+            <TextField
+              name="description"
+              value={form.description}
+              onChange={set("description")}
+              className="w-full"
+            />
+          </Field>
+          <FormActions>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={saver.pending}
+            >
+              Save
+            </button>
+            <Link className="btn btn-ghost" to="/time">
+              Cancel
+            </Link>
+          </FormActions>
+        </form>
+        {entry && (
+          <div className="mt-6 border-t border-base-300 pt-4">
+            <ConfirmDelete
+              label="Delete time entry"
+              question="Delete this time entry?"
+              pending={remover.pending}
+              onConfirm={() => remover.save()}
+            />
           </div>
         )}
-        <Field label="Date" error={errors.date}>
-          <DateInput name="date" value={form.date} onChange={set("date")} />
-        </Field>
-        <Field label="Hours" hint="1.5, 1,5 or 1:30" error={errors.hours}>
-          <HoursInput name="hours" value={form.hours} onChange={set("hours")} />
-        </Field>
-        <Field label="Booking" hint="optional" error={errors.booking_id}>
-          <Select
-            name="booking_id"
-            value={form.booking_id}
-            onChange={set("booking_id")}
-          >
-            <option value="">–</option>
-            {options.data?.bookings.map((b) => (
-              <option key={b.id} value={String(b.id)}>
-                {b.label}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <Field label="Description" error={errors.description}>
-          <TextField
-            name="description"
-            value={form.description}
-            onChange={set("description")}
-            className="w-full"
-          />
-        </Field>
-        <div className="flex gap-2 mt-4">
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={saver.pending}
-          >
-            Save
-          </button>
-          <Link className="btn" to="/time">
-            Cancel
-          </Link>
-        </div>
-      </form>
-      {entry && (
-        <div className="mt-6">
-          <ConfirmDelete
-            label="Delete time entry"
-            question="Delete this time entry?"
-            pending={remover.pending}
-            onConfirm={() => remover.save()}
-          />
-        </div>
-      )}
+      </FormSlip>
     </div>
   );
 }

@@ -5,6 +5,9 @@ import { ApiError, api } from "../api";
 import { ConfirmDelete } from "../components/ConfirmDelete";
 import { type Column, DataTable } from "../components/DataTable";
 import { Field } from "../components/Field";
+import { FormActions } from "../components/FormActions";
+import { FormError } from "../components/FormError";
+import { FormSlip } from "../components/FormSlip";
 import { DateInput, RateInput, TextField } from "../components/inputs";
 import { PageTitle } from "../components/Titles";
 import { formatRate } from "../format";
@@ -100,66 +103,67 @@ function RateForm({ rate }: { rate?: Rate }) {
   return (
     <div>
       <PageTitle>{rate ? "Edit exchange rate" : "New exchange rate"}</PageTitle>
-      <form
-        className="max-w-lg"
-        onSubmit={(e) => {
-          e.preventDefault();
-          saver.save(rate ? { rate: form.rate } : form);
-        }}
-      >
-        {errors[""] && (
-          <div role="alert" className="alert alert-error mb-4">
-            {errors[""]}
+      <FormError message={errors[""]} />
+      <FormSlip label="Exchange rate">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            saver.save(rate ? { rate: form.rate } : form);
+          }}
+        >
+          {rate ? (
+            <p className="inked mb-2">
+              {rate.date} · {rate.currency}
+            </p>
+          ) : (
+            <>
+              <Field label="Date" error={errors.date}>
+                <DateInput
+                  name="date"
+                  value={form.date}
+                  onChange={set("date")}
+                />
+              </Field>
+              <Field label="Currency" error={errors.currency}>
+                <TextField
+                  name="currency"
+                  value={form.currency}
+                  onChange={set("currency")}
+                />
+              </Field>
+            </>
+          )}
+          <Field
+            label="COP per unit"
+            hint="up to 2 decimals after a dot, e.g. 4100.50"
+            error={errors.rate}
+          >
+            <RateInput name="rate" value={form.rate} onChange={set("rate")} />
+          </Field>
+          <FormActions>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={saver.pending}
+            >
+              Save
+            </button>
+            <Link className="btn btn-ghost" to="/rates">
+              Cancel
+            </Link>
+          </FormActions>
+        </form>
+        {rate && (
+          <div className="mt-6 border-t border-base-300 pt-4">
+            <ConfirmDelete
+              label="Delete rate"
+              question="Delete this rate?"
+              pending={remover.pending}
+              onConfirm={() => remover.save()}
+            />
           </div>
         )}
-        {rate ? (
-          <p className="mb-2">
-            {rate.date} · {rate.currency}
-          </p>
-        ) : (
-          <>
-            <Field label="Date" error={errors.date}>
-              <DateInput name="date" value={form.date} onChange={set("date")} />
-            </Field>
-            <Field label="Currency" error={errors.currency}>
-              <TextField
-                name="currency"
-                value={form.currency}
-                onChange={set("currency")}
-              />
-            </Field>
-          </>
-        )}
-        <Field
-          label="COP per unit"
-          hint="up to 2 decimals after a dot, e.g. 4100.50"
-          error={errors.rate}
-        >
-          <RateInput name="rate" value={form.rate} onChange={set("rate")} />
-        </Field>
-        <div className="flex gap-2 mt-4">
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={saver.pending}
-          >
-            Save
-          </button>
-          <Link className="btn" to="/rates">
-            Cancel
-          </Link>
-        </div>
-      </form>
-      {rate && (
-        <div className="mt-6">
-          <ConfirmDelete
-            label="Delete rate"
-            question="Delete this rate?"
-            pending={remover.pending}
-            onConfirm={() => remover.save()}
-          />
-        </div>
-      )}
+      </FormSlip>
     </div>
   );
 }

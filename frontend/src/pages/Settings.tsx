@@ -2,6 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { api } from "../api";
 import { Field } from "../components/Field";
+import { FormActions } from "../components/FormActions";
+import { FormError } from "../components/FormError";
+import { FormSlip } from "../components/FormSlip";
 import { MoneyInput, Select, TextField } from "../components/inputs";
 import { PageTitle } from "../components/Titles";
 import { formatMoney } from "../format";
@@ -51,106 +54,112 @@ function SettingsForm({
   return (
     <div>
       <PageTitle>Settings</PageTitle>
-      <form
-        className="max-w-lg"
-        onSubmit={(e) => {
-          e.preventDefault();
-          const { other_listing, ...rest } = form;
-          const other = other_listing.trim();
-          saver.save({
-            ...rest,
-            listings: other ? [...chosen, other] : chosen,
-          });
-        }}
-      >
-        {errors[""] && (
-          <div role="alert" className="alert alert-error mb-4">
-            {errors[""]}
-          </div>
-        )}
-        <Field
-          label="Hourly value of own time (COP)"
-          error={errors.hourly_value_cop}
+      <FormError message={errors[""]} />
+      <FormSlip label="Settings">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const { other_listing, ...rest } = form;
+            const other = other_listing.trim();
+            saver.save({
+              ...rest,
+              listings: other ? [...chosen, other] : chosen,
+            });
+          }}
         >
-          <MoneyInput
-            name="hourly_value_cop"
-            value={form.hourly_value_cop}
-            onChange={set("hourly_value_cop")}
-          />
-        </Field>
-        <Field
-          label="Long-term rental benchmark (COP per month)"
-          error={errors.long_term_rent_cop_per_month}
-        >
-          <MoneyInput
-            name="long_term_rent_cop_per_month"
-            value={form.long_term_rent_cop_per_month}
-            onChange={set("long_term_rent_cop_per_month")}
-          />
-        </Field>
-        <Field
-          label="Per-booking costs are allocated"
-          error={errors.per_booking_allocation}
-        >
-          <Select
-            name="per_booking_allocation"
-            value={form.per_booking_allocation}
-            onChange={set("per_booking_allocation")}
+          <Field
+            label="Hourly value of own time (COP)"
+            error={errors.hourly_value_cop}
           >
-            {options.allocations.map((a) => (
-              <option key={a}>{a}</option>
-            ))}
-          </Select>
-        </Field>
-        <fieldset className="fieldset">
-          <legend className="fieldset-legend">Listings of this property</legend>
-          {names.length === 0 && (
-            <p className="opacity-60">No listings found in the bookings yet.</p>
-          )}
-          {names.map((name) => (
-            <label key={name} className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                className="checkbox"
-                checked={chosen.includes(name)}
-                onChange={(e) =>
-                  setChosen(
-                    e.target.checked
-                      ? [...chosen, name]
-                      : chosen.filter((c) => c !== name),
-                  )
-                }
-              />
-              {name}
-            </label>
-          ))}
-          <Field label="Another listing name" error={errors.listings}>
-            <TextField
-              name="other_listing"
-              value={form.other_listing}
-              onChange={set("other_listing")}
-              className="w-full"
+            <MoneyInput
+              name="hourly_value_cop"
+              value={form.hourly_value_cop}
+              onChange={set("hourly_value_cop")}
             />
           </Field>
-        </fieldset>
-        <Field label="Backups to keep" error={errors.backup_keep}>
-          <MoneyInput
-            name="backup_keep"
-            value={form.backup_keep}
-            onChange={set("backup_keep")}
-          />
-        </Field>
-        <p className="mb-2">
-          Currency: <strong>COP</strong>
-        </p>
-        <button
-          type="submit"
-          className="btn btn-primary"
-          disabled={saver.pending}
-        >
-          Save
-        </button>
-      </form>
+          <Field
+            label="Long-term rental benchmark (COP per month)"
+            error={errors.long_term_rent_cop_per_month}
+          >
+            <MoneyInput
+              name="long_term_rent_cop_per_month"
+              value={form.long_term_rent_cop_per_month}
+              onChange={set("long_term_rent_cop_per_month")}
+            />
+          </Field>
+          <Field
+            label="Per-booking costs are allocated"
+            error={errors.per_booking_allocation}
+          >
+            <Select
+              name="per_booking_allocation"
+              value={form.per_booking_allocation}
+              onChange={set("per_booking_allocation")}
+            >
+              {options.allocations.map((a) => (
+                <option key={a}>{a}</option>
+              ))}
+            </Select>
+          </Field>
+          <fieldset className="fieldset">
+            <legend className="fieldset-legend">
+              Listings of this property
+            </legend>
+            {names.length === 0 && (
+              <p className="opacity-60">
+                No listings found in the bookings yet.
+              </p>
+            )}
+            {names.map((name) => (
+              <label
+                key={name}
+                className="flex cursor-pointer items-center gap-2"
+              >
+                <input
+                  type="checkbox"
+                  className="checkbox"
+                  checked={chosen.includes(name)}
+                  onChange={(e) =>
+                    setChosen(
+                      e.target.checked
+                        ? [...chosen, name]
+                        : chosen.filter((c) => c !== name),
+                    )
+                  }
+                />
+                {name}
+              </label>
+            ))}
+            <Field label="Another listing name" error={errors.listings}>
+              <TextField
+                name="other_listing"
+                value={form.other_listing}
+                onChange={set("other_listing")}
+                className="w-full"
+              />
+            </Field>
+          </fieldset>
+          <Field label="Backups to keep" error={errors.backup_keep}>
+            <MoneyInput
+              name="backup_keep"
+              value={form.backup_keep}
+              onChange={set("backup_keep")}
+            />
+          </Field>
+          <p className="mb-2">
+            Currency: <strong>COP</strong>
+          </p>
+          <FormActions>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={saver.pending}
+            >
+              Save
+            </button>
+          </FormActions>
+        </form>
+      </FormSlip>
     </div>
   );
 }
