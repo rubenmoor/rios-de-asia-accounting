@@ -880,6 +880,41 @@ Binding: `decision 24: client-side framework: React with TypeScript, built by Vi
 Checks per task: `pytest`, `ruff check src tests`, `ruff format --check src tests`; task 2 also, in `frontend/`, `npm run build`, `npm run typecheck`, `npm run lint`, `npm test`, and `nix flake check`.
 
 Done when: no Jinja template, HTML route or `charts.py` is left, every URL of today opens the React screen, tests are API tests, README and spec describe the app as it is, and the real export went through the running app.', 'The bookkeeping app''s screens have been rebuilt to run in the browser, but the old pages that the server used to assemble itself are still there alongside them. This last step removes the old pages and the code and tests that only existed for them, so there is one way the app works instead of two. It also brings the user and technical documentation up to date and finishes with a full run-through of the real Airbnb export in the finished app, to confirm nothing was lost on the way.', '2026-10-23T22:51:21Z', 68);
+INSERT INTO plan (id, milestone_id, subject, priority, body, intro, created_at, created_by_task) VALUES (19, 2, 'styling foundation', 350, 'Part 1 of `plan 11: masterplan` (`milestone 2: visual design update`): the theme, the app shell and the shared styling conventions that parts 2–4 build on.
+
+## Where things stand (read first)
+
+The masterplan was written for the Jinja templates; `milestone 3: add a proper client-side framework` replaced them (`decision 24: client-side framework: React with TypeScript, built by Vite, on top of a JSON API from the existing Python server`, `decision 26: Once the in-browser screens are done, how does the visual design update continue?`). So:
+
+- **No toolchain work.** `decision 23: How do Tailwind CSS and daisyUI get into an app that promised no build step and no network?` is answered by the current code: `frontend/src/index.css` already loads Tailwind 4 and daisyUI 5 (npm devDependencies), Vite builds the CSS, Nix builds the bundle offline (`flake.nix`: `packages.frontend`, check `frontend-lint`). Nothing to add to `pyproject.toml` or the dev shell.
+- `base.html` → `frontend/src/App.tsx` (shell, nav, Quit), `frontend/src/components/Notices.tsx` (flash messages, levels `warning`/`error` from the API), `frontend/src/pages/Stopped.tsx`.
+- `web/static/` → `frontend/public/` (Vite copies it into the bundle as is; for the favicon in part 4).
+- Tables: `frontend/src/components/DataTable.tsx` + the dashboard table in `pages/Dashboard.tsx`; forms: `components/Field.tsx`, `components/inputs.tsx`, `components/ConfirmDelete.tsx`; charts: `frontend/src/charts/`.
+
+## Ground rules (from the masterplan, for every task here)
+
+- No functional change: same routes, API calls, form fields, validation, notices, numbers and their formats (`decision 15: data entry forms: how money and hours are typed`, `decision 10: a figure that cannot be computed is shown as empty, not as zero`, `decision 18: dashboard layout: which periods are shown and which period the cost breakdown uses`).
+- Offline: no CDN, no web fonts or icon fonts, no new npm dependencies (system font stacks; icons are inline SVG or CSS). New behaviour-free JS only where React needs it for a cosmetic detail.
+- Readability first: playful touches never hide numbers or labels; negatives stay clearly red. Light theme only (`pm decision record` by this plan''s writer: "visual design: one light ledger theme, no dark mode").
+- Checks after every change: in `frontend/`: `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`; `pytest`; `nix flake check` (runs biome/tsc/vitest and the package build). Look at the pages by running the app (`npm run build` then `rios-de-asia-accounting --no-browser`; ad-hoc screenshots with a headless browser if one is at hand, no new test suites).
+
+## Tasks
+
+1. **Ledger theme** (`frontend/src/index.css`, `frontend/index.html`)
+   - A custom daisyUI theme `ledger` (`@plugin "daisyui/theme" { name: "ledger"; default: true; … }`) replacing `light`: warm off-white paper `base-100`, slightly darker `base-200/300` for chrome and header rows, ledger green as `primary`, ledger blue as `secondary`/`info`, a clear red ink `error`, readable `warning`; `--radius-*` small (paper, not bubbly); `data-theme="ledger"` in `index.html`; `color-scheme: light`.
+   - Shared utility classes in `index.css` (`@layer components` or `@utility`): `num` (tabular-nums, right-aligned, monospace system stack) and `neg` (red ink, `color: var(--color-error)`), plus CSS variables for the rule colours (e.g. `--ledger-rule` green/blue) that parts 2 and 4 use for grid lines and underlines.
+   - Contrast: body text and `error` on `base-100` at least WCAG AA.
+   - Done when the app builds and every page renders in the new colours with nothing else changed.
+2. **App shell** (`App.tsx`, `components/Notices.tsx`, `pages/Stopped.tsx`), requires 1
+   - Nav as sheet tabs along the top (daisyUI `tabs` `tabs-lift` or `tabs-border`, `NavLink` active → `tab-active`), same entries from `nav.ts`, same order and paths; the app name link to `/` stays; wraps or scrolls on narrow windows.
+   - Quit as a small outlined button on the right, still disabled while pending; its error alert kept.
+   - Notices as daisyUI alerts with a small inline-SVG icon per level, `alert-warning`/`alert-error` from the notice level, Dismiss kept.
+   - `<main>` as a "sheet of paper": centred card (`card bg-base-100 shadow`, max width), on a `base-200` desk background, attached to the active tab.
+   - `Stopped.tsx` on the same paper card (part 4 decorates it further). Same texts.
+3. **Shared conventions** (README section "Styling conventions", small components), requires 2
+   - `PageTitle` (h1, optional slot for part 4''s section icon) and `SectionTitle` (h2) components replacing the repeated `text-2xl font-bold mb-4` / `text-xl font-bold …` classes in `pages/*.tsx`; same texts.
+   - README section listing what parts 2–4 use: numbers `num`/`neg`; tables via `DataTable` (part 2 restyles it, pages don''t add table classes); forms via `Field` + `inputs.tsx`, form actions in one `flex gap-2 mt-4` row; buttons: `btn btn-primary` Save/Apply, `btn btn-ghost` or `btn-soft` Cancel/Reset links, `btn btn-error` Delete via `ConfirmDelete`; errors: page-level `alert alert-error`, field-level `text-error` under the field (in `Field`); hints: `Field`''s `hint`; muted notes `opacity-70`; icons inline SVG components in `frontend/src/components/icons.tsx` (created by part 4).
+   - Done when no page uses the old heading classes and the README section exists.', 'The bookkeeping app is getting a friendlier look inspired by paper ledgers and spreadsheets, without changing what any screen does. This first step sets up the shared groundwork: a colour scheme like ruled ledger paper with red ink for losses, the frame around every screen (the menu, the messages, the page area), and a short guide for how tables, forms and buttons should be styled. The later design steps build on it, so the whole app ends up looking consistent.', '2026-10-24T00:12:11Z', 57);
 
 INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (1, 1, 'write the masterplan of milestone 1: first version build', 'masterplan', 'done', NULL, '2026-10-23, plan 1 body and intro (no files)', 'Write `plan 1: masterplan`, the masterplan of `milestone 1: first version build`: expand on everything that needs to be done to achieve it,
 divided into parts, with an intro in plain English (`pm plan edit 1 --intro "…" --body -`). State in the masterplan that its own tasks are not implementation work: each of them writes the
@@ -1831,6 +1866,13 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 * delete code that isn''t actually used
 * check pending decisions if they are still relevant and really pending
 * check other milestones if their contents are up-to-date; raise a decision for each change they need', '2026-10-23T23:25:20Z', '2026-10-23T23:25:48Z', NULL, 0, NULL, NULL);
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (102, 19, 'create tasks for plan 19: styling foundation', 'split', 'open', 1000, NULL, 'Split `plan 19: styling foundation` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
+done and dropped ones stay as they are (pm refuses to change them): drop the open ones that no longer fit and add
+tasks for what the plan asks beyond them. A task that writes a plan gets `--kind plan`. A task that needs another
+task''s result (in this plan or another, in any work tree) requires it: `pm task add … --requires <task id>`, or
+`pm task requires <task id> <prerequisite id>` for an existing one; priority is only a hint and orders nothing across
+work trees. When you drop an open task that others require and add one in its place, drop it with
+`--replaced-by <new task id>`.', '2026-10-24T00:12:11Z', NULL, 57, 0, NULL, NULL);
 
 INSERT INTO decision (id, subject, status, options, body, intro, answer, reason, created_at, closed_at, created_by_task, signoff, kind, decided_by_task, consequences) VALUES (1, 'Sign off the masterplan of milestone 1: first version build', 'answered', '["approve"]', '', 'This is the overall roadmap for building the first working version of a small, private bookkeeping app for one Airbnb apartment. The app turns every booking and every cost into amounts per calendar day, so it can answer whether hosting pays off, whether prices are set well, and how things are trending. The roadmap splits the build into parts, starting with a short architecture document the owner approves before anything else is built, and ending with a check against the real Airbnb export.
 
@@ -1973,6 +2015,7 @@ INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, b
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (95, 96, '2026-10-23T23:21:43Z', '2026-10-23T23:25:08Z', 'done', NULL, 0, '3f86a7891c5ae228876d05a5e102fdb70d06c658', 'main', 'claude-sonnet-5-5', 'c7acb24d-b9db-4cf7-87be-981a831d209b', 94, 25, 46, 11231, 1600713, 30443, 0.65763289999999985, 83891, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (96, 100, '2026-10-23T23:25:08Z', '2026-10-23T23:25:22Z', 'done', NULL, 0, '3f86a7891c5ae228876d05a5e102fdb70d06c658', 'main', 'claude-sonnet-5-5', 'b0ba9abc-3d63-4d1a-a320-e9c353632220', NULL, 6, 12, 1105, 152457, 18856, 0.10174369999999999, 31009, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (97, 101, '2026-10-23T23:25:20Z', '2026-10-23T23:25:52Z', 'done', NULL, 0, '5a093e452891ccf9e701c5a9021207fcd1d8a7e9', NULL, 'claude-sonnet-5-5', '477bf9fb-a0a5-4414-a366-b148cece6dcd', NULL, 13, 24, 3050, 425896, 33392, 0.2067056, 45712, 60, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (98, 57, '2026-10-24T00:10:58Z', NULL, 'running', NULL, NULL, '152acd7d8324a30358e4a6eeac692f391a7a1747', 'main', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1465683);
 
 INSERT INTO task_decision (task_id, decision_id) VALUES (2, 1);
 INSERT INTO task_decision (task_id, decision_id) VALUES (4, 2);
