@@ -28,9 +28,10 @@ Binding: `decision 24: client-side framework: React with TypeScript, built by Vi
   - TanStack Query for server data; `frontend/src/api.ts` is the only place that calls
     `fetch` (relative URLs, JSON in and out, an `ApiError` carrying status, field
     errors and text);
-  - Tailwind CSS v4 and daisyUI 5 for styling, with **plain daisyUI defaults**: one
-    built-in light theme, no custom theme, only daisyUI component classes, so a later
-    theme can be swapped in (`decision 25`);
+  - Tailwind CSS v4 and daisyUI 5 for styling, with one custom light daisyUI theme,
+    `ledger` (`frontend/src/index.css`): no dark mode, no theme switcher
+    (`decision 28: visual design: one light ledger theme, no dark mode`); the shared
+    conventions are in README.md, "Styling conventions";
   - Biome for lint and format, Vitest for pure helpers (and the API error parsing).
 - **Charts:** drawn in the client from the data of the JSON API (the dashboard plan
   picks the way to draw them); no network access needed.
