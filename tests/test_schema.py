@@ -245,7 +245,7 @@ def test_migration_keeps_peso_amounts_as_waiting_originals(tmp_path):
     c.execute("INSERT INTO exchange_rates VALUES ('2026-01-01', 'USD', 385025)")
     c.execute("INSERT INTO settings VALUES ('long_term_rent_cop_per_month', '3000000')")
 
-    assert migrate(c) == 1
+    assert migrate(c) == 2  # 0004 and 0005
     e = c.execute("SELECT * FROM expenses").fetchone()
     assert (e["amount"], e["original_minor"], e["currency"], e["rate"]) == (
         None,
