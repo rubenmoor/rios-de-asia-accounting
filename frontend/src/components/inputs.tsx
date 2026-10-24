@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { CURRENCIES } from "../format";
 
 type InputProps = {
   name: string;
@@ -34,14 +35,11 @@ function TextInput({
   );
 }
 
-export const MoneyInput = (p: InputProps) => (
+export const NumberInput = (p: InputProps) => (
   <TextInput {...p} inputMode="numeric" className="num" />
 );
 export const HoursInput = (p: InputProps) => (
   <TextInput {...p} className="num" />
-);
-export const RateInput = (p: InputProps) => (
-  <TextInput {...p} inputMode="decimal" className="num" />
 );
 export const DateInput = (p: InputProps & { className?: string }) => (
   <TextInput {...p} type="date" />
@@ -81,5 +79,41 @@ export function TextArea({ name, value, onChange }: InputProps) {
       value={value}
       onChange={(e) => onChange(e.target.value)}
     />
+  );
+}
+
+// An amount typed as is, with the currency it is in (decision 39: USD, COP, EUR).
+// The server parses the text by the chosen currency.
+export function AmountInput({
+  name,
+  value,
+  currency,
+  onChange,
+  onCurrencyChange,
+}: InputProps & {
+  currency: string;
+  onCurrencyChange: (currency: string) => void;
+}) {
+  return (
+    <div className="flex gap-2">
+      <TextInput
+        name={name}
+        value={value}
+        onChange={onChange}
+        inputMode="decimal"
+        className="num"
+      />
+      <select
+        className="select w-28 shrink-0"
+        name="currency"
+        aria-label="Currency"
+        value={currency}
+        onChange={(e) => onCurrencyChange(e.target.value)}
+      >
+        {CURRENCIES.map((c) => (
+          <option key={c}>{c}</option>
+        ))}
+      </select>
+    </div>
   );
 }

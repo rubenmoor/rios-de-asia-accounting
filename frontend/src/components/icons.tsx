@@ -81,17 +81,6 @@ export function RecurringIcon(props: IconProps) {
   );
 }
 
-/** Two coins. */
-export function RatesIcon(props: IconProps) {
-  return (
-    <StrokeIcon {...props}>
-      <circle cx="9" cy="9" r="5.5" />
-      <path d="M14.5 9.6A5.5 5.5 0 1 1 9.6 14.5" />
-      <path d="M9 7v4" />
-    </StrokeIcon>
-  );
-}
-
 /** Tray with a down arrow. */
 export function ImportIcon(props: IconProps) {
   return (

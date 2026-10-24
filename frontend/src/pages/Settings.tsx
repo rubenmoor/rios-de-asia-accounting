@@ -6,9 +6,14 @@ import { FormActions } from "../components/FormActions";
 import { FormError } from "../components/FormError";
 import { FormSlip } from "../components/FormSlip";
 import { SettingsIcon } from "../components/icons";
-import { MoneyInput, Select, TextField } from "../components/inputs";
+import {
+  AmountInput,
+  NumberInput,
+  Select,
+  TextField,
+} from "../components/inputs";
 import { PageTitle } from "../components/Titles";
-import { formatMoney } from "../format";
+import { formatAmount, showMoney } from "../format";
 import { useSave } from "../useSave";
 
 type Settings = {
@@ -17,12 +22,23 @@ type Settings = {
     file: string | null;
     error: string | null;
   } | null;
-  long_term_rent_cop_per_month: number;
+  long_term_rent_usd: number | null;
+  long_term_rent_entered: {
+    original_minor: number;
+    currency: string;
+    date: string;
+    rate: number | null;
+    rate_date: string | null;
+  } | null;
   per_booking_allocation: string;
   backup_keep: number;
   listings: string[];
 };
-type Options = { allocations: string[]; listings: string[] };
+type Options = {
+  allocations: string[];
+  listings: string[];
+  default_currency: string;
+};
 
 function SettingsForm({
   settings,
@@ -31,10 +47,12 @@ function SettingsForm({
   settings: Settings;
   options: Options;
 }) {
+  const entered = settings.long_term_rent_entered;
   const [form, setForm] = useState<Record<string, string>>({
-    long_term_rent_cop_per_month: formatMoney(
-      settings.long_term_rent_cop_per_month,
-    ),
+    long_term_rent: entered
+      ? formatAmount(entered.original_minor, entered.currency)
+      : "",
+    long_term_rent_currency: entered?.currency ?? options.default_currency,
     per_booking_allocation: settings.per_booking_allocation,
     backup_keep: String(settings.backup_keep),
     other_listing: "",
@@ -73,14 +91,27 @@ function SettingsForm({
           }}
         >
           <Field
-            label="Long-term rental benchmark (COP per month)"
-            error={errors.long_term_rent_cop_per_month}
+            label="Long-term rental benchmark (per month)"
+            error={errors.long_term_rent}
           >
-            <MoneyInput
-              name="long_term_rent_cop_per_month"
-              value={form.long_term_rent_cop_per_month}
-              onChange={set("long_term_rent_cop_per_month")}
+            <AmountInput
+              name="long_term_rent"
+              value={form.long_term_rent}
+              currency={form.long_term_rent_currency}
+              onChange={set("long_term_rent")}
+              onCurrencyChange={set("long_term_rent_currency")}
             />
+            {entered && (
+              <p className="mt-1 text-sm opacity-70">
+                {settings.long_term_rent_usd === null
+                  ? "Waiting for an exchange rate; left out of the figures."
+                  : `${showMoney(settings.long_term_rent_usd)} USD${
+                      entered.currency === "USD"
+                        ? ""
+                        : ` at the rate of ${entered.rate_date}`
+                    }`}
+              </p>
+            )}
           </Field>
           <Field
             label="Per-booking costs are allocated"
@@ -135,7 +166,7 @@ function SettingsForm({
             </Field>
           </fieldset>
           <Field label="Backups to keep" error={errors.backup_keep}>
-            <MoneyInput
+            <NumberInput
               name="backup_keep"
               value={form.backup_keep}
               onChange={set("backup_keep")}
@@ -154,9 +185,6 @@ function SettingsForm({
                 {backup.time.replace("T", " ")}, {backup.file}
               </span>
             )}
-          </p>
-          <p className="mb-2">
-            Currency: <strong>COP</strong>
           </p>
           <FormActions>
             <button

@@ -19,7 +19,6 @@ import {
 } from "./pages/Expenses";
 import { ImportPage } from "./pages/Import";
 import { NotFound } from "./pages/NotFound";
-import { RateEdit, RateList, RateNew } from "./pages/Rates";
 import { SettingsPage } from "./pages/Settings";
 
 export function App() {
@@ -60,9 +59,6 @@ export function App() {
             <Route path="/recurring" element={<RecurringList />} />
             <Route path="/recurring/new" element={<RecurringNew />} />
             <Route path="/recurring/:id" element={<RecurringEdit />} />
-            <Route path="/rates" element={<RateList />} />
-            <Route path="/rates/new" element={<RateNew />} />
-            <Route path="/rates/:day/:currency" element={<RateEdit />} />
             <Route path="/import" element={<ImportPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="*" element={<NotFound />} />

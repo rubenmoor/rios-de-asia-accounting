@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import { ApiError, api } from "../api";
+import { AmountCell } from "../components/AmountCell";
 import { ConfirmDelete } from "../components/ConfirmDelete";
 import {
   type Column,
@@ -14,21 +15,27 @@ import { FormError } from "../components/FormError";
 import { FormSlip } from "../components/FormSlip";
 import { ExpensesIcon, RecurringIcon } from "../components/icons";
 import {
+  AmountInput,
   DateInput,
-  MoneyInput,
   MonthInput,
+  NumberInput,
   Select,
   TextField,
 } from "../components/inputs";
 import { PageTitle, SectionTitle } from "../components/Titles";
 import { Toolbar, ToolbarField } from "../components/Toolbar";
-import { formatMoney, showMoney } from "../format";
+import { WaitingNotice } from "../components/WaitingNotice";
+import { formatAmount, showMoney, showOriginal } from "../format";
 import { useSave } from "../useSave";
 
 type Expense = {
   id: number;
   date: string;
-  amount: number;
+  amount: number | null;
+  original_minor: number;
+  currency: string;
+  rate: number | null;
+  rate_date: string | null;
   category: string;
   booking_id: number | null;
   useful_life_days: number | null;
@@ -38,11 +45,13 @@ type Expense = {
 type ExpenseOptions = {
   categories: string[];
   bookings: { id: number; label: string }[];
+  default_currency: string;
 };
 type Recurring = {
   id: number;
   description: string;
-  amount: number;
+  amount_minor: number;
+  currency: string;
   category: string;
   start_month: string;
   end_month: string | null;
@@ -77,7 +86,7 @@ const EXPENSE_COLUMNS: Column<Expense>[] = [
   },
   { header: "Category", cell: (e) => e.category },
   { header: "Description", cell: (e) => e.description },
-  { header: "Amount", cell: (e) => showMoney(e.amount), numeric: true },
+  { header: "Amount (USD)", cell: (e) => <AmountCell e={e} />, numeric: true },
   {
     header: "Source",
     cell: (e) => (e.recurring_expense_id != null ? "generated" : ""),
@@ -115,7 +124,7 @@ export function ExpenseList() {
   };
 
   const rows = expenses.data ?? [];
-  const total = rows.reduce((sum, e) => sum + e.amount, 0);
+  const total = rows.reduce((sum, e) => sum + (e.amount ?? 0), 0);
 
   return (
     <div>
@@ -162,6 +171,7 @@ export function ExpenseList() {
           Filter
         </button>
       </Toolbar>
+      <WaitingNotice />
       {expenses.isError &&
         !(
           expenses.error instanceof ApiError && expenses.error.status === 422
@@ -196,7 +206,10 @@ function ExpenseForm({
 }) {
   const [form, setForm] = useState<Form>({
     date: expense?.date ?? "",
-    amount: expense ? formatMoney(expense.amount) : "",
+    amount: expense
+      ? formatAmount(expense.original_minor, expense.currency)
+      : "",
+    currency: expense?.currency ?? options.default_currency,
     category: expense?.category ?? options.categories[0] ?? "",
     booking_id: expense?.booking_id != null ? String(expense.booking_id) : "",
     useful_life_days:
@@ -248,11 +261,13 @@ function ExpenseForm({
           <Field label="Date" error={errors.date}>
             <DateInput name="date" value={form.date} onChange={set("date")} />
           </Field>
-          <Field label="Amount (COP)" error={errors.amount}>
-            <MoneyInput
+          <Field label="Amount" error={errors.amount}>
+            <AmountInput
               name="amount"
               value={form.amount}
+              currency={form.currency}
               onChange={set("amount")}
+              onCurrencyChange={set("currency")}
             />
           </Field>
           <Field label="Category" error={errors.category}>
@@ -292,7 +307,7 @@ function ExpenseForm({
               hint="only for capex; 3 years ≈ 1095"
               error={errors.useful_life_days}
             >
-              <MoneyInput
+              <NumberInput
                 name="useful_life_days"
                 value={form.useful_life_days}
                 onChange={set("useful_life_days")}
@@ -372,7 +387,11 @@ const RECURRING_COLUMNS: Column<Recurring>[] = [
     href: (t) => `/recurring/${t.id}`,
   },
   { header: "Category", cell: (t) => t.category },
-  { header: "Amount / month", cell: (t) => showMoney(t.amount), numeric: true },
+  {
+    header: "Amount / month",
+    cell: (t) => showOriginal(t.amount_minor, t.currency),
+    numeric: true,
+  },
   { header: "From", cell: (t) => t.start_month },
   { header: "Until", cell: (t) => t.end_month ?? "open" },
 ];
@@ -410,19 +429,22 @@ const GENERATED_COLUMNS: Column<Expense>[] = [
     cell: (e) => e.date,
     href: (e) => `/expenses/${e.id}/edit`,
   },
-  { header: "Amount", cell: (e) => showMoney(e.amount), numeric: true },
+  { header: "Amount (USD)", cell: (e) => <AmountCell e={e} />, numeric: true },
 ];
 
 function RecurringForm({
   item,
   categories,
+  defaultCurrency,
 }: {
   item?: RecurringDetail;
   categories: string[];
+  defaultCurrency: string;
 }) {
   const [form, setForm] = useState<Form>({
     description: item?.description ?? "",
-    amount: item ? formatMoney(item.amount) : "",
+    amount: item ? formatAmount(item.amount_minor, item.currency) : "",
+    currency: item?.currency ?? defaultCurrency,
     category: item?.category ?? categories[0] ?? "",
     start_month: item?.start_month ?? "",
     end_month: item?.end_month ?? "",
@@ -471,11 +493,13 @@ function RecurringForm({
               className="w-full"
             />
           </Field>
-          <Field label="Amount per month (COP)" error={errors.amount}>
-            <MoneyInput
+          <Field label="Amount per month" error={errors.amount}>
+            <AmountInput
               name="amount"
               value={form.amount}
+              currency={form.currency}
               onChange={set("amount")}
+              onCurrencyChange={set("currency")}
             />
           </Field>
           <Field label="Category" error={errors.category}>
@@ -546,7 +570,10 @@ function useRecurringOptions() {
   return useQuery({
     queryKey: ["recurring", "options"],
     queryFn: () =>
-      api<{ categories: string[] }>("GET", "/api/recurring/options"),
+      api<{ categories: string[]; default_currency: string }>(
+        "GET",
+        "/api/recurring/options",
+      ),
   });
 }
 
@@ -554,7 +581,12 @@ export function RecurringNew() {
   const options = useRecurringOptions();
   return (
     <Loaded query={options}>
-      {(o) => <RecurringForm categories={o.categories} />}
+      {(o) => (
+        <RecurringForm
+          categories={o.categories}
+          defaultCurrency={o.default_currency}
+        />
+      )}
     </Loaded>
   );
 }
@@ -571,7 +603,12 @@ export function RecurringEdit() {
       {(t) => (
         <Loaded query={options}>
           {(o) => (
-            <RecurringForm key={t.id} item={t} categories={o.categories} />
+            <RecurringForm
+              key={t.id}
+              item={t}
+              categories={o.categories}
+              defaultCurrency={o.default_currency}
+            />
           )}
         </Loaded>
       )}
