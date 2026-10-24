@@ -2421,12 +2421,12 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 - Builds on part 2''s plan (`USD inside, exchange rates fetched automatically`): reuse its rate source and fetch code; its implementation tasks require part 2''s implementation tasks they build on.
 - Record (`pm decision record`): conversion on server or client; number formats per currency; how the chosen currency and its rate/date are kept in settings and shown.
 - Done when the plan exists with priority 500.', '2026-10-24T03:19:04Z', NULL, 125, 1, NULL, 'main');
-INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (129, 23, 'write the plan for part 4: add expenses inline in the sheet', 'plan', 'open', 970, NULL, 'Write the plan for part 4 of `plan 23: masterplan` (read that part): `pm plan add 4 "add expenses inline in the sheet" --priority 400 --intro "…"`.
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (129, 23, 'write the plan for part 4: add expenses inline in the sheet', 'plan', 'done', 970, '2026-10-23, plan 26: add expenses inline in the sheet (priority 400), decision 43 recorded; no files changed', 'Write the plan for part 4 of `plan 23: masterplan` (read that part): `pm plan add 4 "add expenses inline in the sheet" --priority 400 --intro "…"`.
 
 - "+" button opening an entry row inside the `DataTable` sheet on Expenses and Recurring; date pre-filled with today, start month with this month; field errors in the row; `/expenses/new` and `/recurring/new` go; README styling conventions updated.
 - Uses part 2''s currency choice next to the amount: its implementation tasks require the part 2 task that adds currency entry.
 - Decide (and record) whether editing existing rows also goes inline, only if it costs nothing extra.
-- Done when the plan exists with priority 400.', '2026-10-24T03:19:05Z', NULL, 125, 0, NULL, 'main');
+- Done when the plan exists with priority 400.', '2026-10-24T03:19:05Z', '2026-10-24T03:49:27Z', 125, 0, NULL, 'main');
 INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (130, 23, 'write the plan for part 5: hand-entered bookings, the Time page and the Quit button', 'plan', 'open', 960, NULL, 'Write the plan for part 5 of `plan 23: masterplan` (read that part): `pm plan add 4 "hand-entered bookings, the Time page and the Quit button" --priority 400 --intro "…"`.
 
 - Follow the owner''s answers to `decision 29: Hand-entered bookings: remove the ''New booking'' button so that all income comes from the Airbnb CSV?`, `decision 30: Time page: remove the log of your own hosting hours, or keep it and explain it?` and `decision 31: Quit button: remove it, or keep it with a clearer name?`; write their consequences (`pm decision consequences`).
@@ -2516,13 +2516,38 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 - `README.md`: the Exchange rates section (what is fetched from where, what happens offline), the CLI list without `import-rates`.
 
 Done when the docs describe the code as it is and `rg -i "import-rates|trm.csv|whole pesos|no network" --glob ''!tasks.sql''` finds nothing stale.', '2026-10-24T03:48:23Z', NULL, 134, 0, NULL, 'main');
-INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (139, 26, 'create tasks for plan 26: add expenses inline in the sheet', 'split', 'open', 1000, NULL, 'Split `plan 26: add expenses inline in the sheet` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (139, 26, 'create tasks for plan 26: add expenses inline in the sheet', 'split', 'done', 1000, '2026-10-23, tasks 140, 141', 'Split `plan 26: add expenses inline in the sheet` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
 done and dropped ones stay as they are (pm refuses to change them): drop the open ones that no longer fit and add
 tasks for what the plan asks beyond them. A task that writes a plan gets `--kind plan`. A task that needs another
 task''s result (in this plan or another, in any work tree) requires it: `pm task add … --requires <task id>`, or
 `pm task requires <task id> <prerequisite id>` for an existing one; priority is only a hint and orders nothing across
 work trees. When you drop an open task that others require and add one in its place, drop it with
-`--replaced-by <new task id>`.', '2026-10-24T03:49:23Z', NULL, 129, 0, NULL, NULL);
+`--replaced-by <new task id>`.', '2026-10-24T03:49:23Z', '2026-10-24T03:49:57Z', 129, 0, NULL, NULL);
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (140, 26, 'add new expenses in an entry row of the sheet', 'work', 'open', NULL, NULL, 'Part of `plan 26: add expenses inline in the sheet` (see its "Task 1" section for the full list). Instead of the "New expense" page, a "+" button opens an empty row at the bottom of the Expenses sheet, typed in place.
+
+Rules: `decision 43: editing an expense or recurring template stays on its own page; only new entries are typed inline`, `decision 39: money entry: an amount with a currency choice (USD, COP, EUR)` (use the amount + currency input from `task 137: the screens run on USD with a currency choice and the waiting notice`, default currency from the API), `decision 37: when no exchange rate can be fetched, entries are saved and wait for their rate` (a waiting save shows the API''s warning notice).
+
+What to do (`frontend/src`):
+- `components/DataTable.tsx`: optional `entry?: ReactNode`, rendered as the last body row (after the empty-state row, above the footer); a `SheetEntryRow` helper adds the gutter cell ("+" mark, `aria-hidden`) and a class styled in `index.css` (`input-sm`/`select-sm` filling the cell, light highlight).
+- `useSave`: `redirectTo` optional; without it stay on the page, call an `onSaved` callback, allow resetting errors.
+- `pages/Expenses.tsx` `ExpenseList`: Toolbar `action` becomes a "+" button (`btn btn-primary btn-sm btn-square`, `aria-label` and `title` "Add expense"), disabled while the row is open.
+- Row inputs per column: Date (today''s local date, not `toISOString()`), Category (with booking for per_booking / useful life for capex under the select, only for those), Description, Amount + currency, Save/Cancel in the Source column. Inputs use the `form` attribute so Enter submits; Escape cancels.
+- Field errors under each input (small `text-error` line with the warning mark extracted from `Field.tsx` and shared); `""` errors in `FormError` above the sheet.
+- After save: row closes, list and totals refresh via query invalidation, notices show.
+- Remove the `/expenses/new` route in `App.tsx`, `ExpenseNew`, and the "new" branch of `ExpenseForm`.
+
+Done when an expense can be added, rejected with in-row errors, and cancelled in the running app (check once by hand), and frontend typecheck, lint, test and build pass.', '2026-10-24T03:49:57Z', NULL, 139, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (141, 26, 'add new recurring expenses in an entry row and describe it in the README', 'work', 'open', NULL, NULL, 'Part of `plan 26: add expenses inline in the sheet` (see its "Task 2" section). Recurring monthly expenses get the same "+" button and entry row as expenses, using the `entry` / `SheetEntryRow` / `useSave` pieces the previous task added.
+
+Rules: `decision 43: editing an expense or recurring template stays on its own page; only new entries are typed inline`, `decision 39: money entry: an amount with a currency choice (USD, COP, EUR)`, `decision 37: when no exchange rate can be fetched, entries are saved and wait for their rate`.
+
+What to do:
+- `frontend/src/pages/Expenses.tsx` `RecurringList`: the "New" link becomes a "+" button (`btn btn-primary btn-sm btn-square`, `aria-label`/`title` "Add recurring expense") above the sheet on the right, opening a `SheetEntryRow` with Description, Category, Amount per month + currency, Start month (this local month), Until (empty = open), Save/Cancel in the last cell (or their own cell if cramped).
+- Same in-cell errors, save, refresh and close behaviour as for expenses; stay on the list after saving.
+- Remove the `/recurring/new` route, `RecurringNew` and the "new" branch of `RecurringForm`.
+- README "Styling conventions": add a bullet on the entry row (`entry` + `SheetEntryRow`, "+" button as Toolbar `action` or above the sheet, in-cell errors, today''s date default); the Buttons bullet no longer mentions a "New …" link for Expenses (Bookings keeps its link per `decision 29: Hand-entered bookings: remove the ''New booking'' button so that all income comes from the Airbnb CSV?`).
+
+Done when a template can be added inline in the running app, `rg "recurring/new|expenses/new|ExpenseNew|RecurringNew" frontend README.md` finds nothing, and frontend typecheck, lint, test, build and `nix flake check` pass.', '2026-10-24T03:49:57Z', NULL, 139, 0, NULL, 'main');
 
 INSERT INTO decision (id, subject, status, options, body, intro, answer, reason, created_at, closed_at, created_by_task, signoff, kind, decided_by_task, consequences) VALUES (1, 'Sign off the masterplan of milestone 1: first version build', 'answered', '["approve"]', '', 'This is the overall roadmap for building the first working version of a small, private bookkeeping app for one Airbnb apartment. The app turns every booking and every cost into amounts per calendar day, so it can answer whether hosting pays off, whether prices are set well, and how things are trending. The roadmap splits the build into parts, starting with a short architecture document the owner approves before anything else is built, and ending with a check against the real Airbnb export.
 
@@ -2744,7 +2769,9 @@ INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, b
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (129, 133, '2026-10-24T03:21:14Z', '2026-10-24T03:21:38Z', 'done', NULL, 0, 'bcbd0f9c3616141f04cae255c7fd636a301d4dea', 'main', 'claude-sonnet-5-5', '28723c43-61fd-4c96-a24f-1adaf945fe12', 128, 6, 12, 2489, 317968, 13712, 0.3706758, 59087, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (130, 127, '2026-10-24T03:42:29Z', '2026-10-24T03:47:51Z', 'done', NULL, 0, 'b901da25b0db8d98eef96a18c3e1de0ce3d0c504', 'main', 'claude-opus-5-5', 'e0ebc1c7-acfd-4448-a58d-3da48e9d38f7', NULL, 22, 44, 27379, 1247818, 73933, 1.3887836000000005, 86507, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (131, 134, '2026-10-24T03:47:38Z', '2026-10-24T03:48:32Z', 'done', NULL, 0, '20290e1ab1f85ce2c9ba1484f02c79681a50c666', NULL, 'claude-opus-5-5', '669e211d-895c-4001-b04f-fc750a64b8ee', NULL, 6, 12, 5309, 194676, 33178, 0.4105872, 45479, 60, 1465683);
-INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (132, 129, '2026-10-24T03:48:21Z', NULL, 'running', NULL, NULL, '20290e1ab1f85ce2c9ba1484f02c79681a50c666', 'main', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (132, 129, '2026-10-24T03:48:21Z', '2026-10-24T03:49:34Z', 'done', NULL, 0, '20290e1ab1f85ce2c9ba1484f02c79681a50c666', 'main', 'claude-opus-5-5', '0d6bd0c1-82fa-4733-9356-c584507432fe', NULL, 9, 18, 5145, 380246, 45042, 0.5393572, 57368, 60, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (133, 139, '2026-10-24T03:49:26Z', '2026-10-24T03:50:08Z', 'done', NULL, 0, 'ff2d107d0fb1d8bdc6352c82f6d3eb305c716856', NULL, 'claude-opus-5-5', 'b6739ccd-f2ba-4e63-8c9e-f26193ac65a4', NULL, 5, 10, 2658, 137192, 23151, 0.2658464, 35386, 60, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (134, 130, '2026-10-24T03:49:34Z', NULL, 'running', NULL, NULL, 'ff2d107d0fb1d8bdc6352c82f6d3eb305c716856', 'main', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1465683);
 
 INSERT INTO task_decision (task_id, decision_id) VALUES (2, 1);
 INSERT INTO task_decision (task_id, decision_id) VALUES (4, 2);
@@ -2930,5 +2957,7 @@ INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (135, 133)
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (136, 135);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (137, 136);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (138, 137);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (140, 137);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (141, 140);
 
 INSERT INTO decision_supersedes (decision_id, superseded_id, note) VALUES (39, 15, '');
