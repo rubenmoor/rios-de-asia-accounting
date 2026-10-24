@@ -570,19 +570,164 @@ const RECURRING_COLUMNS: Column<Recurring>[] = [
   { header: "Until", cell: (t) => t.end_month ?? "open" },
 ];
 
+// This month as YYYY-MM in local time.
+function localMonth() {
+  return localToday().slice(0, 7);
+}
+
+const RECURRING_ENTRY_FORM = "recurring-entry";
+
+function RecurringEntryRow({
+  options,
+  saver,
+  onCancel,
+}: {
+  options: { categories: string[]; default_currency: string };
+  saver: ReturnType<typeof useSave>;
+  onCancel: () => void;
+}) {
+  const [form, setForm] = useState<Form>({
+    description: "",
+    category: options.categories[0] ?? "",
+    amount: "",
+    currency: options.default_currency,
+    start_month: localMonth(),
+    end_month: "",
+  });
+  const set = (name: string) => (value: string) =>
+    setForm((f) => ({ ...f, [name]: value }));
+  const { errors } = saver;
+  const err = (name: string) =>
+    errors[name] && <FieldError small>{errors[name]}</FieldError>;
+
+  return (
+    <SheetEntryRow>
+      <td>
+        <form
+          id={RECURRING_ENTRY_FORM}
+          onSubmit={(e) => {
+            e.preventDefault();
+            saver.save(form);
+          }}
+        />
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: Escape cancels from any input of the row */}
+        <div
+          onKeyDown={(e) => {
+            if (e.key === "Escape") onCancel();
+          }}
+        >
+          <TextField
+            className="input-sm"
+            name="description"
+            form={RECURRING_ENTRY_FORM}
+            ariaLabel="Description"
+            value={form.description}
+            onChange={set("description")}
+          />
+          {err("description")}
+        </div>
+      </td>
+      <td>
+        <Select
+          className="select-sm"
+          name="category"
+          form={RECURRING_ENTRY_FORM}
+          ariaLabel="Category"
+          value={form.category}
+          onChange={set("category")}
+        >
+          {options.categories.map((c) => (
+            <option key={c}>{c}</option>
+          ))}
+        </Select>
+        {err("category")}
+      </td>
+      <td>
+        <AmountInput
+          small
+          name="amount"
+          form={RECURRING_ENTRY_FORM}
+          ariaLabel="Amount per month"
+          value={form.amount}
+          currency={form.currency}
+          onChange={set("amount")}
+          onCurrencyChange={set("currency")}
+        />
+        {err("amount")}
+        {err("currency")}
+      </td>
+      <td>
+        <MonthInput
+          className="input-sm"
+          name="start_month"
+          form={RECURRING_ENTRY_FORM}
+          ariaLabel="Start month"
+          value={form.start_month}
+          onChange={set("start_month")}
+        />
+        {err("start_month")}
+      </td>
+      <td>
+        <MonthInput
+          className="input-sm"
+          name="end_month"
+          form={RECURRING_ENTRY_FORM}
+          ariaLabel="Until (empty = open)"
+          value={form.end_month}
+          onChange={set("end_month")}
+        />
+        {err("end_month")}
+        <div className="mt-1 flex gap-2">
+          <button
+            type="submit"
+            form={RECURRING_ENTRY_FORM}
+            className="btn btn-primary btn-sm"
+            disabled={saver.pending}
+          >
+            Save
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={onCancel}
+          >
+            Cancel
+          </button>
+        </div>
+      </td>
+    </SheetEntryRow>
+  );
+}
+
 export function RecurringList() {
   const items = useQuery({
     queryKey: ["recurring"],
     queryFn: () => api<Recurring[]>("GET", "/api/recurring"),
   });
+  const options = useRecurringOptions();
+  const [adding, setAdding] = useState(false);
+  const adder = useSave({
+    method: "POST",
+    path: "/api/recurring",
+    resource: "recurring",
+    onSaved: () => setAdding(false),
+  });
   return (
     <div>
       <PageTitle icon={<RecurringIcon />}>Recurring expenses</PageTitle>
-      <p className="mb-4">
-        <Link className="btn btn-primary" to="/recurring/new">
-          New recurring expense
-        </Link>
+      <p className="mb-4 flex justify-end">
+        <button
+          type="button"
+          className="btn btn-primary btn-sm btn-square"
+          aria-label="Add recurring expense"
+          title="Add recurring expense"
+          disabled={adding}
+          onClick={() => setAdding(true)}
+        >
+          +
+        </button>
       </p>
+      <FormError message={adder.errors[""]} />
       <Loaded query={items}>
         {(rows) => (
           <DataTable
@@ -590,6 +735,19 @@ export function RecurringList() {
             rows={rows}
             rowKey={(t) => t.id}
             empty="No recurring expenses."
+            entry={
+              adding &&
+              options.data && (
+                <RecurringEntryRow
+                  options={options.data}
+                  saver={adder}
+                  onCancel={() => {
+                    adder.resetErrors();
+                    setAdding(false);
+                  }}
+                />
+              )
+            }
           />
         )}
       </Loaded>
@@ -609,32 +767,30 @@ const GENERATED_COLUMNS: Column<Expense>[] = [
 function RecurringForm({
   item,
   categories,
-  defaultCurrency,
 }: {
-  item?: RecurringDetail;
+  item: RecurringDetail;
   categories: string[];
-  defaultCurrency: string;
 }) {
   const [form, setForm] = useState<Form>({
-    description: item?.description ?? "",
-    amount: item ? formatAmount(item.amount_minor, item.currency) : "",
-    currency: item?.currency ?? defaultCurrency,
-    category: item?.category ?? categories[0] ?? "",
-    start_month: item?.start_month ?? "",
-    end_month: item?.end_month ?? "",
+    description: item.description,
+    amount: formatAmount(item.amount_minor, item.currency),
+    currency: item.currency,
+    category: item.category,
+    start_month: item.start_month,
+    end_month: item.end_month ?? "",
   });
   const set = (name: string) => (value: string) =>
     setForm((f) => ({ ...f, [name]: value }));
 
   const saver = useSave<RecurringDetail>({
-    method: item ? "PUT" : "POST",
-    path: item ? `/api/recurring/${item.id}` : "/api/recurring",
+    method: "PUT",
+    path: `/api/recurring/${item.id}`,
     resource: "recurring",
-    redirectTo: (saved) => `/recurring/${saved.id}`,
+    redirectTo: () => `/recurring/${item.id}`,
   });
   const remover = useSave({
     method: "DELETE",
-    path: `/api/recurring/${item?.id}`,
+    path: `/api/recurring/${item.id}`,
     resource: "recurring",
     redirectTo: () => "/recurring",
   });
@@ -642,15 +798,11 @@ function RecurringForm({
 
   return (
     <div>
-      <PageTitle icon={<RecurringIcon />}>
-        {item ? "Edit recurring expense" : "New recurring expense"}
-      </PageTitle>
-      {item && (
-        <p className="opacity-70 mb-4">
-          Changes only affect months not generated yet; the expenses below stay
-          as they are and are edited one by one.
-        </p>
-      )}
+      <PageTitle icon={<RecurringIcon />}>Edit recurring expense</PageTitle>
+      <p className="opacity-70 mb-4">
+        Changes only affect months not generated yet; the expenses below stay as
+        they are and are edited one by one.
+      </p>
       <FormError message={errors[""]} />
       <FormSlip label="Recurring expense">
         <form
@@ -714,28 +866,24 @@ function RecurringForm({
             </Link>
           </FormActions>
         </form>
-        {item && (
-          <div className="mt-6 border-t border-base-300 pt-4">
-            <ConfirmDelete
-              label="Delete template"
-              question="Delete this template? Its generated expenses are kept."
-              pending={remover.pending}
-              onConfirm={() => remover.save()}
-            />
-          </div>
-        )}
-      </FormSlip>
-      {item && (
-        <>
-          <SectionTitle className="mt-6 mb-2">Generated expenses</SectionTitle>
-          <DataTable
-            columns={GENERATED_COLUMNS}
-            rows={item.generated}
-            rowKey={(e) => e.id}
-            empty="None yet."
+        <div className="mt-6 border-t border-base-300 pt-4">
+          <ConfirmDelete
+            label="Delete template"
+            question="Delete this template? Its generated expenses are kept."
+            pending={remover.pending}
+            onConfirm={() => remover.save()}
           />
-        </>
-      )}
+        </div>
+      </FormSlip>
+      <>
+        <SectionTitle className="mt-6 mb-2">Generated expenses</SectionTitle>
+        <DataTable
+          columns={GENERATED_COLUMNS}
+          rows={item.generated}
+          rowKey={(e) => e.id}
+          empty="None yet."
+        />
+      </>
     </div>
   );
 }
@@ -751,20 +899,6 @@ function useRecurringOptions() {
   });
 }
 
-export function RecurringNew() {
-  const options = useRecurringOptions();
-  return (
-    <Loaded query={options}>
-      {(o) => (
-        <RecurringForm
-          categories={o.categories}
-          defaultCurrency={o.default_currency}
-        />
-      )}
-    </Loaded>
-  );
-}
-
 export function RecurringEdit() {
   const { id } = useParams();
   const options = useRecurringOptions();
@@ -777,12 +911,7 @@ export function RecurringEdit() {
       {(t) => (
         <Loaded query={options}>
           {(o) => (
-            <RecurringForm
-              key={t.id}
-              item={t}
-              categories={o.categories}
-              defaultCurrency={o.default_currency}
-            />
+            <RecurringForm key={t.id} item={t} categories={o.categories} />
           )}
         </Loaded>
       )}

@@ -14,7 +14,6 @@ import {
   ExpenseList,
   RecurringEdit,
   RecurringList,
-  RecurringNew,
 } from "./pages/Expenses";
 import { ImportPage } from "./pages/Import";
 import { NotFound } from "./pages/NotFound";
@@ -55,7 +54,6 @@ export function App() {
             <Route path="/expenses" element={<ExpenseList />} />
             <Route path="/expenses/:id/edit" element={<ExpenseEdit />} />
             <Route path="/recurring" element={<RecurringList />} />
-            <Route path="/recurring/new" element={<RecurringNew />} />
             <Route path="/recurring/:id" element={<RecurringEdit />} />
             <Route path="/import" element={<ImportPage />} />
             <Route path="/settings" element={<SettingsPage />} />
