@@ -1,11 +1,11 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, type ReactNode, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { api, type Notice } from "../api";
 import { BarChart } from "../charts/BarChart";
 import { LineChart } from "../charts/LineChart";
-import { Field } from "../components/Field";
 import { DateInput, MonthInput } from "../components/inputs";
+import { NoticeIcon } from "../components/Notices";
 import { PageTitle, SectionTitle } from "../components/Titles";
 import { DASH, formatMoney } from "../format";
 
@@ -74,22 +74,54 @@ function PeriodForm({
     setParams(next);
   };
 
+  const bar = (label: string, input: ReactNode) => (
+    // biome-ignore lint/a11y/noLabelWithoutControl: the input is the child
+    <label className="flex items-center gap-1 text-xs font-semibold">
+      {label}
+      {input}
+    </label>
+  );
+
   return (
     <form onSubmit={apply} className="mb-4">
-      <div className="flex flex-wrap items-end gap-2">
-        <Field label="Month">
-          <MonthInput name="month" value={month} onChange={setMonth} />
-        </Field>
-        <Field label="From">
-          <DateInput name="from" value={from} onChange={setFrom} />
-        </Field>
-        <Field label="To">
-          <DateInput name="to" value={to} onChange={setTo} />
-        </Field>
-        <button type="submit" className="btn btn-primary">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border border-base-300 bg-base-200 rounded-box px-3 py-2">
+        <span
+          aria-hidden="true"
+          className="italic font-serif font-bold text-primary border-r border-base-300 pr-3 select-none"
+        >
+          fx
+        </span>
+        {bar(
+          "Month",
+          <MonthInput
+            name="month"
+            value={month}
+            onChange={setMonth}
+            className="input-sm"
+          />,
+        )}
+        {bar(
+          "From",
+          <DateInput
+            name="from"
+            value={from}
+            onChange={setFrom}
+            className="input-sm"
+          />,
+        )}
+        {bar(
+          "To",
+          <DateInput
+            name="to"
+            value={to}
+            onChange={setTo}
+            className="input-sm"
+          />,
+        )}
+        <button type="submit" className="btn btn-primary btn-sm">
           Apply
         </button>
-        <Link to="/" className="btn">
+        <Link to="/" className="btn btn-ghost btn-sm">
           Reset
         </Link>
       </div>
@@ -138,6 +170,7 @@ export function DashboardPage() {
       ))}
       {data && data.needing_rate > 0 && (
         <div role="alert" className="alert alert-warning mb-4">
+          <NoticeIcon level="warning" />
           <Link to="/rates">
             {data.needing_rate} booking{data.needing_rate === 1 ? "" : "s"}{" "}
             {data.needing_rate === 1 ? "needs" : "need"} an exchange rate
@@ -177,12 +210,12 @@ function DashboardBody({ data }: { data: Dashboard }) {
   return (
     <>
       <div className="overflow-x-auto">
-        <table className="table">
+        <table className="table sheet">
           <thead>
             <tr>
-              <th>COP unless stated</th>
+              <th className="sticky left-0 z-10">COP unless stated</th>
               {data.columns.map((c) => (
-                <th key={c.label} className="text-right">
+                <th key={c.label} className="num">
                   {c.label}
                   <br />
                   <span className="font-normal opacity-70">
@@ -195,14 +228,14 @@ function DashboardBody({ data }: { data: Dashboard }) {
           <tbody>
             {data.rows.map((row) => (
               <tr key={row.key}>
-                <td>{row.label}</td>
+                <th className="sticky left-0 z-10">{row.label}</th>
                 {row.values.map((value, i) => {
                   const [text, negative] = cell(value, row.kind);
                   return (
                     <td
                       // biome-ignore lint/suspicious/noArrayIndexKey: one value per column
                       key={i}
-                      className={`text-right ${negative ? "text-error" : ""}`}
+                      className={negative ? "num neg" : "num"}
                     >
                       {text}
                     </td>
@@ -221,7 +254,7 @@ function DashboardBody({ data }: { data: Dashboard }) {
         <p>The 90-day chart starts once 90 days of history exist.</p>
       ) : (
         <>
-          <h3 className="font-bold">ADR and RevPAR (COP)</h3>
+          <h3 className="text-lg font-bold">ADR and RevPAR (COP)</h3>
           {data.rolling_90.every((p) => p.adr === null && p.revpar === null) ? (
             <p>Nothing to chart.</p>
           ) : (
@@ -248,7 +281,7 @@ function DashboardBody({ data }: { data: Dashboard }) {
               height={280}
             />
           )}
-          <h3 className="font-bold mt-4">Occupancy</h3>
+          <h3 className="text-lg font-bold mt-4">Occupancy</h3>
           {data.rolling_90.every((p) => p.occupancy === null) ? (
             <p>Nothing to chart.</p>
           ) : (
@@ -291,30 +324,32 @@ function DashboardBody({ data }: { data: Dashboard }) {
                 }))}
                 valueFormat={(v) => formatMoney(Math.round(v))}
               />
-              <table className="table w-auto">
-                <thead>
-                  <tr>
-                    <th>Category</th>
-                    <th className="text-right">COP</th>
-                    <th className="text-right">Share</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {breakdown.items.map((item) => (
-                    <tr key={item.key}>
-                      <td>{item.label}</td>
-                      <td className="text-right">
-                        {formatMoney(Math.trunc(item.amount))}
-                      </td>
-                      <td className="text-right">
-                        {item.share === null
-                          ? DASH
-                          : `${(item.share * 100).toFixed(1)} %`}
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="table sheet w-auto">
+                  <thead>
+                    <tr>
+                      <th className="sticky left-0 z-10">Category</th>
+                      <th className="num">COP</th>
+                      <th className="num">Share</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {breakdown.items.map((item) => (
+                      <tr key={item.key}>
+                        <th className="sticky left-0 z-10">{item.label}</th>
+                        <td className="num">
+                          {formatMoney(Math.trunc(item.amount))}
+                        </td>
+                        <td className="num">
+                          {item.share === null
+                            ? DASH
+                            : `${(item.share * 100).toFixed(1)} %`}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </>
           )}
         </>

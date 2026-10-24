@@ -41,8 +41,12 @@ export const HoursInput = (p: InputProps) => <TextInput {...p} />;
 export const RateInput = (p: InputProps) => (
   <TextInput {...p} inputMode="decimal" />
 );
-export const DateInput = (p: InputProps) => <TextInput {...p} type="date" />;
-export const MonthInput = (p: InputProps) => <TextInput {...p} type="month" />;
+export const DateInput = (p: InputProps & { className?: string }) => (
+  <TextInput {...p} type="date" />
+);
+export const MonthInput = (p: InputProps & { className?: string }) => (
+  <TextInput {...p} type="month" />
+);
 export const TextField = (
   p: InputProps & { className?: string; list?: string },
 ) => <TextInput {...p} />;

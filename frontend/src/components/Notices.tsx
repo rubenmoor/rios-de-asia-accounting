@@ -26,7 +26,7 @@ const ALERT_CLASS = {
   error: "alert-error",
 } as const;
 
-function NoticeIcon({ level }: { level: Notice["level"] }) {
+export function NoticeIcon({ level }: { level: Notice["level"] }) {
   return (
     <svg
       aria-hidden="true"
