@@ -12,7 +12,11 @@ import { formatMoney } from "../format";
 import { useSave } from "../useSave";
 
 type Settings = {
-  hourly_value_cop: number;
+  last_backup: {
+    time: string;
+    file: string | null;
+    error: string | null;
+  } | null;
   long_term_rent_cop_per_month: number;
   per_booking_allocation: string;
   backup_keep: number;
@@ -28,7 +32,6 @@ function SettingsForm({
   options: Options;
 }) {
   const [form, setForm] = useState<Record<string, string>>({
-    hourly_value_cop: formatMoney(settings.hourly_value_cop),
     long_term_rent_cop_per_month: formatMoney(
       settings.long_term_rent_cop_per_month,
     ),
@@ -51,6 +54,7 @@ function SettingsForm({
     redirectTo: () => "/settings",
   });
   const { errors } = saver;
+  const backup = settings.last_backup;
 
   return (
     <div>
@@ -68,16 +72,6 @@ function SettingsForm({
             });
           }}
         >
-          <Field
-            label="Hourly value of own time (COP)"
-            error={errors.hourly_value_cop}
-          >
-            <MoneyInput
-              name="hourly_value_cop"
-              value={form.hourly_value_cop}
-              onChange={set("hourly_value_cop")}
-            />
-          </Field>
           <Field
             label="Long-term rental benchmark (COP per month)"
             error={errors.long_term_rent_cop_per_month}
@@ -147,6 +141,20 @@ function SettingsForm({
               onChange={set("backup_keep")}
             />
           </Field>
+          <p className="mb-2">
+            Last backup:{" "}
+            {backup === null ? (
+              <span className="opacity-70">none yet</span>
+            ) : backup.error ? (
+              <span className="text-error">
+                {backup.time.replace("T", " ")} failed: {backup.error}
+              </span>
+            ) : (
+              <span>
+                {backup.time.replace("T", " ")}, {backup.file}
+              </span>
+            )}
+          </p>
           <p className="mb-2">
             Currency: <strong>COP</strong>
           </p>

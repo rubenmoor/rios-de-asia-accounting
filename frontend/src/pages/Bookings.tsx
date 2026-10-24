@@ -112,12 +112,19 @@ export function BookingList() {
   return (
     <div>
       <PageTitle icon={<BookingsIcon />}>Bookings</PageTitle>
+      <p className="mb-3 text-sm opacity-70">
+        Airbnb stays come in through the CSV export on the{" "}
+        <Link className="link" to="/import">
+          Import
+        </Link>{" "}
+        page; adding one by hand is only for stays booked elsewhere.
+      </p>
       <Toolbar
         onSubmit={apply}
         errors={[filterErrors.from, filterErrors.to]}
         action={
           <Link className="btn btn-primary btn-sm" to="/bookings/new">
-            New booking
+            Add a stay booked outside Airbnb
           </Link>
         }
       >
@@ -349,7 +356,7 @@ function BookingForm({ booking }: { booking?: Detail }) {
   return (
     <div>
       <PageTitle icon={<BookingsIcon />}>
-        {booking ? "Edit booking" : "New booking"}
+        {booking ? "Edit booking" : "Add a stay booked outside Airbnb"}
       </PageTitle>
       {imported && (
         <p className="mb-4 opacity-70">
