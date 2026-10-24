@@ -16,14 +16,25 @@ export function formatAmount(minor: number, currency = "USD"): string {
   return `${sign}${grouped},${String(abs % 100).padStart(2, "0")}`;
 }
 
-// US cents as 1.234,56.
-export const formatMoney = (cents: number) => formatAmount(cents, "USD");
-
 export const DASH = "–";
 
-// US cents; null (not computable, or waiting for a rate) is a dash.
-export function showMoney(cents: number | null): string {
-  return cents === null ? DASH : formatMoney(cents);
+export const USD_RATE = 1_000_000;
+
+// US cents in minor units of the display currency (rate: units per USD x
+// 1 000 000), rounded half away from zero (decision 46).
+export function toDisplay(cents: number, rate: number): number {
+  const scaled = (Math.abs(cents) * rate) / USD_RATE;
+  return Math.sign(cents) * Math.round(scaled);
+}
+
+// Minor units of the display currency as text (decision 47): COP in whole
+// pesos, others with two decimals; the currency code is added by the caller.
+export function formatDisplay(minor: number, currency: string): string {
+  if (currency !== "COP") return formatAmount(minor, currency);
+  return formatAmount(
+    Math.sign(minor) * Math.round(Math.abs(minor) / 100) * 100,
+    "COP",
+  );
 }
 
 // What was typed: "4.500.000 COP".

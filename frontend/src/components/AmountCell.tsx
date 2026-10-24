@@ -1,4 +1,5 @@
-import { conversionTitle, showMoney } from "../format";
+import { conversionTitle } from "../format";
+import { useDisplay } from "../useDisplay";
 
 type Converted = {
   amount: number | null;
@@ -8,8 +9,9 @@ type Converted = {
   rate_date: string | null;
 };
 
-// USD cents of a converted entry; hover shows what was typed, the rate and its date.
+// A converted entry in the display currency; hover shows what was typed, the rate and its date.
 export function AmountCell({ e }: { e: Converted }) {
+  const { money } = useDisplay();
   const title = conversionTitle(e);
   if (e.amount === null) {
     return (
@@ -20,7 +22,7 @@ export function AmountCell({ e }: { e: Converted }) {
   }
   return (
     <span title={title} className={title ? "cursor-help" : undefined}>
-      {showMoney(e.amount)}
+      {money(e.amount)}
     </span>
   );
 }

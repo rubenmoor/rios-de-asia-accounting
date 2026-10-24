@@ -27,7 +27,8 @@ import {
 import { PageTitle, SectionTitle } from "../components/Titles";
 import { Toolbar, ToolbarField } from "../components/Toolbar";
 import { WaitingNotice } from "../components/WaitingNotice";
-import { formatAmount, showMoney, showOriginal } from "../format";
+import { formatAmount, showOriginal } from "../format";
+import { useDisplay } from "../useDisplay";
 import { useSave } from "../useSave";
 
 type Expense = {
@@ -80,7 +81,7 @@ function Loaded<T>({
   return <>{children(query.data)}</>;
 }
 
-const EXPENSE_COLUMNS: Column<Expense>[] = [
+const expenseColumns = (currency: string): Column<Expense>[] => [
   {
     header: "Date",
     cell: (e) => e.date,
@@ -88,7 +89,11 @@ const EXPENSE_COLUMNS: Column<Expense>[] = [
   },
   { header: "Category", cell: (e) => e.category },
   { header: "Description", cell: (e) => e.description },
-  { header: "Amount (USD)", cell: (e) => <AmountCell e={e} />, numeric: true },
+  {
+    header: `Amount (${currency})`,
+    cell: (e) => <AmountCell e={e} />,
+    numeric: true,
+  },
   {
     header: "Source",
     cell: (e) => (e.recurring_expense_id != null ? "generated" : ""),
@@ -96,6 +101,7 @@ const EXPENSE_COLUMNS: Column<Expense>[] = [
 ];
 
 export function ExpenseList() {
+  const { currency, money } = useDisplay();
   const [params, setParams] = useSearchParams();
   const from = params.get("from") ?? "";
   const to = params.get("to") ?? "";
@@ -198,7 +204,7 @@ export function ExpenseList() {
         )}
       <FormError message={adder.errors[""]} />
       <DataTable
-        columns={EXPENSE_COLUMNS}
+        columns={expenseColumns(currency)}
         rows={rows}
         rowKey={(e) => e.id}
         empty="No expenses."
@@ -218,7 +224,7 @@ export function ExpenseList() {
         footer={
           <SheetFooterRow>
             <th colSpan={3}>Total</th>
-            <th className="num total">{showMoney(total)}</th>
+            <th className="num total">{money(total)}</th>
             <th />
           </SheetFooterRow>
         }
@@ -755,13 +761,17 @@ export function RecurringList() {
   );
 }
 
-const GENERATED_COLUMNS: Column<Expense>[] = [
+const generatedColumns = (currency: string): Column<Expense>[] => [
   {
     header: "Date",
     cell: (e) => e.date,
     href: (e) => `/expenses/${e.id}/edit`,
   },
-  { header: "Amount (USD)", cell: (e) => <AmountCell e={e} />, numeric: true },
+  {
+    header: `Amount (${currency})`,
+    cell: (e) => <AmountCell e={e} />,
+    numeric: true,
+  },
 ];
 
 function RecurringForm({
@@ -771,6 +781,7 @@ function RecurringForm({
   item: RecurringDetail;
   categories: string[];
 }) {
+  const { currency } = useDisplay();
   const [form, setForm] = useState<Form>({
     description: item.description,
     amount: formatAmount(item.amount_minor, item.currency),
@@ -878,7 +889,7 @@ function RecurringForm({
       <>
         <SectionTitle className="mt-6 mb-2">Generated expenses</SectionTitle>
         <DataTable
-          columns={GENERATED_COLUMNS}
+          columns={generatedColumns(currency)}
           rows={item.generated}
           rowKey={(e) => e.id}
           empty="None yet."

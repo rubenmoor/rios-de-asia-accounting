@@ -13,7 +13,8 @@ import {
   TextField,
 } from "../components/inputs";
 import { PageTitle } from "../components/Titles";
-import { formatAmount, showMoney } from "../format";
+import { formatAmount } from "../format";
+import { useDisplay } from "../useDisplay";
 import { useSave } from "../useSave";
 
 type Settings = {
@@ -47,6 +48,7 @@ function SettingsForm({
   settings: Settings;
   options: Options;
 }) {
+  const { currency, money } = useDisplay();
   const entered = settings.long_term_rent_entered;
   const [form, setForm] = useState<Record<string, string>>({
     long_term_rent: entered
@@ -105,7 +107,7 @@ function SettingsForm({
               <p className="mt-1 text-sm opacity-70">
                 {settings.long_term_rent_usd === null
                   ? "Waiting for an exchange rate; left out of the figures."
-                  : `${showMoney(settings.long_term_rent_usd)} USD${
+                  : `${money(settings.long_term_rent_usd)} ${currency}${
                       entered.currency === "USD"
                         ? ""
                         : ` at the rate of ${entered.rate_date}`
