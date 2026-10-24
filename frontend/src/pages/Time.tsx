@@ -112,7 +112,7 @@ export function TimeList() {
         footer={
           <SheetFooterRow>
             <th colSpan={2}>Total</th>
-            <th className="num">{showHours(total)}</th>
+            <th className="num total">{showHours(total)}</th>
           </SheetFooterRow>
         }
       />

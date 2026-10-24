@@ -178,7 +178,7 @@ export function ExpenseList() {
         footer={
           <SheetFooterRow>
             <th colSpan={3}>Total</th>
-            <th className="num">{showMoney(total)}</th>
+            <th className="num total">{showMoney(total)}</th>
             <th />
           </SheetFooterRow>
         }

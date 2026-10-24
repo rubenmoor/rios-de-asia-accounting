@@ -366,8 +366,15 @@ function PreviewStep({
 function SummaryStep({ summary }: { summary: Summary }) {
   return (
     <div>
-      <PageTitle icon={<ImportIcon />}>Import done</PageTitle>
-      <ul className="mb-2">
+      <div className="mb-4 flex flex-wrap items-center gap-4">
+        <PageTitle icon={<ImportIcon />} className="">
+          Import done
+        </PageTitle>
+        <span className="stamp" aria-hidden="true">
+          Posted ✓
+        </span>
+      </div>
+      <ul className="ledger-list mb-2">
         <li>
           {summary.new} new booking(s), {summary.updated} updated,{" "}
           {summary.lines_added} line(s) added
@@ -488,6 +495,9 @@ function RatesSection() {
       {done && (
         <div className="mt-4">
           <div role="alert" className="alert alert-success">
+            <span className="stamp" aria-hidden="true">
+              Posted ✓
+            </span>
             {done.currency} rates: {done.result.added} added,{" "}
             {done.result.changed} changed; {done.result.lines_recomputed}{" "}
             line(s) recomputed; {done.result.needing_rate} booking(s) still need
