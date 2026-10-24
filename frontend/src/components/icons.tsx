@@ -81,16 +81,6 @@ export function RecurringIcon(props: IconProps) {
   );
 }
 
-/** Calendar with a cross. */
-export function BlockedIcon(props: IconProps) {
-  return (
-    <StrokeIcon {...props}>
-      <rect x="3.5" y="5" width="17" height="15" rx="2" />
-      <path d="M3.5 10h17M8 3v4M16 3v4M9.5 12.5l5 5M14.5 12.5l-5 5" />
-    </StrokeIcon>
-  );
-}
-
 /** Clock. */
 export function TimeIcon(props: IconProps) {
   return (

@@ -23,7 +23,7 @@ Binding: `decision 24: client-side framework: React with TypeScript, built by Vi
 - **Client stack** (in `frontend/`, built by Vite):
   - React 19 with TypeScript in strict mode;
   - React Router, with the app's URLs: `/` (dashboard) and the `NAV` paths of
-    `frontend/src/nav.ts` (`/bookings`, `/expenses`, `/recurring`, `/blocked-days`, `/time`,
+    `frontend/src/nav.ts` (`/bookings`, `/expenses`, `/recurring`, `/time`,
     `/rates`, `/import`, `/settings`), plus a not-found page;
   - TanStack Query for server data; `frontend/src/api.ts` is the only place that calls
     `fetch` (relative URLs, JSON in and out, an `ApiError` carrying status, field
@@ -85,12 +85,12 @@ src/rios_de_asia_accounting/
   cli.py            entry point: `serve` (default), `backup`, `import <csv>`, `migrate`
   config.py         paths: DB, backup dir (env vars and flags)
   money.py          parsing amounts, currency → COP, rounding
-  model.py          plain dataclasses: Booking, Expense, BlockedDay, Day, …
+  model.py          plain dataclasses: Booking, Expense, Day, …
   storage/
     db.py           connection, migrations runner
     migrations/     0001_init.sql, 0002_….sql
     repo.py         all SQL lives here: CRUD, loading the inputs of the engine
-  allocation.py     pure: bookings, expenses, blocked days, time log → list[Day]
+  allocation.py     pure: bookings, expenses, time log → list[Day]
   metrics.py        pure: list[Day] + range → metrics, rolling series, breakdown
   importer/
     airbnb_csv.py   parse the CSV → import plan; apply it through repo
@@ -192,8 +192,8 @@ Endpoints (method, path, request → response):
 - `PUT /api/bookings/<id>` — same fields; an imported booking accepts only `guests` and
   `notes` (`decision 17: bookings from the Airbnb import: dates, listing and guest name are read-only in the edit form`)
   → as `POST`.
-- `DELETE /api/bookings/<id>` — → `{data: null, notices: ["Booking deleted."]}`; blocked
-  by expenses → `422 {"errors": {"": "Booking not deleted: …. Delete its expenses first."}}`.
+- `DELETE /api/bookings/<id>` — → `{data: null, notices: ["Booking deleted."]}`; refused
+  while it has expenses → `422 {"errors": {"": "Booking not deleted: …. Delete its expenses first."}}`.
 - `GET /api/expenses?from=&to=&category=` — filters optional (bad value → `422`) → list,
   newest first, of `{id, date, amount, category, booking_id, useful_life_days,
   description, recurring_expense_id}` (`amount` integer pesos).
@@ -214,14 +214,6 @@ Endpoints (method, path, request → response):
   (`decision 16: changing a recurring expense template only affects months not yet generated`).
 - `DELETE /api/recurring/<id>` — → `{data: null, notices: ["Recurring expense deleted;
   the expenses it generated are kept."]}`.
-- `GET /api/blocked-days?from=&to=` — optional day filters (bad value → `422`) → list,
-  newest day first, of `{date, reason, note}`.
-- `GET /api/blocked-days/options` — `{"reasons": ["buffer", "owner", "maintenance", "other"]}`.
-- `POST /api/blocked-days` — `{from, to, reason, note?}` (a day range, at most 731 days)
-  → `{data: null, notices}`: "N day(s) blocked[; M already blocked and skipped]." `info`,
-  plus a `warning` listing blocked days that fall inside a booking.
-- `PUT /api/blocked-days/<YYYY-MM-DD>` — `{reason, note?}` → `{data: <item>, notices: ["Blocked day saved."]}`.
-- `DELETE /api/blocked-days/<YYYY-MM-DD>` — → `{data: null, notices: ["Blocked day deleted."]}`.
 - `GET /api/time?from=&to=` — optional day filters (bad value → `422`) → list, newest
   first, of `{id, date, minutes, booking_id, description}` (`minutes` integer).
 - `GET /api/time/options` — `{"bookings": [{"id", "label"}]}`.
