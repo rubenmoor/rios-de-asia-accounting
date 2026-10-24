@@ -10,6 +10,9 @@ import {
 } from "../api";
 import { type Column, DataTable } from "../components/DataTable";
 import { Field } from "../components/Field";
+import { FormActions } from "../components/FormActions";
+import { FormError } from "../components/FormError";
+import { FormSlip } from "../components/FormSlip";
 import { useNotices } from "../components/Notices";
 import { PageTitle, SectionTitle } from "../components/Titles";
 
@@ -53,14 +56,6 @@ type Summary = {
 
 const NO_FILE = "choose the Airbnb CSV file";
 const sum = (rows: ListingRows[]) => rows.reduce((n, r) => n + r.rows, 0);
-
-function Alert({ children }: { children: string }) {
-  return (
-    <div role="alert" className="alert alert-error mb-4">
-      {children}
-    </div>
-  );
-}
 
 function ProblemsAndWarnings({
   problems,
@@ -138,24 +133,28 @@ function UploadStep({
       <p className="opacity-70 mb-2">
         You see what would change before anything is written.
       </p>
-      {shown && <Alert>{shown}</Alert>}
-      <form onSubmit={submit} className="flex flex-wrap items-end gap-2">
-        <Field label="CSV file">
-          <input
-            type="file"
-            name="file"
-            accept=".csv,text/csv"
-            className="file-input"
-          />
-        </Field>
-        <button
-          type="submit"
-          className="btn btn-primary"
-          disabled={upload.isPending}
-        >
-          Preview
-        </button>
-      </form>
+      <FormError message={shown ?? undefined} />
+      <FormSlip label="Airbnb CSV">
+        <form onSubmit={submit}>
+          <Field label="CSV file">
+            <input
+              type="file"
+              name="file"
+              accept=".csv,text/csv"
+              className="file-input w-full"
+            />
+          </Field>
+          <FormActions>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={upload.isPending}
+            >
+              Preview
+            </button>
+          </FormActions>
+        </form>
+      </FormSlip>
     </section>
   );
 }
@@ -288,7 +287,7 @@ function PreviewStep({
   return (
     <div>
       <PageTitle>Import preview</PageTitle>
-      {error && <Alert>{error}</Alert>}
+      <FormError message={error ?? undefined} />
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -296,7 +295,7 @@ function PreviewStep({
         }}
       >
         {preview.needs_listing_choice ? (
-          <>
+          <FormSlip label="Listings">
             <p className="mb-2">
               No listings of this property are chosen yet. Tick the ones to
               import; the choice is saved in the settings. Nothing is imported
@@ -318,13 +317,12 @@ function PreviewStep({
             ))}
             <Field label="Another listing name">
               <input
-                className="input"
-                size={40}
+                className="input w-full"
                 value={other}
                 onChange={(e) => setOther(e.target.value)}
               />
             </Field>
-          </>
+          </FormSlip>
         ) : (
           <>
             <p className="mb-2">
@@ -346,19 +344,19 @@ function PreviewStep({
           problems={preview.problems}
           warnings={preview.warnings}
         />
-        <div className="flex gap-2 mt-4">
+        <FormActions>
           <button type="submit" className="btn btn-primary" disabled={busy}>
             Import
           </button>
           <button
             type="button"
-            className="btn"
+            className="btn btn-ghost"
             disabled={busy}
             onClick={() => cancel.mutate()}
           >
             Cancel
           </button>
-        </div>
+        </FormActions>
       </form>
     </div>
   );
@@ -452,34 +450,40 @@ function RatesSection() {
       <p className="opacity-70 mb-2">
         CSV from datos.gov.co with the columns VALOR and VIGENCIADESDE.
       </p>
-      {errors[""] && <Alert>{errors[""]}</Alert>}
-      <form onSubmit={submit} className="flex flex-wrap items-start gap-2">
-        <Field label="CSV file" error={errors.file}>
-          <input
-            type="file"
-            name="file"
-            accept=".csv,text/csv"
-            className="file-input"
-          />
-        </Field>
-        <Field label="Currency" error={errors.currency}>
-          <input
-            className="input"
-            name="currency"
-            size={4}
-            maxLength={3}
-            value={currency}
-            onChange={(e) => setCurrency(e.target.value)}
-          />
-        </Field>
-        <button
-          type="submit"
-          className="btn btn-primary mt-8"
-          disabled={load.isPending}
-        >
-          Load rates
-        </button>
-      </form>
+      <FormError message={errors[""]} />
+      <FormSlip label="Exchange rates">
+        <form onSubmit={submit}>
+          <Field label="CSV file" error={errors.file}>
+            <input
+              type="file"
+              name="file"
+              accept=".csv,text/csv"
+              className="file-input w-full"
+            />
+          </Field>
+          <div className="w-32">
+            <Field label="Currency" error={errors.currency}>
+              <input
+                className="input w-full"
+                name="currency"
+                size={4}
+                maxLength={3}
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+              />
+            </Field>
+          </div>
+          <FormActions>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={load.isPending}
+            >
+              Load rates
+            </button>
+          </FormActions>
+        </form>
+      </FormSlip>
       {done && (
         <div className="mt-4">
           <div role="alert" className="alert alert-success">
