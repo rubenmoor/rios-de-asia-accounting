@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import { Link } from "react-router";
 import { BlankLedgerDoodle } from "./icons";
 
@@ -29,13 +29,28 @@ export function SheetFooterRow({ children }: { children: ReactNode }) {
   );
 }
 
-// The entry row of a `DataTable` (pass as `entry`): a "+" gutter cell, then
-// one cell per column, styled for typing in place.
-export function SheetEntryRow({ children }: { children: ReactNode }) {
+// The entry row of a `DataTable` (pass as `entry`, or return it from `editRow`
+// to edit a row in place): a gutter cell ("+" for a new entry), then one cell
+// per column, styled for typing in place.
+export function SheetEntryRow({
+  children,
+  mark = "+",
+  onEscape,
+}: {
+  children: ReactNode;
+  mark?: ReactNode;
+  // Called when Escape is pressed in any input of the row.
+  onEscape?: () => void;
+}) {
   return (
-    <tr className="entry">
+    <tr
+      className="entry"
+      onKeyDown={(e) => {
+        if (e.key === "Escape") onEscape?.();
+      }}
+    >
       <td className="gutter" aria-hidden="true">
-        +
+        {mark}
       </td>
       {children}
     </tr>
@@ -52,6 +67,9 @@ export function DataTable<T>({
   empty,
   footer,
   entry,
+  editing,
+  editRow,
+  onEdit,
 }: {
   columns: Column<T>[];
   rows: T[];
@@ -60,6 +78,11 @@ export function DataTable<T>({
   footer?: ReactNode;
   // A `SheetEntryRow` shown as the last body row.
   entry?: ReactNode;
+  // The row whose key equals `editing` is drawn as `editRow(row)` (a
+  // `SheetEntryRow`). With `onEdit`, clicking a row or its pencil button opens it.
+  editing?: string | number | null;
+  editRow?: (row: T) => ReactNode;
+  onEdit?: (row: T) => void;
 }) {
   return (
     <div className="overflow-x-auto">
@@ -104,30 +127,56 @@ export function DataTable<T>({
               </td>
             </tr>
           )}
-          {rows.map((row, i) => (
-            <tr key={rowKey(row)}>
-              <td className="gutter" aria-hidden="true">
-                {i + 1}
-              </td>
-              {columns.map((c) => (
-                <td
-                  key={c.header}
-                  className={cls(
-                    c.numeric && "num",
-                    c.negative?.(row) && "neg",
-                  )}
-                >
-                  {c.href ? (
-                    <Link className="link" to={c.href(row)}>
-                      {c.cell(row)}
-                    </Link>
-                  ) : (
-                    c.cell(row)
-                  )}
+          {rows.map((row, i) =>
+            editRow && editing === rowKey(row) ? (
+              <Fragment key={rowKey(row)}>{editRow(row)}</Fragment>
+            ) : (
+              <tr
+                key={rowKey(row)}
+                className={onEdit ? "editable" : undefined}
+                onClick={
+                  onEdit &&
+                  ((e) => {
+                    if (!(e.target as Element).closest("a, button, input")) {
+                      onEdit(row);
+                    }
+                  })
+                }
+              >
+                <td className="gutter" aria-hidden="true">
+                  {i + 1}
                 </td>
-              ))}
-            </tr>
-          ))}
+                {columns.map((c, j) => (
+                  <td
+                    key={c.header}
+                    className={cls(
+                      c.numeric && "num",
+                      c.negative?.(row) && "neg",
+                    )}
+                  >
+                    {j === 0 && onEdit && (
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-xs btn-square mr-1 align-middle"
+                        aria-label="Edit"
+                        title="Edit"
+                        onClick={() => onEdit(row)}
+                      >
+                        ✎
+                      </button>
+                    )}
+                    {c.href ? (
+                      <Link className="link" to={c.href(row)}>
+                        {c.cell(row)}
+                      </Link>
+                    ) : (
+                      c.cell(row)
+                    )}
+                  </td>
+                ))}
+              </tr>
+            ),
+          )}
           {entry}
         </tbody>
         {footer && <tfoot>{footer}</tfoot>}
