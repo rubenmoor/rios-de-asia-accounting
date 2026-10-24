@@ -82,9 +82,10 @@ The look is one light daisyUI theme, `ledger` (`frontend/src/index.css`). Pages 
 - **Table footers (totals):** pass `<SheetFooterRow>` (from `DataTable.tsx`, adds the gutter cell) as `footer`; total cells get `num`.
 - **Negative cells:** `negative?: (row) => boolean` on a `Column` adds `neg`; only the colour changes, never the text.
 - **Headings:** `PageTitle` (h1) and `SectionTitle` (h2) from `components/Titles.tsx`, never hand-written heading classes.
-- **Forms:** `Field` plus the inputs in `inputs.tsx`; the form actions sit in one `flex gap-2 mt-4` row.
-- **Buttons:** `btn btn-primary` for Save/Apply, `btn btn-ghost` or `btn-soft` for Cancel/Reset links, `btn btn-error` for Delete (via `ConfirmDelete`).
-- **Errors:** page-level `alert alert-error`; field-level `text-error` under the field (done by `Field`).
+- **Forms:** `Field` (label, muted hint line, `text-error` message with a warning mark) plus the inputs in `inputs.tsx` (full width; money, hours and rate are `num`). A form sits in a `FormSlip` (`components/FormSlip.tsx`): the journal entry slip, a bordered paper card with a header strip (`label`, optional `aria-hidden` `stamp`) and a red margin rule. The `inked` class is for read-only values shown as text.
+- **Form actions:** `FormActions` is the ruled row under a form, primary first. `FormError` is the page-level error above a form (`alert alert-error` with icon).
+- **Buttons:** `btn btn-primary` for Save/Apply, `btn btn-ghost` for Cancel/Back/Reset, `btn btn-error btn-outline btn-sm` for the Delete trigger (via `ConfirmDelete`, a small "Void entry" slip dialog; its Delete is `btn-error`, its Cancel `btn-ghost`). The filter-bar `Toolbar` comes with the filter-bar task.
+- **Errors:** page-level `FormError` / `alert alert-error`; field-level under the field (done by `Field`).
 - **Hints:** `Field`'s `hint`. Muted notes: `opacity-70`.
 - **Icons:** inline SVG components in `frontend/src/components/icons.tsx` (no icon fonts, no CDN).
 

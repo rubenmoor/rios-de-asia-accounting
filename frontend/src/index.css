@@ -121,3 +121,24 @@
     user-select: none;
   }
 }
+
+/* Journal entry slip (FormSlip): ledger paper with a red margin rule on the left. */
+@utility slip-margin {
+  position: relative;
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 1.75rem;
+    width: 1px;
+    background-color: color-mix(in oklab, var(--color-error) 35%, transparent);
+    pointer-events: none;
+  }
+}
+
+/* Read-only values shown as text, not as disabled inputs. */
+@utility inked {
+  font-family: ui-serif, Georgia, "Times New Roman", serif;
+  font-style: italic;
+}
