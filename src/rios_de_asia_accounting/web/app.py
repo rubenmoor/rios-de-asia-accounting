@@ -1,4 +1,3 @@
-from collections.abc import Callable
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -19,10 +18,10 @@ def _same_origin() -> bool:
     return True
 
 
-def create_app(db_path: str | Path, shutdown: Callable[[], None] | None = None) -> Flask:
+def create_app(db_path: str | Path) -> Flask:
     app = Flask(__name__, static_folder=DIST / "assets", static_url_path="/assets")
     app.config["DB_PATH"] = str(db_path)
-    app.config["SHUTDOWN"] = shutdown
+    app.config["LAST_BACKUP"] = None  # set by the backup thread: {time, file, error}
 
     @app.before_request
     def guard() -> None:

@@ -1,10 +1,11 @@
 import argparse
 import signal
 import socket
+import sqlite3
 import sys
 import threading
 import webbrowser
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 from waitress import create_server
@@ -25,6 +26,7 @@ from rios_de_asia_accounting.storage.db import connect, migrate
 from rios_de_asia_accounting.web.app import create_app
 
 HOST = "127.0.0.1"
+BACKUP_INTERVAL = 3600  # seconds between backups while the app runs
 
 
 def _free_port() -> int:
@@ -34,16 +36,25 @@ def _free_port() -> int:
 
 
 def serve(
-    db_path: Path, port: int | None, open_browser: bool, backup_dir: str | None = None
+    db_path: Path,
+    port: int | None,
+    open_browser: bool,
+    backup_dir: str | None = None,
+    backup_interval: float | None = BACKUP_INTERVAL,
 ) -> None:
-    """Run the web app until Ctrl-C, SIGTERM or the Quit button; then back up once."""
-    # Quit (a request thread) and SIGTERM both end up as KeyboardInterrupt in the main thread.
-    main_thread = threading.get_ident()
-    server = create_server(
-        create_app(db_path, shutdown=lambda: signal.pthread_kill(main_thread, signal.SIGINT)),
-        host=HOST,
-        port=port or _free_port(),
-    )
+    """Run the web app until Ctrl-C or SIGTERM, backing up at start, hourly when the books
+    changed, and once more at stop. `backup_interval` None turns the timer thread off."""
+    app = create_app(db_path)
+    server = create_server(app, host=HOST, port=port or _free_port())
+    stop_loop = threading.Event()
+    loop = None
+    if backup_interval is not None:
+        loop = threading.Thread(
+            target=backup_loop,
+            args=(db_path, backup_dir, app.config, stop_loop, backup_interval),
+            daemon=True,
+        )
+        loop.start()
     # explicit: a background shell can leave SIGINT ignored
     signal.signal(signal.SIGINT, signal.default_int_handler)
     signal.signal(signal.SIGTERM, signal.default_int_handler)
@@ -60,18 +71,67 @@ def serve(
         signal.signal(signal.SIGINT, signal.SIG_IGN)
         signal.signal(signal.SIGTERM, signal.SIG_IGN)
         server.close()
-        backup_on_exit(db_path, backup_dir)
+        stop_loop.set()
+        if loop is not None:
+            loop.join(timeout=30)
+        backup_on_exit(db_path, backup_dir, app.config)
 
 
-def backup_on_exit(db_path: Path, backup_dir: str | None) -> None:
-    """Back up at exit; a failure is reported but never stops the app from closing."""
+def backup_now(
+    db_path: Path, backup_dir: str | None, config: dict | None = None, when: str = ""
+) -> bool:
+    """Back up; a failure goes to stderr and never stops the app. The result is kept in
+    `config["LAST_BACKUP"]` (time and file, or the error) for the Settings screen."""
+    result: dict = {
+        "time": datetime.now().isoformat(timespec="seconds"),
+        "file": None,
+        "error": None,
+    }
     try:
         target = backup(
             db_path, resolve_backup_dir(backup_dir), resolve_keep(db_path), date.today()
         )
+        result["file"] = str(target)
         print(f"backup written: {target}", flush=True)
     except (BackupError, OSError) as e:
-        print(f"rios-de-asia-accounting: backup at exit failed: {e}", file=sys.stderr, flush=True)
+        result["error"] = str(e)
+        print(f"rios-de-asia-accounting: backup{when} failed: {e}", file=sys.stderr, flush=True)
+    if config is not None:
+        config["LAST_BACKUP"] = result
+    return result["error"] is None
+
+
+def backup_on_exit(db_path: Path, backup_dir: str | None, config: dict | None = None) -> None:
+    backup_now(db_path, backup_dir, config, " at exit")
+
+
+def backup_loop(
+    db_path: Path,
+    backup_dir: str | None,
+    config: dict,
+    stop: threading.Event,
+    interval: float,
+) -> None:
+    """Back up right away, then every `interval` seconds when another connection has
+    written since the last successful backup, until `stop` is set."""
+    conn = None
+    done = None
+    try:
+        while not stop.is_set():
+            try:
+                if conn is None:
+                    conn = sqlite3.connect(db_path)
+                version = conn.execute("PRAGMA data_version").fetchone()[0]
+            except sqlite3.Error as e:
+                print(f"rios-de-asia-accounting: backup check failed: {e}", file=sys.stderr)
+                version = None
+            if version is None or version != done:
+                if backup_now(db_path, backup_dir, config) and version is not None:
+                    done = version
+            stop.wait(interval)
+    finally:
+        if conn is not None:
+            conn.close()
 
 
 def run_migrate(db: str | None, backup_dir: str | None = None) -> None:

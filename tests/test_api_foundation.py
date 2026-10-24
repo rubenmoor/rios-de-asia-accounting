@@ -24,13 +24,3 @@ def test_cross_origin_put_and_delete_are_403(client):
         response = method("/api/nothing", headers={"Origin": "http://evil.example"})
         assert response.status_code == 403
         assert "error" in response.get_json()
-
-
-def test_quit_shuts_down_after_response(tmp_path):
-    calls = []
-    path = tmp_path / "books.db"
-    conn = connect(path)
-    migrate(conn)
-    conn.close()
-    response = create_app(path, shutdown=lambda: calls.append(1)).test_client().post("/api/quit")
-    assert response.get_json() == {"data": None, "notices": []}
