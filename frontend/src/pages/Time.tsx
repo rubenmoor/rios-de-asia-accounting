@@ -6,6 +6,7 @@ import { ConfirmDelete } from "../components/ConfirmDelete";
 import { type Column, DataTable } from "../components/DataTable";
 import { Field } from "../components/Field";
 import { DateInput, HoursInput, Select, TextField } from "../components/inputs";
+import { PageTitle } from "../components/Titles";
 import { formatHours, showHours } from "../format";
 import { useSave } from "../useSave";
 
@@ -56,7 +57,7 @@ export function TimeList() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Time</h1>
+      <PageTitle>Time</PageTitle>
       <form onSubmit={apply} className="flex flex-wrap items-end gap-2 mb-4">
         <Field label="From" error={filterErrors.from}>
           <DateInput
@@ -135,9 +136,7 @@ function TimeForm({ entry }: { entry?: TimeEntry }) {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">
-        {entry ? "Edit time entry" : "New time entry"}
-      </h1>
+      <PageTitle>{entry ? "Edit time entry" : "New time entry"}</PageTitle>
       <form
         className="max-w-lg"
         onSubmit={(e) => {

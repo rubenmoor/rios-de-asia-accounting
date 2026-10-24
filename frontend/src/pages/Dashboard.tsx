@@ -6,6 +6,7 @@ import { BarChart } from "../charts/BarChart";
 import { LineChart } from "../charts/LineChart";
 import { Field } from "../components/Field";
 import { DateInput, MonthInput } from "../components/inputs";
+import { PageTitle, SectionTitle } from "../components/Titles";
 import { DASH, formatMoney } from "../format";
 
 type Kind = "int" | "pct" | "money" | "minutes";
@@ -120,7 +121,7 @@ export function DashboardPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
+      <PageTitle>Dashboard</PageTitle>
       {dash.isError && (
         <div role="alert" className="alert alert-error mb-4">
           {dash.error.message}
@@ -213,7 +214,9 @@ function DashboardBody({ data }: { data: Dashboard }) {
         </table>
       </div>
 
-      <h2 className="text-xl font-bold mt-6 mb-2">Last 90 days, day by day</h2>
+      <SectionTitle className="mt-6 mb-2">
+        Last 90 days, day by day
+      </SectionTitle>
       {!hasHistory ? (
         <p>The 90-day chart starts once 90 days of history exist.</p>
       ) : (
@@ -271,12 +274,12 @@ function DashboardBody({ data }: { data: Dashboard }) {
 
       {breakdown && (
         <>
-          <h2 className="text-xl font-bold mt-6 mb-2">
+          <SectionTitle className="mt-6 mb-2">
             Expense breakdown{" "}
             <span className="text-sm font-normal opacity-70">
               {breakdown.start} – {breakdown.end}
             </span>
-          </h2>
+          </SectionTitle>
           {!hasCosts ? (
             <p>No costs in this period.</p>
           ) : (

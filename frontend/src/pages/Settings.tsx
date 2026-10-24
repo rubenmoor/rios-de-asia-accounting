@@ -3,6 +3,7 @@ import { useState } from "react";
 import { api } from "../api";
 import { Field } from "../components/Field";
 import { MoneyInput, Select, TextField } from "../components/inputs";
+import { PageTitle } from "../components/Titles";
 import { formatMoney } from "../format";
 import { useSave } from "../useSave";
 
@@ -49,7 +50,7 @@ function SettingsForm({
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Settings</h1>
+      <PageTitle>Settings</PageTitle>
       <form
         className="max-w-lg"
         onSubmit={(e) => {

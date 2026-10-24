@@ -1,9 +1,10 @@
 import { Link } from "react-router";
+import { PageTitle } from "../components/Titles";
 
 export function NotFound() {
   return (
     <div>
-      <h1 className="text-2xl font-bold">Page not found</h1>
+      <PageTitle className="">Page not found</PageTitle>
       <Link className="link mt-2 inline-block" to="/">
         Back to the dashboard
       </Link>

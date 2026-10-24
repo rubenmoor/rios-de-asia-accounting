@@ -6,6 +6,7 @@ import { ConfirmDelete } from "../components/ConfirmDelete";
 import { type Column, DataTable } from "../components/DataTable";
 import { Field } from "../components/Field";
 import { DateInput, RateInput, TextField } from "../components/inputs";
+import { PageTitle } from "../components/Titles";
 import { formatRate } from "../format";
 import { useSave } from "../useSave";
 
@@ -44,7 +45,7 @@ export function RateList() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Exchange rates</h1>
+      <PageTitle>Exchange rates</PageTitle>
       <form onSubmit={apply} className="flex flex-wrap items-end gap-2 mb-4">
         <Field label="Currency" error={filterErrors.currency}>
           <TextField name="currency" value={draft} onChange={setDraft} />
@@ -98,9 +99,7 @@ function RateForm({ rate }: { rate?: Rate }) {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">
-        {rate ? "Edit exchange rate" : "New exchange rate"}
-      </h1>
+      <PageTitle>{rate ? "Edit exchange rate" : "New exchange rate"}</PageTitle>
       <form
         className="max-w-lg"
         onSubmit={(e) => {
