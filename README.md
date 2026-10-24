@@ -2,7 +2,7 @@
 
 A small local bookkeeping app for one Airbnb apartment. It imports Airbnb's earnings CSV, lets you
 add expenses, and shows on a dashboard whether the apartment makes money: income, costs, profit,
-occupancy, average nightly rate and profit per hour you put in. Everything runs on your own
+occupancy and average nightly rate. Everything runs on your own
 computer; the data is one SQLite file.
 
 ## Install
@@ -36,14 +36,14 @@ modules; NixOS uses `nixosModules.default` and installs the timer for all users)
 }
 ```
 
-## Run and quit
+## Run
 
 ```sh
 rios-de-asia-accounting            # starts the app and opens the browser
 rios-de-asia-accounting --no-browser --port 8080
 ```
 
-Press **Quit** in the page header (or Ctrl-C in the terminal) to stop it. A backup is taken when it
+Stop it with Ctrl-C in the terminal (or `systemctl stop` for a service). A backup is taken when it
 stops.
 
 ## Develop
@@ -85,13 +85,13 @@ The look is one light daisyUI theme, `ledger` (`frontend/src/index.css`). Pages 
 - **Forms:** `Field` (label, muted hint line, `text-error` message with a warning mark) plus the inputs in `inputs.tsx` (full width; money, hours and rate are `num`). A form sits in a `FormSlip` (`components/FormSlip.tsx`): the journal entry slip, a bordered paper card with a header strip (`label`, optional `aria-hidden` `stamp`) and a red margin rule. The `inked` class is for read-only values shown as text.
 - **Form actions:** `FormActions` is the ruled row under a form, primary first. `FormError` is the page-level error above a form (`alert alert-error` with icon).
 - **Buttons:** `btn btn-primary` for Save/Apply, `btn btn-ghost` for Cancel/Back/Reset, `btn btn-error btn-outline btn-sm` for the Delete trigger (via `ConfirmDelete`, a small "Void entry" slip dialog; its Delete is `btn-error`, its Cancel `btn-ghost`). Filter bars (list pages, dashboard period) are a `Toolbar` (`components/Toolbar.tsx`): the formula-bar strip (`base-200`, bordered, `fx` mark) with `ToolbarField` short labels and `input-sm`/`select-sm` controls, Filter/Apply `btn-sm` (`btn-secondary` or `btn-primary`), filter errors below the strip.
-- **Entry row:** new Expenses and Recurring entries are typed in a row at the bottom of the sheet: pass a `SheetEntryRow` (gutter "+" mark, highlighted, `input-sm`/`select-sm` filling the cells) as `DataTable`'s `entry`. A "+" button (`btn btn-primary btn-sm btn-square`, `aria-label`) opens it, as the `Toolbar` `action` or, without a toolbar, above the sheet on the right. Inputs belong to a `<form>` through the `form` attribute (Enter saves, Escape cancels); errors show under each input via `FieldError`, page-level ones in `FormError`; dates default to today (local). Editing stays on its own page. Bookings keep their "New booking" link.
+- **Entry row:** new Expenses and Recurring entries are typed in a row at the bottom of the sheet: pass a `SheetEntryRow` (gutter "+" mark, highlighted, `input-sm`/`select-sm` filling the cells) as `DataTable`'s `entry`. A "+" button (`btn btn-primary btn-sm btn-square`, `aria-label`) opens it, as the `Toolbar` `action` or, without a toolbar, above the sheet on the right. Inputs belong to a `<form>` through the `form` attribute (Enter saves, Escape cancels); errors show under each input via `FieldError`, page-level ones in `FormError`; dates default to today (local). Editing stays on its own page. Bookings keep their "Add a stay booked outside Airbnb" link.
 - **Errors:** page-level `FormError` / `alert alert-error`; field-level under the field (done by `Field`).
 - **Hints:** `Field`'s `hint`. Muted notes: `opacity-70`.
 - **Icons:** inline SVG components in `frontend/src/components/icons.tsx` (no icon fonts, no CDN). `Logo` (the open-ledger mark) sits before the app name in the navbar.
-- **Section icons:** one per nav entry in `icons.tsx` (`BookingsIcon`, `ExpensesIcon`, `RecurringIcon`, `TimeIcon`, `RatesIcon`, `ImportIcon`, `SettingsIcon`; stroke, `currentColor`, `aria-hidden`, `className` prop). `nav.ts` entries carry `icon`, shown on the sheet tabs; every page of a section passes the same icon as `PageTitle`'s `icon` prop (`<PageTitle icon={<TimeIcon />}>`). The dashboard has no tab, so no icon.
+- **Section icons:** one per nav entry in `icons.tsx` (`BookingsIcon`, `ExpensesIcon`, `RecurringIcon`, `RatesIcon`, `ImportIcon`, `SettingsIcon`; stroke, `currentColor`, `aria-hidden`, `className` prop). `nav.ts` entries carry `icon`, shown on the sheet tabs; every page of a section passes the same icon as `PageTitle`'s `icon` prop (`<PageTitle icon={<ExpensesIcon />}>`). The dashboard has no tab, so no icon.
 - **Empty states:** `BlankLedgerDoodle` (icons.tsx, `aria-hidden`): `DataTable`'s empty row shows it small with a muted "The ledger is blank" caption above the unchanged `empty` text; the empty dashboard shows it larger on a `base-200` card beside its text.
-- **Totals and stamp:** `total` (double underline, `border-bottom: 3px double`) on the figure cell of a footer total (Expenses, Time). `stamp` is the rotated green rubber-stamp badge (`aria-hidden`, "Posted ✓") on the import summary and the TRM success alert; `ledger-list` rules a `ul` like ledger entries.
+- **Totals and stamp:** `total` (double underline, `border-bottom: 3px double`) on the figure cell of a footer total (Expenses). `stamp` is the rotated green rubber-stamp badge (`aria-hidden`, "Posted ✓") on the import summary and the TRM success alert; `ledger-list` rules a `ul` like ledger entries.
 - **Favicon:** `frontend/src/assets/favicon.svg` plus `favicon-32.png` and `apple-touch-icon.png` (rendered once from the SVG with `rsvg-convert`), linked from `index.html` as `/src/assets/…`. They are not in `frontend/public/`: Flask serves only `/assets/*` as files and answers every other GET with `index.html`, so Vite must hash them into `/assets/`.
 
 ## Import the Airbnb CSV
@@ -119,8 +119,10 @@ Bookings that still lack a rate are counted after each import.
 
 ## Backup
 
-- When the app stops (Quit, Ctrl-C or a shutdown), and daily by the timer if you enabled the
-  module above.
+- While the app runs: right after it starts, then every hour if something changed since the last
+  backup, and once more when it stops (Ctrl-C or a shutdown). The Settings page shows the last
+  backup (time and file, or the error). Daily by the timer too, if you enabled the module above
+  (optional).
 - Files are `books-YYYY-MM-DD.db` in the backup folder, by default `~/Dropbox/rios-de-asia-accounting`
   (override with `--backup-dir` or `RIOS_DE_ASIA_ACCOUNTING_BACKUP_DIR`). One file per day; the newest 30 are
   kept (Settings page, or `--keep`); other files in the folder are never touched.
@@ -129,7 +131,7 @@ Bookings that still lack a rate are counted after each import.
 
 ## Restore
 
-1. Quit the app.
+1. Stop the app.
 2. Copy the backup over the live database:
    `cp ~/Dropbox/rios-de-asia-accounting/books-2026-10-23.db ~/.local/share/rios-de-asia-accounting/books.db`
 3. Start the app again.
