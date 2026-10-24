@@ -23,7 +23,6 @@ every time window is then a sum over a date range.
 - **Capex** → cost ÷ useful life in days, assigned to every day from purchase date
   until fully amortized.
 - **Maintenance** (small repairs) → full amount on the date incurred.
-- **Blocked days** (cleaning buffers, owner use) → available = false; no income.
 
 ## Data model (SQLite)
 
@@ -56,9 +55,6 @@ Templates for fixed monthly costs (admin fee, internet, insurance, utilities bas
 Fields: description, amount, category, start_month, end_month?. The app generates
 `expenses` rows from these each month.
 
-### `blocked_days`
-date, reason (`buffer`, `owner`, `maintenance`, `other`). Blocked days are not available.
-
 ### `time_log`
 date, hours, booking_id?, description. Own time spent on hosting.
 
@@ -69,14 +65,14 @@ currency, default per-booking allocation mode.
 ## Derived daily view
 
 A view (or materialized table) `days` with one row per date:
-`date, available, occupied, income, cost_fixed, cost_per_night, cost_per_booking,
+`date, occupied, income, cost_fixed, cost_per_night, cost_per_booking,
 cost_maintenance, cost_capex, cost_tax, hours, profit`.
 
 ## Metrics (for any date range)
 
-- **Occupancy** = occupied nights ÷ available nights
+- **Occupancy** = occupied nights ÷ nights in the period
 - **ADR** = income ÷ occupied nights
-- **RevPAR** = income ÷ available nights
+- **RevPAR** = income ÷ nights in the period
 - **Profit** = income − all costs
 - **Variable cost per night** = (per-night + per-booking costs) ÷ occupied nights
 - **Break-even occupancy** = fixed costs per day ÷ (ADR − variable cost per night)
@@ -89,7 +85,7 @@ Also: total capex not yet amortized (remaining book value).
 ## Features
 
 ### v1
-- CRUD for bookings, expenses, recurring expenses, blocked days, time log
+- CRUD for bookings, expenses, recurring expenses, time log
 - Import Airbnb transaction-history CSV → bookings (dedup by confirmation code)
 - Dashboard: metrics for the standard ranges side by side
 - Chart: rolling 90-day RevPAR, ADR, occupancy over time

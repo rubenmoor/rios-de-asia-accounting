@@ -4,7 +4,6 @@ import { api } from "./api";
 import { Logo } from "./components/icons";
 import { Notices, NoticesProvider } from "./components/Notices";
 import { NAV } from "./nav";
-import { BlockedEdit, BlockedList, BlockedNew } from "./pages/Blocked";
 import {
   BookingDetail,
   BookingEdit,
@@ -85,9 +84,6 @@ export function App() {
             <Route path="/recurring" element={<RecurringList />} />
             <Route path="/recurring/new" element={<RecurringNew />} />
             <Route path="/recurring/:id" element={<RecurringEdit />} />
-            <Route path="/blocked-days" element={<BlockedList />} />
-            <Route path="/blocked-days/new" element={<BlockedNew />} />
-            <Route path="/blocked-days/:day" element={<BlockedEdit />} />
             <Route path="/rates" element={<RateList />} />
             <Route path="/rates/new" element={<RateNew />} />
             <Route path="/rates/:day/:currency" element={<RateEdit />} />
