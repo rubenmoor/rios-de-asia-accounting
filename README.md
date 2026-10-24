@@ -89,6 +89,7 @@ The look is one light daisyUI theme, `ledger` (`frontend/src/index.css`). Pages 
 - **Hints:** `Field`'s `hint`. Muted notes: `opacity-70`.
 - **Icons:** inline SVG components in `frontend/src/components/icons.tsx` (no icon fonts, no CDN). `Logo` (the open-ledger mark) sits before the app name in the navbar.
 - **Section icons:** one per nav entry in `icons.tsx` (`BookingsIcon`, `ExpensesIcon`, `RecurringIcon`, `BlockedIcon`, `TimeIcon`, `RatesIcon`, `ImportIcon`, `SettingsIcon`; stroke, `currentColor`, `aria-hidden`, `className` prop). `nav.ts` entries carry `icon`, shown on the sheet tabs; every page of a section passes the same icon as `PageTitle`'s `icon` prop (`<PageTitle icon={<TimeIcon />}>`). The dashboard has no tab, so no icon.
+- **Empty states:** `BlankLedgerDoodle` (icons.tsx, `aria-hidden`): `DataTable`'s empty row shows it small with a muted "The ledger is blank" caption above the unchanged `empty` text; the empty dashboard shows it larger on a `base-200` card beside its text.
 - **Favicon:** `frontend/src/assets/favicon.svg` plus `favicon-32.png` and `apple-touch-icon.png` (rendered once from the SVG with `rsvg-convert`), linked from `index.html` as `/src/assets/…`. They are not in `frontend/public/`: Flask serves only `/assets/*` as files and answers every other GET with `index.html`, so Vite must hash them into `/assets/`.
 
 ## Import the Airbnb CSV

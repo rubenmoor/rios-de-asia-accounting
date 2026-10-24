@@ -132,3 +132,36 @@ export function SettingsIcon(props: IconProps) {
     </StrokeIcon>
   );
 }
+
+/** A blank ledger page with a pencil: the empty-state doodle. */
+export function BlankLedgerDoodle({
+  className = "size-10",
+}: {
+  className?: string;
+}) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 48 48"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M9 6h24a2 2 0 0 1 2 2v32a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" />
+      <path d="M14 6v36" stroke="var(--color-error)" opacity="0.7" />
+      <path
+        d="M19 15h12M19 21h12M19 27h12M19 33h7"
+        stroke="var(--ledger-rule-green)"
+      />
+      <path
+        d="M44 14l-14 14-1 5 5-1 14-14a2.1 2.1 0 0 0-4-4z"
+        fill="var(--color-base-100)"
+      />
+      <path d="M40 18l4 4" />
+    </svg>
+  );
+}
