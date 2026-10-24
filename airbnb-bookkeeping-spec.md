@@ -98,9 +98,9 @@ Also: total capex not yet amortized (remaining book value).
 
 ## Storage and backup
 
-- Live database stays local (e.g. `~/.local/share/airbnb-books/books.db`), never opened
+- Live database stays local (e.g. `~/.local/share/rios-de-asia-accounting/books.db`), never opened
   from inside Dropbox.
-- Backups via `sqlite3 books.db ".backup <dropbox>/airbnb-books/books-YYYY-MM-DD.db"`:
+- Backups via `sqlite3 books.db ".backup <dropbox>/rios-de-asia-accounting/books-YYYY-MM-DD.db"`:
   while the app runs (right after start, then hourly when something changed) and on app exit;
   a daily systemd user timer (NixOS module / home-manager) stays optional.
 - Keep the last N backups (e.g. 30).
@@ -121,8 +121,8 @@ Also: total capex not yet amortized (remaining book value).
 - Dates as ISO `YYYY-MM-DD`; check-out exclusive.
 - Single property; no multi-user, no auth; network only to fetch exchange rates, no CDN or web fonts.
 
-## Open decisions
+## Decided since
 
-- Tech stack and UI (desktop GUI, TUI, or local web server on localhost)
-- Packaging: Nix flake with dev shell and app package
-- Exact Airbnb CSV columns (check against a real export)
+- Stack and UI: a React single-page app in the browser on a local Flask JSON API (`architecture-spec.md`).
+- Packaging: Nix flake with dev shell, app package and backup module.
+- The Airbnb CSV columns were checked against a real export (`airbnb_.csv`, `tests/fixtures/airbnb_sample.csv`).
