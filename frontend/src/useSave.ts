@@ -6,16 +6,19 @@ import { useNotices } from "./components/Notices";
 
 // A write: success → notices, refresh the resource's queries, go to `then`;
 // 422 → field errors for the form (key "" above it); other errors → error notice.
+// Without `redirectTo` the page stays; `onSaved` runs after the refresh.
 export function useSave<T>({
   method,
   path,
   resource,
   redirectTo,
+  onSaved,
 }: {
   method: "POST" | "PUT" | "DELETE";
   path: string;
   resource: string;
-  redirectTo: (data: T) => string;
+  redirectTo?: (data: T) => string;
+  onSaved?: (data: T) => void;
 }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -28,7 +31,8 @@ export function useSave<T>({
       setErrors({});
       setNotices(result.notices);
       await queryClient.invalidateQueries({ queryKey: [resource] });
-      navigate(redirectTo(result.data));
+      onSaved?.(result.data);
+      if (redirectTo) navigate(redirectTo(result.data));
     },
     onError: (error) => {
       if (error instanceof ApiError && error.status === 422) {
@@ -39,5 +43,10 @@ export function useSave<T>({
     },
   });
 
-  return { save: mutation.mutate, pending: mutation.isPending, errors };
+  return {
+    save: mutation.mutate,
+    pending: mutation.isPending,
+    errors,
+    resetErrors: () => setErrors({}),
+  };
 }

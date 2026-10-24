@@ -5,6 +5,9 @@ type InputProps = {
   name: string;
   value: string;
   onChange: (value: string) => void;
+  // Ties the input to a <form> elsewhere (a form can't wrap a table row).
+  form?: string;
+  ariaLabel?: string;
 };
 
 // Text inputs only: what was typed goes to the server as is (no client parsing).
@@ -16,6 +19,8 @@ function TextInput({
   type = "text",
   className = "",
   list,
+  form,
+  ariaLabel,
 }: InputProps & {
   list?: string;
   inputMode?: "numeric" | "decimal";
@@ -27,6 +32,8 @@ function TextInput({
       className={`input w-full ${className}`}
       type={type}
       name={name}
+      form={form}
+      aria-label={ariaLabel}
       value={value}
       inputMode={inputMode}
       list={list}
@@ -57,11 +64,15 @@ export function Select({
   onChange,
   children,
   className = "",
+  form,
+  ariaLabel,
 }: InputProps & { children: ReactNode; className?: string }) {
   return (
     <select
       className={`select w-full ${className}`}
       name={name}
+      form={form}
+      aria-label={ariaLabel}
       value={value}
       onChange={(e) => onChange(e.target.value)}
     >
@@ -90,9 +101,13 @@ export function AmountInput({
   currency,
   onChange,
   onCurrencyChange,
+  form,
+  ariaLabel,
+  small,
 }: InputProps & {
   currency: string;
   onCurrencyChange: (currency: string) => void;
+  small?: boolean;
 }) {
   return (
     <div className="flex gap-2">
@@ -101,11 +116,14 @@ export function AmountInput({
         value={value}
         onChange={onChange}
         inputMode="decimal"
-        className="num"
+        className={small ? "num input-sm" : "num"}
+        form={form}
+        ariaLabel={ariaLabel}
       />
       <select
-        className="select w-28 shrink-0"
+        className={`select shrink-0 ${small ? "select-sm w-24" : "w-28"}`}
         name="currency"
+        form={form}
         aria-label="Currency"
         value={currency}
         onChange={(e) => onCurrencyChange(e.target.value)}
