@@ -9,6 +9,9 @@ import {
   SheetFooterRow,
 } from "../components/DataTable";
 import { Field } from "../components/Field";
+import { FormActions } from "../components/FormActions";
+import { FormError } from "../components/FormError";
+import { FormSlip } from "../components/FormSlip";
 import {
   DateInput,
   MoneyInput,
@@ -45,15 +48,6 @@ type Recurring = {
 type RecurringDetail = Recurring & { generated: Expense[] };
 
 type Form = Record<string, string>;
-
-function FormError({ message }: { message?: string }) {
-  if (!message) return null;
-  return (
-    <div role="alert" className="alert alert-error mb-4">
-      {message}
-    </div>
-  );
-}
 
 function Loaded<T>({
   query,
@@ -231,99 +225,100 @@ function ExpenseForm({
           ; your edits are kept.
         </p>
       )}
-      <form
-        className="max-w-lg"
-        onSubmit={(e) => {
-          e.preventDefault();
-          saver.save(form);
-        }}
-      >
-        <FormError message={errors[""]} />
-        <Field label="Date" error={errors.date}>
-          <DateInput name="date" value={form.date} onChange={set("date")} />
-        </Field>
-        <Field label="Amount (COP)" error={errors.amount}>
-          <MoneyInput
-            name="amount"
-            value={form.amount}
-            onChange={set("amount")}
-          />
-        </Field>
-        <Field label="Category" error={errors.category}>
-          <Select
-            name="category"
-            value={form.category}
-            onChange={set("category")}
-          >
-            {options.categories.map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </Select>
-        </Field>
-        {form.category === "per_booking" && (
-          <Field
-            label="Booking"
-            hint="only for per_booking"
-            error={errors.booking_id}
-          >
+      <FormError message={errors[""]} />
+      <FormSlip label="Expense">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            saver.save(form);
+          }}
+        >
+          <Field label="Date" error={errors.date}>
+            <DateInput name="date" value={form.date} onChange={set("date")} />
+          </Field>
+          <Field label="Amount (COP)" error={errors.amount}>
+            <MoneyInput
+              name="amount"
+              value={form.amount}
+              onChange={set("amount")}
+            />
+          </Field>
+          <Field label="Category" error={errors.category}>
             <Select
-              name="booking_id"
-              value={form.booking_id}
-              onChange={set("booking_id")}
+              name="category"
+              value={form.category}
+              onChange={set("category")}
             >
-              <option value="">–</option>
-              {options.bookings.map((b) => (
-                <option key={b.id} value={String(b.id)}>
-                  {b.label}
-                </option>
+              {options.categories.map((c) => (
+                <option key={c}>{c}</option>
               ))}
             </Select>
           </Field>
-        )}
-        {form.category === "capex" && (
-          <Field
-            label="Useful life in days"
-            hint="only for capex; 3 years ≈ 1095"
-            error={errors.useful_life_days}
-          >
-            <MoneyInput
-              name="useful_life_days"
-              value={form.useful_life_days}
-              onChange={set("useful_life_days")}
+          {form.category === "per_booking" && (
+            <Field
+              label="Booking"
+              hint="only for per_booking"
+              error={errors.booking_id}
+            >
+              <Select
+                name="booking_id"
+                value={form.booking_id}
+                onChange={set("booking_id")}
+              >
+                <option value="">–</option>
+                {options.bookings.map((b) => (
+                  <option key={b.id} value={String(b.id)}>
+                    {b.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          )}
+          {form.category === "capex" && (
+            <Field
+              label="Useful life in days"
+              hint="only for capex; 3 years ≈ 1095"
+              error={errors.useful_life_days}
+            >
+              <MoneyInput
+                name="useful_life_days"
+                value={form.useful_life_days}
+                onChange={set("useful_life_days")}
+              />
+            </Field>
+          )}
+          <Field label="Description" error={errors.description}>
+            <TextField
+              name="description"
+              value={form.description}
+              onChange={set("description")}
+              className="w-full"
             />
           </Field>
+          <FormActions>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={saver.pending}
+            >
+              Save
+            </button>
+            <Link className="btn btn-ghost" to="/expenses">
+              Cancel
+            </Link>
+          </FormActions>
+        </form>
+        {expense && (
+          <div className="mt-6 border-t border-base-300 pt-4">
+            <ConfirmDelete
+              label="Delete expense"
+              question="Delete this expense?"
+              pending={remover.pending}
+              onConfirm={() => remover.save()}
+            />
+          </div>
         )}
-        <Field label="Description" error={errors.description}>
-          <TextField
-            name="description"
-            value={form.description}
-            onChange={set("description")}
-            className="w-full"
-          />
-        </Field>
-        <div className="flex gap-2 mt-4">
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={saver.pending}
-          >
-            Save
-          </button>
-          <Link className="btn" to="/expenses">
-            Cancel
-          </Link>
-        </div>
-      </form>
-      {expense && (
-        <div className="mt-6">
-          <ConfirmDelete
-            label="Delete expense"
-            question="Delete this expense?"
-            pending={remover.pending}
-            onConfirm={() => remover.save()}
-          />
-        </div>
-      )}
+      </FormSlip>
     </div>
   );
 }
@@ -448,70 +443,69 @@ function RecurringForm({
           as they are and are edited one by one.
         </p>
       )}
-      <form
-        className="max-w-lg"
-        onSubmit={(e) => {
-          e.preventDefault();
-          saver.save(form);
-        }}
-      >
-        <FormError message={errors[""]} />
-        <Field label="Description" error={errors.description}>
-          <TextField
-            name="description"
-            value={form.description}
-            onChange={set("description")}
-            className="w-full"
-          />
-        </Field>
-        <Field label="Amount per month (COP)" error={errors.amount}>
-          <MoneyInput
-            name="amount"
-            value={form.amount}
-            onChange={set("amount")}
-          />
-        </Field>
-        <Field label="Category" error={errors.category}>
-          <Select
-            name="category"
-            value={form.category}
-            onChange={set("category")}
-          >
-            {categories.map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </Select>
-        </Field>
-        <Field label="Start month" error={errors.start_month}>
-          <MonthInput
-            name="start_month"
-            value={form.start_month}
-            onChange={set("start_month")}
-          />
-        </Field>
-        <Field label="End month" hint="optional" error={errors.end_month}>
-          <MonthInput
-            name="end_month"
-            value={form.end_month}
-            onChange={set("end_month")}
-          />
-        </Field>
-        <div className="flex gap-2 mt-4">
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={saver.pending}
-          >
-            Save
-          </button>
-          <Link className="btn" to="/recurring">
-            Cancel
-          </Link>
-        </div>
-      </form>
-      {item && (
-        <>
-          <div className="mt-6">
+      <FormError message={errors[""]} />
+      <FormSlip label="Recurring expense">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            saver.save(form);
+          }}
+        >
+          <Field label="Description" error={errors.description}>
+            <TextField
+              name="description"
+              value={form.description}
+              onChange={set("description")}
+              className="w-full"
+            />
+          </Field>
+          <Field label="Amount per month (COP)" error={errors.amount}>
+            <MoneyInput
+              name="amount"
+              value={form.amount}
+              onChange={set("amount")}
+            />
+          </Field>
+          <Field label="Category" error={errors.category}>
+            <Select
+              name="category"
+              value={form.category}
+              onChange={set("category")}
+            >
+              {categories.map((c) => (
+                <option key={c}>{c}</option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Start month" error={errors.start_month}>
+            <MonthInput
+              name="start_month"
+              value={form.start_month}
+              onChange={set("start_month")}
+            />
+          </Field>
+          <Field label="End month" hint="optional" error={errors.end_month}>
+            <MonthInput
+              name="end_month"
+              value={form.end_month}
+              onChange={set("end_month")}
+            />
+          </Field>
+          <FormActions>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={saver.pending}
+            >
+              Save
+            </button>
+            <Link className="btn btn-ghost" to="/recurring">
+              Cancel
+            </Link>
+          </FormActions>
+        </form>
+        {item && (
+          <div className="mt-6 border-t border-base-300 pt-4">
             <ConfirmDelete
               label="Delete template"
               question="Delete this template? Its generated expenses are kept."
@@ -519,6 +513,10 @@ function RecurringForm({
               onConfirm={() => remover.save()}
             />
           </div>
+        )}
+      </FormSlip>
+      {item && (
+        <>
           <SectionTitle className="mt-6 mb-2">Generated expenses</SectionTitle>
           <DataTable
             columns={GENERATED_COLUMNS}
