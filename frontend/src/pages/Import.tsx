@@ -1,13 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
 import { Link } from "react-router";
-import {
-  ApiError,
-  api,
-  type FieldErrors,
-  postFile,
-  type Written,
-} from "../api";
+import { ApiError, api, postFile, type Written } from "../api";
 import { type Column, DataTable } from "../components/DataTable";
 import { Field } from "../components/Field";
 import { FormActions } from "../components/FormActions";
@@ -49,7 +43,7 @@ type Summary = {
   new: number;
   updated: number;
   lines_added: number;
-  needing_rate: number;
+  waiting: number;
   skipped: Skipped;
   problems: Problem[];
   warnings: string[];
@@ -380,11 +374,8 @@ function SummaryStep({ summary }: { summary: Summary }) {
           {summary.lines_added} line(s) added
         </li>
         <li>
-          {summary.needing_rate} booking(s) need an exchange rate (
-          <Link className="link" to="/rates">
-            rates
-          </Link>
-          )
+          {summary.waiting} line(s) wait for an exchange rate and are left out
+          of the figures
         </li>
         <li>
           Skipped: {summary.skipped.payouts} payout row(s),{" "}
@@ -402,111 +393,6 @@ function SummaryStep({ summary }: { summary: Summary }) {
         </Link>
       </p>
     </div>
-  );
-}
-
-type RatesResult = {
-  added: number;
-  changed: number;
-  lines_recomputed: number;
-  needing_rate: number;
-  problems: Problem[];
-};
-
-function RatesSection() {
-  const queryClient = useQueryClient();
-  const [currency, setCurrency] = useState("USD");
-  const [errors, setErrors] = useState<FieldErrors>({});
-  const [done, setDone] = useState<{
-    currency: string;
-    result: RatesResult;
-  } | null>(null);
-
-  const load = useMutation({
-    mutationFn: (body: FormData) =>
-      postFile<Written<RatesResult>>("/api/import/rates", body),
-    onSuccess: async (result, body) => {
-      setErrors({});
-      setDone({ currency: String(body.get("currency")), result: result.data });
-      await queryClient.invalidateQueries();
-    },
-    onError: (e) => {
-      setDone(null);
-      setErrors(
-        e instanceof ApiError && e.status === 422
-          ? e.fieldErrors
-          : { "": e.message },
-      );
-    },
-  });
-
-  const submit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const body = new FormData(e.currentTarget);
-    const file = body.get("file");
-    if (!(file instanceof File) || !file.name) {
-      setDone(null);
-      setErrors({ file: "choose the exchange-rate CSV file" });
-      return;
-    }
-    load.mutate(body);
-  };
-
-  return (
-    <section className="mt-8">
-      <SectionTitle>Exchange rates (TRM)</SectionTitle>
-      <p className="opacity-70 mb-2">
-        CSV from datos.gov.co with the columns VALOR and VIGENCIADESDE.
-      </p>
-      <FormError message={errors[""]} />
-      <FormSlip label="Exchange rates">
-        <form onSubmit={submit}>
-          <Field label="CSV file" error={errors.file}>
-            <input
-              type="file"
-              name="file"
-              accept=".csv,text/csv"
-              className="file-input w-full"
-            />
-          </Field>
-          <div className="w-32">
-            <Field label="Currency" error={errors.currency}>
-              <input
-                className="input w-full"
-                name="currency"
-                size={4}
-                maxLength={3}
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
-              />
-            </Field>
-          </div>
-          <FormActions>
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={load.isPending}
-            >
-              Load rates
-            </button>
-          </FormActions>
-        </form>
-      </FormSlip>
-      {done && (
-        <div className="mt-4">
-          <div role="alert" className="alert alert-success">
-            <span className="stamp" aria-hidden="true">
-              Posted ✓
-            </span>
-            {done.currency} rates: {done.result.added} added,{" "}
-            {done.result.changed} changed; {done.result.lines_recomputed}{" "}
-            line(s) recomputed; {done.result.needing_rate} booking(s) still need
-            an exchange rate.
-          </div>
-          <ProblemsAndWarnings problems={done.result.problems} warnings={[]} />
-        </div>
-      )}
-    </section>
   );
 }
 
@@ -532,7 +418,6 @@ export function ImportPage() {
     <div>
       <PageTitle icon={<ImportIcon />}>Import</PageTitle>
       <UploadStep error={error} onPreview={setPreview} />
-      <RatesSection />
     </div>
   );
 }

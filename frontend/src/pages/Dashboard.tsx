@@ -6,16 +6,15 @@ import { BarChart } from "../charts/BarChart";
 import { LineChart } from "../charts/LineChart";
 import { BlankLedgerDoodle } from "../components/icons";
 import { DateInput, MonthInput } from "../components/inputs";
-import { NoticeIcon } from "../components/Notices";
 import { PageTitle, SectionTitle } from "../components/Titles";
 import { Toolbar, ToolbarField } from "../components/Toolbar";
+import { WaitingNotice } from "../components/WaitingNotice";
 import { DASH, formatMoney } from "../format";
 
 type Kind = "int" | "pct" | "money";
 
 export type Dashboard = {
   form: { month: string; from: string; to: string };
-  needing_rate: number;
   empty: boolean;
   columns: { label: string; start: string; end: string }[];
   rows: { key: string; label: string; kind: Kind; values: (number | null)[] }[];
@@ -139,15 +138,7 @@ export function DashboardPage() {
           {n.text}
         </div>
       ))}
-      {data && data.needing_rate > 0 && (
-        <div role="alert" className="alert alert-warning mb-4">
-          <NoticeIcon level="warning" />
-          <Link to="/rates">
-            {data.needing_rate} booking{data.needing_rate === 1 ? "" : "s"}{" "}
-            {data.needing_rate === 1 ? "needs" : "need"} an exchange rate
-          </Link>
-        </div>
-      )}
+      <WaitingNotice />
       {data && (
         <PeriodForm
           key={JSON.stringify(data.form)}
@@ -187,7 +178,7 @@ function DashboardBody({ data }: { data: Dashboard }) {
         <table className="table sheet">
           <thead>
             <tr>
-              <th className="sticky left-0 z-10">COP unless stated</th>
+              <th className="sticky left-0 z-10">USD unless stated</th>
               {data.columns.map((c) => (
                 <th key={c.label} className="num">
                   {c.label}
@@ -228,7 +219,7 @@ function DashboardBody({ data }: { data: Dashboard }) {
         <p>The 90-day chart starts once 90 days of history exist.</p>
       ) : (
         <>
-          <h3 className="text-lg font-bold">ADR and RevPAR (COP)</h3>
+          <h3 className="text-lg font-bold">ADR and RevPAR (USD)</h3>
           {data.rolling_90.every((p) => p.adr === null && p.revpar === null) ? (
             <p>Nothing to chart.</p>
           ) : (
@@ -303,7 +294,7 @@ function DashboardBody({ data }: { data: Dashboard }) {
                   <thead>
                     <tr>
                       <th className="sticky left-0 z-10">Category</th>
-                      <th className="num">COP</th>
+                      <th className="num">USD</th>
                       <th className="num">Share</th>
                     </tr>
                   </thead>

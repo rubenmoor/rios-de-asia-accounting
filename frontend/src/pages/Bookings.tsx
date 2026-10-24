@@ -10,8 +10,9 @@ import { FormError } from "../components/FormError";
 import { FormSlip } from "../components/FormSlip";
 import { BookingsIcon } from "../components/icons";
 import {
+  AmountInput,
   DateInput,
-  MoneyInput,
+  NumberInput,
   Select,
   TextArea,
   TextField,
@@ -19,7 +20,14 @@ import {
 import { useNotices } from "../components/Notices";
 import { PageTitle, SectionTitle } from "../components/Titles";
 import { Toolbar, ToolbarField } from "../components/Toolbar";
-import { formatMoney, showMoney } from "../format";
+import { WaitingNotice } from "../components/WaitingNotice";
+import {
+  DASH,
+  formatAmount,
+  formatMoney,
+  showMoney,
+  showOriginal,
+} from "../format";
 import { useSave } from "../useSave";
 
 type Summary = {
@@ -30,14 +38,16 @@ type Summary = {
   listing: string;
   nights: number;
   net_payout: number | null;
-  needs_rate: boolean;
+  waiting: boolean;
 };
 type Line = {
   date: string;
   type: string;
   currency: string;
   amount_minor: number;
-  amount_cop: number | null;
+  amount_usd: number | null;
+  rate: number | null;
+  rate_date: string | null;
 };
 type Detail = Summary & {
   airbnb_code: string;
@@ -48,9 +58,10 @@ type Detail = Summary & {
   airbnb_fee: number | null;
   cohost_cost: number | null;
   manual_amount: number | null;
+  manual_currency: string | null;
   lines: Line[];
 };
-type Options = { listings: string[] };
+type Options = { listings: string[]; default_currency: string };
 
 const dash = (text: string | number | null | undefined) =>
   text === null || text === undefined || text === "" ? "-" : String(text);
@@ -65,11 +76,15 @@ const COLUMNS: Column<Summary>[] = [
   { header: "Guest", cell: (b) => dash(b.guest_name) },
   { header: "Listing", cell: (b) => dash(b.listing) },
   { header: "Nights", cell: (b) => b.nights, numeric: true },
-  { header: "Net payout", cell: (b) => showMoney(b.net_payout), numeric: true },
   {
-    header: "",
+    header: "Net payout (USD)",
     cell: (b) =>
-      b.needs_rate && <span className="text-error">needs exchange rate</span>,
+      b.waiting ? (
+        <span className="text-warning">waiting for rate</span>
+      ) : (
+        showMoney(b.net_payout)
+      ),
+    numeric: true,
   },
 ];
 
@@ -163,6 +178,7 @@ export function BookingList() {
           Filter
         </button>
       </Toolbar>
+      <WaitingNotice />
       {bookings.isError && !invalid && (
         <div role="alert" className="alert alert-error mb-4">
           {bookings.error.message}
@@ -178,28 +194,35 @@ export function BookingList() {
   );
 }
 
-const amount = (minor: number) =>
-  (minor / 100).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-
 const LINE_COLUMNS: Column<Line>[] = [
   { header: "Date", cell: (l) => l.date },
   { header: "Type", cell: (l) => l.type },
-  { header: "Currency", cell: (l) => l.currency },
   {
-    header: "Amount",
-    cell: (l) => amount(l.amount_minor),
+    header: "Original",
+    cell: (l) => showOriginal(l.amount_minor, l.currency),
     numeric: true,
     negative: (l) => l.amount_minor < 0,
   },
   {
-    header: "COP",
+    header: "Rate (per USD)",
     cell: (l) =>
-      l.amount_cop === null ? "needs rate" : formatMoney(l.amount_cop),
+      l.currency === "USD"
+        ? DASH
+        : l.rate === null
+          ? DASH
+          : `${formatAmount(Math.round(l.rate / 10_000))} on ${l.rate_date}`,
     numeric: true,
-    negative: (l) => l.amount_cop !== null && l.amount_cop < 0,
+  },
+  {
+    header: "USD",
+    cell: (l) =>
+      l.amount_usd === null ? (
+        <span className="text-warning">waiting for rate</span>
+      ) : (
+        formatMoney(l.amount_usd)
+      ),
+    numeric: true,
+    negative: (l) => l.amount_usd !== null && l.amount_usd < 0,
   },
 ];
 
@@ -237,7 +260,7 @@ export function BookingDetail() {
   const money = (label: string, v: number | null) => (
     <tr>
       <th>{label}</th>
-      <td className="num">{v === null ? "–" : `${formatMoney(v)} COP`}</td>
+      <td className="num">{v === null ? "–" : `${formatMoney(v)} USD`}</td>
     </tr>
   );
   return (
@@ -245,16 +268,7 @@ export function BookingDetail() {
       <PageTitle icon={<BookingsIcon />}>
         Booking {b.check_in} – {b.check_out}
       </PageTitle>
-      {b.needs_rate && (
-        <div role="alert" className="alert alert-warning mb-4">
-          <span>
-            Some lines need an exchange rate; totals are incomplete.{" "}
-            <Link className="link" to="/rates">
-              Rates
-            </Link>
-          </span>
-        </div>
-      )}
+      {b.waiting && <WaitingNotice />}
       <div className="overflow-x-auto">
         <table className="table sheet w-auto">
           <tbody>
@@ -318,8 +332,12 @@ function BookingForm({ booking }: { booking?: Detail }) {
   const [form, setForm] = useState<Form>({
     check_in: booking?.check_in ?? "",
     check_out: booking?.check_out ?? "",
-    net_payout:
-      booking?.manual_amount != null ? formatMoney(booking.manual_amount) : "",
+    amount:
+      booking?.manual_amount != null
+        ? formatAmount(booking.manual_amount, booking.manual_currency ?? "USD")
+        : "",
+    currency:
+      booking?.manual_currency ?? options.data?.default_currency ?? "USD",
     airbnb_code: booking?.airbnb_code ?? "",
     listing: booking?.listing ?? "",
     guest_name: booking?.guest_name ?? "",
@@ -376,7 +394,7 @@ function BookingForm({ booking }: { booking?: Detail }) {
             <p className="inked mb-2">
               {booking.check_in} – {booking.check_out} ·{" "}
               {dash(booking.guest_name)} · {dash(booking.listing)} ·{" "}
-              {showMoney(booking.net_payout)} COP
+              {showMoney(booking.net_payout)} USD
             </p>
           ) : (
             <>
@@ -394,11 +412,13 @@ function BookingForm({ booking }: { booking?: Detail }) {
                   onChange={set("check_out")}
                 />
               </Field>
-              <Field label="Net payout (COP)" error={errors.net_payout}>
-                <MoneyInput
-                  name="net_payout"
-                  value={form.net_payout}
-                  onChange={set("net_payout")}
+              <Field label="Net payout" error={errors.amount}>
+                <AmountInput
+                  name="amount"
+                  value={form.amount}
+                  currency={form.currency}
+                  onChange={set("amount")}
+                  onCurrencyChange={set("currency")}
                 />
               </Field>
               <Field
@@ -435,7 +455,7 @@ function BookingForm({ booking }: { booking?: Detail }) {
             </>
           )}
           <Field label="Guests" error={errors.guests}>
-            <MoneyInput
+            <NumberInput
               name="guests"
               value={form.guests}
               onChange={set("guests")}
