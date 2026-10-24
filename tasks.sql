@@ -2753,6 +2753,21 @@ task''s result (in this plan or another, in any work tree) requires it: `pm task
 `pm task requires <task id> <prerequisite id>` for an existing one; priority is only a hint and orders nothing across
 work trees. When you drop an open task that others require and add one in its place, drop it with
 `--replaced-by <new task id>`.', '2026-10-24T14:00:41Z', NULL, NULL, 0, NULL, NULL);
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (153, 29, 'edit expenses and recurring templates inline in the sheet', 'work', 'open', NULL, NULL, 'The owner can add expenses and recurring expenses in an entry row of the sheet, but changing one still means opening a separate page. They want editing to work inline too, in the same spreadsheet style as adding (`decision 49: editing expenses and recurring templates happens inline in the sheet, like adding`).
+
+Where: `frontend/src/pages/Expenses.tsx` (`ExpenseList`, `ExpenseEntryRow`, `ExpenseForm`, `ExpenseEdit`, `RecurringList`, `RecurringEntryRow`, `RecurringForm`, `RecurringEdit`), `components/DataTable.tsx` (`SheetEntryRow`), `App.tsx`, `index.css`, README "Styling conventions".
+
+What:
+- **One row component for add and edit**: `ExpenseEntryRow` / `RecurringEntryRow` take an optional existing item; prefilled with its values when editing, empty (today / this month) when adding. Same inputs, same in-cell errors, Enter saves, Escape cancels, same look.
+- **Opening the editor**: clicking a row (or a small pencil button in it, keyboard-reachable) turns that row into the entry row in place. Only one row is in edit/add mode at a time; the "+" button is disabled while one is open.
+- **Saving**: PUT to the existing update endpoints; on success the row closes, lists and totals refresh, notices show (incl. the waiting-for-rate warning, `decision 37: when no exchange rate can be fetched, entries are saved and wait for their rate`).
+- **Deleting**: a delete button in the editing row, confirmed with `ConfirmDelete` (recurring: "Its generated expenses are kept").
+- **Generated expenses**: keep the "generated" mark visible; editing one is allowed (`decision 9: monthly expenses generated from templates are dated the 1st and come back if deleted`); the delete confirm says a deleted generated expense comes back.
+- **Recurring templates**: editing only affects months not generated yet (`decision 16: changing a recurring expense template only affects months not yet generated`); show that hint in or under the editing row. Keep `/recurring/:id` as a read-only detail page listing the generated expenses (linked from the row), but drop its form.
+- Remove `/expenses/:id/edit`, `ExpenseEdit`, `ExpenseForm`, `RecurringForm` once unused; fix anything that linked to them (e.g. the generated-expenses table on the recurring detail page, dashboard links).
+- README: the entry-row bullet covers editing too.
+
+Done when: in the running app (screenshot at desktop width) an expense and a recurring template can each be edited inline, rejected with in-row errors, cancelled, and deleted; add and edit rows look identical; `rg "ExpenseEdit|ExpenseForm|RecurringForm|/edit" frontend/src` finds nothing stale; frontend checks (typecheck, lint, test, build) and `nix flake check` pass.', '2026-10-24T14:00:41Z', NULL, NULL, 0, NULL, 'main');
 
 INSERT INTO decision (id, subject, status, options, body, intro, answer, reason, created_at, closed_at, created_by_task, signoff, kind, decided_by_task, consequences) VALUES (1, 'Sign off the masterplan of milestone 1: first version build', 'answered', '["approve"]', '', 'This is the overall roadmap for building the first working version of a small, private bookkeeping app for one Airbnb apartment. The app turns every booking and every cost into amounts per calendar day, so it can answer whether hosting pays off, whether prices are set well, and how things are trending. The roadmap splits the build into parts, starting with a short architecture document the owner approves before anything else is built, and ending with a check against the real Airbnb export.
 
