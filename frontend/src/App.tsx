@@ -33,64 +33,67 @@ export function App() {
 
   return (
     <NoticesProvider>
-      <header className="navbar bg-base-200 gap-2">
-        <NavLink to="/" className="btn btn-ghost text-lg">
-          rios-de-asia-accounting
-        </NavLink>
-        <ul className="menu menu-horizontal flex-1 gap-1">
-          {NAV.map((entry) => (
-            <li key={entry.path}>
+      <div className="min-h-screen bg-base-200">
+        <header className="flex flex-wrap items-end gap-x-2 px-4 pt-3">
+          <NavLink to="/" className="btn btn-ghost text-lg mb-1">
+            rios-de-asia-accounting
+          </NavLink>
+          <nav className="tabs tabs-lift flex-1 overflow-x-auto">
+            {NAV.map((entry) => (
               <NavLink
+                key={entry.path}
                 to={entry.path}
-                className={({ isActive }) => (isActive ? "menu-active" : "")}
+                className={({ isActive }) =>
+                  `tab whitespace-nowrap ${isActive ? "tab-active" : ""}`
+                }
               >
                 {entry.label}
               </NavLink>
-            </li>
-          ))}
-        </ul>
-        <button
-          type="button"
-          className="btn btn-outline btn-sm"
-          disabled={quit.isPending}
-          onClick={() => quit.mutate()}
-        >
-          Quit
-        </button>
-      </header>
-      <main className="p-6">
-        {quit.isError && (
-          <div role="alert" className="alert alert-error mb-4">
-            {quit.error.message}
-          </div>
-        )}
-        <Notices />
-        <Routes>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/bookings" element={<BookingList />} />
-          <Route path="/bookings/new" element={<BookingNew />} />
-          <Route path="/bookings/:id" element={<BookingDetail />} />
-          <Route path="/bookings/:id/edit" element={<BookingEdit />} />
-          <Route path="/time" element={<TimeList />} />
-          <Route path="/time/new" element={<TimeNew />} />
-          <Route path="/time/:id/edit" element={<TimeEdit />} />
-          <Route path="/expenses" element={<ExpenseList />} />
-          <Route path="/expenses/new" element={<ExpenseNew />} />
-          <Route path="/expenses/:id/edit" element={<ExpenseEdit />} />
-          <Route path="/recurring" element={<RecurringList />} />
-          <Route path="/recurring/new" element={<RecurringNew />} />
-          <Route path="/recurring/:id" element={<RecurringEdit />} />
-          <Route path="/blocked-days" element={<BlockedList />} />
-          <Route path="/blocked-days/new" element={<BlockedNew />} />
-          <Route path="/blocked-days/:day" element={<BlockedEdit />} />
-          <Route path="/rates" element={<RateList />} />
-          <Route path="/rates/new" element={<RateNew />} />
-          <Route path="/rates/:day/:currency" element={<RateEdit />} />
-          <Route path="/import" element={<ImportPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </main>
+            ))}
+          </nav>
+          <button
+            type="button"
+            className="btn btn-outline btn-sm mb-1"
+            disabled={quit.isPending}
+            onClick={() => quit.mutate()}
+          >
+            Quit
+          </button>
+        </header>
+        <main className="card bg-base-100 shadow mx-4 mb-6 max-w-6xl p-6 xl:mx-auto">
+          {quit.isError && (
+            <div role="alert" className="alert alert-error mb-4">
+              {quit.error.message}
+            </div>
+          )}
+          <Notices />
+          <Routes>
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/bookings" element={<BookingList />} />
+            <Route path="/bookings/new" element={<BookingNew />} />
+            <Route path="/bookings/:id" element={<BookingDetail />} />
+            <Route path="/bookings/:id/edit" element={<BookingEdit />} />
+            <Route path="/time" element={<TimeList />} />
+            <Route path="/time/new" element={<TimeNew />} />
+            <Route path="/time/:id/edit" element={<TimeEdit />} />
+            <Route path="/expenses" element={<ExpenseList />} />
+            <Route path="/expenses/new" element={<ExpenseNew />} />
+            <Route path="/expenses/:id/edit" element={<ExpenseEdit />} />
+            <Route path="/recurring" element={<RecurringList />} />
+            <Route path="/recurring/new" element={<RecurringNew />} />
+            <Route path="/recurring/:id" element={<RecurringEdit />} />
+            <Route path="/blocked-days" element={<BlockedList />} />
+            <Route path="/blocked-days/new" element={<BlockedNew />} />
+            <Route path="/blocked-days/:day" element={<BlockedEdit />} />
+            <Route path="/rates" element={<RateList />} />
+            <Route path="/rates/new" element={<RateNew />} />
+            <Route path="/rates/:day/:currency" element={<RateEdit />} />
+            <Route path="/import" element={<ImportPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </main>
+      </div>
     </NoticesProvider>
   );
 }
