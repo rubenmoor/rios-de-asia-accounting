@@ -1281,6 +1281,10 @@ Rules (binding):
 - `airbnb-bookkeeping-spec.md` and `architecture-spec.md`: the display currency (header switch, rate fetched once on switching and kept, conversion in the client, number formats), `GET/PUT /api/display`, the `currency` / `display_rate` settings keys.
 - `README.md`: where to switch the currency and what the rate line means; the styling conventions say money is shown through the display helper.
 - Done when the docs describe the code and nothing says figures are always shown in USD.', 'The books are kept in US dollars, but the owner also wants to read every figure in Colombian pesos or euros. A small switch at the top of every screen picks the currency; when it changes, the app fetches that day''s exchange rate once and shows all amounts, totals and charts converted with it. The books themselves stay in dollars, and the screen always says which rate and date the figures use.', '2026-10-24T13:59:54Z', 128);
+INSERT INTO plan (id, milestone_id, subject, priority, body, intro, created_at, created_by_task) VALUES (29, 4, 'edit expenses inline in the sheet', NULL, 'Follow-up to `plan 26: add expenses inline in the sheet`, from the owner''s request on 2026-10-24.
+
+- Rule: `decision 49: editing expenses and recurring templates happens inline in the sheet, like adding` (supersedes decision 43).
+- One task: existing expense and recurring-template rows turn into the same entry row used for adding; the separate expense edit page goes away.', 'Expenses and monthly recurring expenses can already be added by typing into a row of the table. The owner wants to change existing ones the same way, right in the table, instead of on a separate page, so adding and editing look and feel the same.', '2026-10-24T14:00:41Z', NULL);
 
 INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (1, 1, 'write the masterplan of milestone 1: first version build', 'masterplan', 'done', NULL, '2026-10-23, plan 1 body and intro (no files)', 'Write `plan 1: masterplan`, the masterplan of `milestone 1: first version build`: expand on everything that needs to be done to achieve it,
 divided into parts, with an intro in plain English (`pm plan edit 1 --intro "…" --body -`). State in the masterplan that its own tasks are not implementation work: each of them writes the
@@ -2742,6 +2746,13 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 - `airbnb-bookkeeping-spec.md` and `architecture-spec.md`: the display currency (header switch, rate fetched once on switching and kept until the next switch, conversion in the client, number formats per `decision 47: display currency: number formats per currency`), `GET/PUT /api/display`, the `currency` / `display_rate` settings keys.
 - `README.md`: where to switch the currency and what the rate line in the header means; the styling conventions say money is shown through the display helper.
 - Done when the docs describe the code and nothing says figures are always shown in USD.', '2026-10-24T14:00:26Z', NULL, 148, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (152, 29, 'create tasks for plan 29: edit expenses inline in the sheet', 'split', 'open', 1000, NULL, 'Split `plan 29: edit expenses inline in the sheet` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
+done and dropped ones stay as they are (pm refuses to change them): drop the open ones that no longer fit and add
+tasks for what the plan asks beyond them. A task that writes a plan gets `--kind plan`. A task that needs another
+task''s result (in this plan or another, in any work tree) requires it: `pm task add … --requires <task id>`, or
+`pm task requires <task id> <prerequisite id>` for an existing one; priority is only a hint and orders nothing across
+work trees. When you drop an open task that others require and add one in its place, drop it with
+`--replaced-by <new task id>`.', '2026-10-24T14:00:41Z', NULL, NULL, 0, NULL, NULL);
 
 INSERT INTO decision (id, subject, status, options, body, intro, answer, reason, created_at, closed_at, created_by_task, signoff, kind, decided_by_task, consequences) VALUES (1, 'Sign off the masterplan of milestone 1: first version build', 'answered', '["approve"]', '', 'This is the overall roadmap for building the first working version of a small, private bookkeeping app for one Airbnb apartment. The app turns every booking and every cost into amounts per calendar day, so it can answer whether hosting pays off, whether prices are set well, and how things are trending. The roadmap splits the build into parts, starting with a short architecture document the owner approves before anything else is built, and ending with a check against the real Airbnb export.
 
