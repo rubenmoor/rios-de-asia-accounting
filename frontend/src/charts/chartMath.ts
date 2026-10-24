@@ -1,7 +1,14 @@
 // Pure helpers of the charts, ported from web/charts.py. Dates are YYYY-MM-DD
 // strings; day arithmetic goes through UTC so a timezone can't shift a day.
 
-export const PALETTE = ["#0072B2", "#D55E00", "#009E73", "#CC79A7"];
+// CSS variables from index.css (the theme is the one source of colour); use
+// them in `style`, since SVG presentation attributes do not resolve var().
+export const PALETTE = [
+  "var(--chart-1)",
+  "var(--chart-2)",
+  "var(--chart-3)",
+  "var(--chart-4)",
+];
 export const DASHES = ["", "6 3", "2 3", "8 3 2 3"];
 
 const MONTHS = [

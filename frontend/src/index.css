@@ -40,6 +40,11 @@
 :root {
   --ledger-rule-green: #a9cdb4;
   --ledger-rule-blue: #aac3dd;
+  /* Chart inks: ledger green, ledger blue, brown, plum (red means negative). */
+  --chart-1: var(--color-primary);
+  --chart-2: var(--color-secondary);
+  --chart-3: var(--color-accent);
+  --chart-4: #7a4a86;
 }
 
 @utility num {
