@@ -13,6 +13,7 @@ import {
   TextField,
 } from "../components/inputs";
 import { useNotices } from "../components/Notices";
+import { PageTitle, SectionTitle } from "../components/Titles";
 import { formatMoney, showMoney } from "../format";
 import { useSave } from "../useSave";
 
@@ -105,7 +106,7 @@ export function BookingList() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Bookings</h1>
+      <PageTitle>Bookings</PageTitle>
       <form onSubmit={apply} className="flex flex-wrap items-end gap-2 mb-4">
         <Field label="From" error={filterErrors.from}>
           <DateInput
@@ -215,9 +216,9 @@ export function BookingDetail() {
   );
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">
+      <PageTitle>
         Booking {b.check_in} – {b.check_out}
-      </h1>
+      </PageTitle>
       {b.needs_rate && (
         <div role="alert" className="alert alert-warning mb-4">
           <span>
@@ -260,7 +261,7 @@ export function BookingDetail() {
           {money("Co-host cost", b.cohost_cost)}
         </tbody>
       </table>
-      <h2 className="text-xl font-bold mt-6 mb-2">Lines</h2>
+      <SectionTitle className="mt-6 mb-2">Lines</SectionTitle>
       <DataTable
         columns={LINE_COLUMNS}
         rows={b.lines}
@@ -326,9 +327,7 @@ function BookingForm({ booking }: { booking?: Detail }) {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">
-        {booking ? "Edit booking" : "New booking"}
-      </h1>
+      <PageTitle>{booking ? "Edit booking" : "New booking"}</PageTitle>
       {imported && (
         <p className="mb-4 opacity-70">
           Imported from Airbnb: dates, listing, guest name and amounts are

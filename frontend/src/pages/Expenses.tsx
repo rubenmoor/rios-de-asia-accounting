@@ -12,6 +12,7 @@ import {
   Select,
   TextField,
 } from "../components/inputs";
+import { PageTitle, SectionTitle } from "../components/Titles";
 import { formatMoney, showMoney } from "../format";
 import { useSave } from "../useSave";
 
@@ -118,7 +119,7 @@ export function ExpenseList() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Expenses</h1>
+      <PageTitle>Expenses</PageTitle>
       <form onSubmit={apply} className="flex flex-wrap items-end gap-2 mb-4">
         <Field label="From" error={filterErrors.from}>
           <DateInput
@@ -213,9 +214,7 @@ function ExpenseForm({
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">
-        {expense ? "Edit expense" : "New expense"}
-      </h1>
+      <PageTitle>{expense ? "Edit expense" : "New expense"}</PageTitle>
       {expense?.recurring_expense_id != null && (
         <p className="opacity-70 mb-4">
           Generated from a{" "}
@@ -374,7 +373,7 @@ export function RecurringList() {
   });
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Recurring expenses</h1>
+      <PageTitle>Recurring expenses</PageTitle>
       <p className="mb-4">
         <Link className="btn btn-primary" to="/recurring/new">
           New recurring expense
@@ -436,9 +435,9 @@ function RecurringForm({
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">
+      <PageTitle>
         {item ? "Edit recurring expense" : "New recurring expense"}
-      </h1>
+      </PageTitle>
       {item && (
         <p className="opacity-70 mb-4">
           Changes only affect months not generated yet; the expenses below stay
@@ -516,7 +515,7 @@ function RecurringForm({
               onConfirm={() => remover.save()}
             />
           </div>
-          <h2 className="text-xl font-bold mt-6 mb-2">Generated expenses</h2>
+          <SectionTitle className="mt-6 mb-2">Generated expenses</SectionTitle>
           <DataTable
             columns={GENERATED_COLUMNS}
             rows={item.generated}

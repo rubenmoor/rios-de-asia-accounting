@@ -6,6 +6,7 @@ import { ConfirmDelete } from "../components/ConfirmDelete";
 import { type Column, DataTable } from "../components/DataTable";
 import { Field } from "../components/Field";
 import { DateInput, Select, TextField } from "../components/inputs";
+import { PageTitle } from "../components/Titles";
 import { useSave } from "../useSave";
 
 type BlockedDay = { date: string; reason: string; note: string | null };
@@ -54,7 +55,7 @@ export function BlockedList() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Blocked days</h1>
+      <PageTitle>Blocked days</PageTitle>
       <form onSubmit={apply} className="flex flex-wrap items-end gap-2 mb-4">
         <Field label="From" error={filterErrors.from}>
           <DateInput
@@ -125,9 +126,7 @@ function BlockedForm({
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">
-        {day ? `Blocked day ${day.date}` : "Block days"}
-      </h1>
+      <PageTitle>{day ? `Blocked day ${day.date}` : "Block days"}</PageTitle>
       {!day && (
         <p className="opacity-70 mb-4">
           Days that are already blocked are skipped.

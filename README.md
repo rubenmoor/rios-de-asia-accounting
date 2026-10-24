@@ -72,6 +72,19 @@ has no page for. Checks: `npm run typecheck`, `npm run lint`, `npm test`.
   - `nix flake check` runs all of them (pytest in the package build, ruff in `lint`, the
     `npm` checks in `frontend-lint`) plus the backup module test.
 
+## Styling conventions
+
+The look is one light daisyUI theme, `ledger` (`frontend/src/index.css`). Pages stick to these conventions so the design can change in one place:
+
+- **Numbers:** class `num` (monospace, tabular, right-aligned); negatives also get `neg` (red ink).
+- **Tables:** only through `DataTable`; pages add no table classes of their own.
+- **Headings:** `PageTitle` (h1) and `SectionTitle` (h2) from `components/Titles.tsx`, never hand-written heading classes.
+- **Forms:** `Field` plus the inputs in `inputs.tsx`; the form actions sit in one `flex gap-2 mt-4` row.
+- **Buttons:** `btn btn-primary` for Save/Apply, `btn btn-ghost` or `btn-soft` for Cancel/Reset links, `btn btn-error` for Delete (via `ConfirmDelete`).
+- **Errors:** page-level `alert alert-error`; field-level `text-error` under the field (done by `Field`).
+- **Hints:** `Field`'s `hint`. Muted notes: `opacity-70`.
+- **Icons:** inline SVG components in `frontend/src/components/icons.tsx` (no icon fonts, no CDN).
+
 ## Import the Airbnb CSV
 
 1. On airbnb.com open your Transaction history (under Earnings), choose all dates and download

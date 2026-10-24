@@ -10,6 +10,7 @@ import {
 } from "../api";
 import { Field } from "../components/Field";
 import { useNotices } from "../components/Notices";
+import { PageTitle, SectionTitle } from "../components/Titles";
 
 type Change = { field: string; old: string | null; new: string };
 type PlannedBooking = {
@@ -71,9 +72,9 @@ function ProblemsAndWarnings({
     <>
       {problems.length > 0 && (
         <>
-          <h2 className="text-xl font-bold mt-4 mb-2">
+          <SectionTitle className="mt-4 mb-2">
             {problems.length} problem(s)
-          </h2>
+          </SectionTitle>
           <ul className="mb-2">
             {problems.map((p) => (
               <li key={`${p.line}:${p.message}`} className="text-error">
@@ -85,7 +86,7 @@ function ProblemsAndWarnings({
       )}
       {warnings.length > 0 && (
         <>
-          <h2 className="text-xl font-bold mt-4 mb-2">Warnings</h2>
+          <SectionTitle className="mt-4 mb-2">Warnings</SectionTitle>
           <ul className="mb-2">
             {warnings.map((w) => (
               <li key={w}>{w}</li>
@@ -132,7 +133,7 @@ function UploadStep({
   const shown = fileError ?? error;
   return (
     <section>
-      <h2 className="text-xl font-bold mb-2">Airbnb earnings CSV</h2>
+      <SectionTitle>Airbnb earnings CSV</SectionTitle>
       <p className="opacity-70 mb-2">
         You see what would change before anything is written.
       </p>
@@ -292,7 +293,7 @@ function PreviewStep({
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Import preview</h1>
+      <PageTitle>Import preview</PageTitle>
       {error && <Alert>{error}</Alert>}
       <form
         onSubmit={(e) => {
@@ -335,17 +336,15 @@ function PreviewStep({
             <p className="mb-2">
               Listings imported: {preview.listings.join(", ")}
             </p>
-            <h2 className="text-xl font-bold mb-2">
-              {preview.new.length} new booking(s)
-            </h2>
+            <SectionTitle>{preview.new.length} new booking(s)</SectionTitle>
             {preview.new.length > 0 && <BookingTable rows={preview.new} />}
-            <h2 className="text-xl font-bold mb-2">
+            <SectionTitle>
               {preview.updated.length} updated booking(s)
-            </h2>
+            </SectionTitle>
             {preview.updated.length > 0 && (
               <UpdatedTable rows={preview.updated} />
             )}
-            <h2 className="text-xl font-bold mb-2">Skipped</h2>
+            <SectionTitle>Skipped</SectionTitle>
             <SkippedList skipped={preview.skipped} />
           </>
         )}
@@ -374,7 +373,7 @@ function PreviewStep({
 function SummaryStep({ summary }: { summary: Summary }) {
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Import done</h1>
+      <PageTitle>Import done</PageTitle>
       <ul className="mb-2">
         <li>
           {summary.new} new booking(s), {summary.updated} updated,{" "}
@@ -455,7 +454,7 @@ function RatesSection() {
 
   return (
     <section className="mt-8">
-      <h2 className="text-xl font-bold mb-2">Exchange rates (TRM)</h2>
+      <SectionTitle>Exchange rates (TRM)</SectionTitle>
       <p className="opacity-70 mb-2">
         CSV from datos.gov.co with the columns VALOR and VIGENCIADESDE.
       </p>
@@ -522,7 +521,7 @@ export function ImportPage() {
   }
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Import</h1>
+      <PageTitle>Import</PageTitle>
       <UploadStep error={error} onPreview={setPreview} />
       <RatesSection />
     </div>
