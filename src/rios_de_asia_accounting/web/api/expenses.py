@@ -157,9 +157,23 @@ def expense_detail(expense_id: int):
     return _expense(expense) if expense else _not_found("expense")
 
 
-def _save_expense(expense: Expense, saving):
+GENERATED_LOCKED = (
+    "this expense was generated from a recurring expense; change it on the Recurring page"
+)
+
+
+def _locked(expense: Expense):
+    return {"error": GENERATED_LOCKED}, 409
+
+
+def _save_expense(expense: Expense, saving, generated: bool = False):
     conn = get_db()
     form = read_form()
+    if generated:
+        # only date, amount and description change; the template's category stays
+        form.raw["category"] = expense.category
+        form.raw["booking_id"] = ""
+        form.raw["useful_life_days"] = ""
     _read_expense(form)
     if form.ok:
         _fill_expense(form, expense)
@@ -182,14 +196,19 @@ def update_expense(expense_id: int):
     expense = repo.get_expense(get_db(), expense_id)
     if expense is None:
         return _not_found("expense")
+    if expense.recurring_expense_id is not None:
+        return _locked(expense)
     return _save_expense(expense, repo.update_expense)
 
 
 @bp.delete("/expenses/<int:expense_id>")
 def delete_expense(expense_id: int):
     conn = get_db()
-    if repo.get_expense(conn, expense_id) is None:
+    expense = repo.get_expense(conn, expense_id)
+    if expense is None:
         return _not_found("expense")
+    if expense.recurring_expense_id is not None:
+        return _locked(expense)
     repo.delete_expense(conn, expense_id)
     return ok(None, [info("Expense deleted.")])
 
@@ -237,6 +256,14 @@ def update_recurring(item_id: int):
     if item is None:
         return _not_found("recurring expense")
     return _save_recurring(item, repo.update_recurring_expense)
+
+
+@bp.put("/recurring/<int:item_id>/expenses/<int:expense_id>")
+def update_generated_expense(item_id: int, expense_id: int):
+    expense = repo.get_expense(get_db(), expense_id)
+    if expense is None or expense.recurring_expense_id != item_id:
+        return _not_found("generated expense")
+    return _save_expense(expense, repo.update_expense, generated=True)
 
 
 @bp.delete("/recurring/<int:item_id>")

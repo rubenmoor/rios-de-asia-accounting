@@ -69,7 +69,9 @@ export function DataTable<T>({
   entry,
   editing,
   editRow,
-  onEdit,
+  onEdit: openEditor,
+  canEdit,
+  rowClass,
 }: {
   columns: Column<T>[];
   rows: T[];
@@ -83,6 +85,10 @@ export function DataTable<T>({
   editing?: string | number | null;
   editRow?: (row: T) => ReactNode;
   onEdit?: (row: T) => void;
+  // Rows for which this returns false are not editable (no click, no pencil).
+  canEdit?: (row: T) => boolean;
+  // Extra class on a plain row, e.g. to mark locked ones.
+  rowClass?: (row: T) => string | undefined;
 }) {
   return (
     <div className="overflow-x-auto">
@@ -127,13 +133,15 @@ export function DataTable<T>({
               </td>
             </tr>
           )}
-          {rows.map((row, i) =>
-            editRow && editing === rowKey(row) ? (
+          {rows.map((row, i) => {
+            const onEdit =
+              openEditor && (canEdit?.(row) ?? true) ? openEditor : undefined;
+            return editRow && editing === rowKey(row) ? (
               <Fragment key={rowKey(row)}>{editRow(row)}</Fragment>
             ) : (
               <tr
                 key={rowKey(row)}
-                className={onEdit ? "editable" : undefined}
+                className={cls(onEdit && "editable", rowClass?.(row))}
                 onClick={
                   onEdit &&
                   ((e) => {
@@ -175,8 +183,8 @@ export function DataTable<T>({
                   </td>
                 ))}
               </tr>
-            ),
-          )}
+            );
+          })}
           {entry}
         </tbody>
         {footer && <tfoot>{footer}</tfoot>}
