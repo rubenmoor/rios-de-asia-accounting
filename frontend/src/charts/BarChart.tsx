@@ -25,7 +25,7 @@ export function BarChart({
       width="100%"
       role="img"
       aria-label="Expense breakdown"
-      fontFamily="sans-serif"
+      style={{ fontFamily: "inherit" }}
     >
       {items.map((item, i) => {
         const y = i * rowH + 4;
@@ -40,7 +40,7 @@ export function BarChart({
               y={y}
               width={w.toFixed(1)}
               height={rowH - 8}
-              fill={PALETTE[0]}
+              style={{ fill: PALETTE[0] }}
             >
               <title>{`${item.label}: ${valueFormat(item.value)}`}</title>
             </rect>

@@ -13,8 +13,8 @@ export type LineSeries = {
   points: { date: string; value: number | null }[];
 };
 
-const GRID = "#d0d0d0";
-const TEXT = "#333";
+const GRID = "var(--ledger-rule-blue)";
+const TEXT = "var(--color-base-content)";
 
 export function Label({
   x,
@@ -28,7 +28,13 @@ export function Label({
   children: string;
 }) {
   return (
-    <text x={x} y={y} textAnchor={anchor} fontSize={11} fill={TEXT}>
+    <text
+      x={x}
+      y={y}
+      textAnchor={anchor}
+      fontSize={11}
+      style={{ fill: TEXT, fontVariantNumeric: "tabular-nums" }}
+    >
       {children}
     </text>
   );
@@ -76,7 +82,7 @@ export function LineChart({
       width="100%"
       role="img"
       aria-label={series.map((s) => s.label).join(", ")}
-      fontFamily="sans-serif"
+      style={{ fontFamily: "inherit" }}
     >
       {ticks.map((t) => (
         <g key={t}>
@@ -85,7 +91,7 @@ export function LineChart({
             x2={left + pw}
             y1={py(t).toFixed(1)}
             y2={py(t).toFixed(1)}
-            stroke={GRID}
+            style={{ stroke: GRID }}
             strokeWidth={1}
           />
           <Label x={left - 6} y={py(t) + 4} anchor="end">
@@ -100,7 +106,7 @@ export function LineChart({
             x2={px(d).toFixed(1)}
             y1={top + ph}
             y2={top + ph + 4}
-            stroke={TEXT}
+            style={{ stroke: TEXT }}
           />
           <Label x={px(d)} y={top + ph + 16} anchor="middle">
             {monthLabel(d)}
@@ -126,7 +132,7 @@ export function LineChart({
                     )
                     .join(" ")}
                   fill="none"
-                  stroke={color}
+                  style={{ stroke: color }}
                   strokeWidth={2}
                   strokeDasharray={dash}
                 />
@@ -136,7 +142,7 @@ export function LineChart({
                     cx={px(p.item).toFixed(1)}
                     cy={py(p.value).toFixed(1)}
                     r={2.5}
-                    fill={color}
+                    style={{ fill: color }}
                   >
                     <title>{`${s.label} ${p.item}: ${yFormat(p.value)}`}</title>
                   </circle>
@@ -148,7 +154,7 @@ export function LineChart({
               x2={left + 28}
               y1={ly - 4}
               y2={ly - 4}
-              stroke={color}
+              style={{ stroke: color }}
               strokeWidth={2}
               strokeDasharray={dash}
             />
