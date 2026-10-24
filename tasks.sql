@@ -2768,6 +2768,18 @@ What:
 - README: the entry-row bullet covers editing too.
 
 Done when: in the running app (screenshot at desktop width) an expense and a recurring template can each be edited inline, rejected with in-row errors, cancelled, and deleted; add and edit rows look identical; `rg "ExpenseEdit|ExpenseForm|RecurringForm|/edit" frontend/src` finds nothing stale; frontend checks (typecheck, lint, test, build) and `nix flake check` pass.', '2026-10-24T14:00:41Z', NULL, NULL, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (154, 29, 'lock generated expenses in the Expenses table; edit them on the Recurring page', 'work', 'open', NULL, NULL, 'Follow-up to `task 153: edit expenses and recurring templates inline in the sheet`, which was already running when the owner added this rule (`decision 50: expenses generated from recurring templates are read-only in the Expenses table and edited only on the Recurring page`). Task 153 makes every expense row editable inline, including generated ones; this task takes that back for generated rows.
+
+Where: `frontend/src/pages/Expenses.tsx` (`ExpenseList`, the Source column, the recurring template detail page and its `generatedColumns` table), `index.css`, README "Styling conventions"; backend expense update/delete endpoints.
+
+What:
+- **Expenses table**: rows with `recurring_expense_id` set can''t be opened for editing (no click-to-edit, no pencil) and offer no delete.
+- **Look different**: a clear visual distinction from hand-added rows, e.g. muted/italic text plus a small "recurring" badge or icon in the Source column that links to the template''s page on Recurring (with a `title` like "Edit on the Recurring page"). Keep it within the existing spreadsheet styling.
+- **Recurring page**: the only place to change them. The template row edits inline (from task 153). On the template''s detail page (`/recurring/:id`), its generated expenses are editable inline with the same entry row (date, description, amount + currency; category stays the template''s). No delete there either: a deleted generated expense would come back anyway (`decision 9: monthly expenses generated from templates are dated the 1st and come back if deleted`).
+- **Backend guard**: the generic expense update/delete endpoints refuse generated expenses with a clear error, so the lock isn''t only cosmetic; editing a generated expense goes through an endpoint (or a flag) used only by the Recurring page. Keep it small.
+- README: mention that generated rows are locked in the Expenses table and where they are edited.
+
+Done when: in the running app (screenshot at desktop width) a generated expense in the Expenses table looks different, can''t be edited or deleted there, and can be edited on its template''s page; a hand-added expense still edits and deletes inline; the API refuses update/delete of a generated expense through the generic endpoints; frontend checks (typecheck, lint, test, build), pytest and `nix flake check` pass.', '2026-10-24T14:06:52Z', NULL, NULL, 0, NULL, 'main');
 
 INSERT INTO decision (id, subject, status, options, body, intro, answer, reason, created_at, closed_at, created_by_task, signoff, kind, decided_by_task, consequences) VALUES (1, 'Sign off the masterplan of milestone 1: first version build', 'answered', '["approve"]', '', 'This is the overall roadmap for building the first working version of a small, private bookkeeping app for one Airbnb apartment. The app turns every booking and every cost into amounts per calendar day, so it can answer whether hosting pays off, whether prices are set well, and how things are trending. The roadmap splits the build into parts, starting with a short architecture document the owner approves before anything else is built, and ending with a check against the real Airbnb export.
 
@@ -3225,6 +3237,7 @@ INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (145, 144)
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (146, 145);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (150, 149);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (151, 150);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (154, 153);
 
 INSERT INTO decision_supersedes (decision_id, superseded_id, note) VALUES (39, 15, '');
 INSERT INTO decision_supersedes (decision_id, superseded_id, note) VALUES (44, 32, '');
