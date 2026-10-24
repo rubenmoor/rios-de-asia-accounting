@@ -9,16 +9,14 @@ from typing import TypeVar
 from rios_de_asia_accounting.model import (
     Booking,
     BookingLine,
-    ExchangeRate,
     Expense,
     Inputs,
     RecurringExpense,
     Settings,
 )
-from rios_de_asia_accounting.money import COP_RATE, to_cop
 
 _BOOKING_SELECT = """
-    SELECT b.*, t.nights, t.net_payout, t.cohost_cost, t.gross, t.airbnb_fee, t.needs_rate
+    SELECT b.*, t.nights, t.net_payout, t.cohost_cost, t.gross, t.airbnb_fee, t.waiting
     FROM bookings b JOIN booking_totals t ON t.booking_id = b.id
 """
 
@@ -31,7 +29,6 @@ _CONSTRAINT_HINTS = {
     "bookings.airbnb_code": "a booking with this Airbnb code already exists",
     "booking_lines.booking_id, booking_lines.type": "this line already exists",
     "expenses.recurring_expense_id, expenses.date": "already generated for that date",
-    "exchange_rates.date, exchange_rates.currency": "this exchange rate already exists",
     "check_out > check_in": "check-out must be after check-in",
     "category <> 'per_booking' OR booking_id IS NOT NULL": "a per-booking expense needs a booking",
 }
@@ -80,6 +77,10 @@ def transaction(conn: sqlite3.Connection) -> Iterator[None]:
     conn.execute("COMMIT")
 
 
+def _day(text: str | None) -> date | None:
+    return None if text is None else date.fromisoformat(text)
+
+
 def _booking(row: sqlite3.Row) -> Booking:
     return Booking(
         id=row["id"],
@@ -95,7 +96,7 @@ def _booking(row: sqlite3.Row) -> Booking:
         cohost_cost=row["cohost_cost"],
         gross=row["gross"],
         airbnb_fee=row["airbnb_fee"],
-        needs_rate=bool(row["needs_rate"]),
+        waiting=bool(row["waiting"]),
     )
 
 
@@ -111,18 +112,25 @@ def _line(row: sqlite3.Row) -> BookingLine:
         cleaning_fee_minor=row["cleaning_fee_minor"],
         gross_minor=row["gross_minor"],
         rate=row["rate"],
-        amount_cop=row["amount_cop"],
+        rate_date=_day(row["rate_date"]),
+        amount_usd=row["amount_usd"],
+        service_fee_usd=row["service_fee_usd"],
+        gross_usd=row["gross_usd"],
     )
 
 
 # --- bookings ---------------------------------------------------------------------------------
 
 
+# a hand-entered booking's amount: (minor units, currency)
+Manual = tuple[int, str]
+
+
 @validated
 def create_booking(
-    conn: sqlite3.Connection, booking: Booking, manual_amount_cop: int | None = None
+    conn: sqlite3.Connection, booking: Booking, manual_amount: Manual | None = None
 ) -> int:
-    """Insert a booking. With `manual_amount_cop` it is hand-entered and gets a Manual line."""
+    """Insert a booking. With `manual_amount` it is hand-entered and gets a Manual line."""
     with transaction(conn):
         cur = conn.execute(
             "INSERT INTO bookings (airbnb_code, listing, guest_name, check_in, check_out,"
@@ -138,23 +146,37 @@ def create_booking(
             ),
         )
         booking.id = cur.lastrowid
-        if manual_amount_cop is not None:
-            _set_manual_amount(conn, booking.id, booking.check_in, manual_amount_cop)
+        if manual_amount is not None:
+            _set_manual_amount(conn, booking.id, booking.check_in, manual_amount)
     return booking.id
 
 
-def _set_manual_amount(conn: sqlite3.Connection, booking_id: int, day: date, cop: int) -> None:
-    minor = cop * 100
+_UNCONVERTED = (
+    "rate = NULL, rate_date = NULL, amount_usd = NULL, service_fee_usd = NULL, gross_usd = NULL"
+)
+
+
+def _set_manual_amount(
+    conn: sqlite3.Connection, booking_id: int, day: date, amount: Manual
+) -> None:
+    """Write the Manual line, dated at check-in; a changed amount or currency waits for its
+    conversion again."""
+    minor, currency = amount
+    conn.execute(
+        f"UPDATE booking_lines SET {_UNCONVERTED}"
+        " WHERE booking_id = ? AND type = 'Manual' AND (amount_minor, currency) IS NOT (?, ?)",
+        (booking_id, minor, currency),
+    )
     cur = conn.execute(
-        "UPDATE booking_lines SET amount_minor = ?, amount_cop = ?"
+        "UPDATE booking_lines SET date = ?, currency = ?, amount_minor = ?"
         " WHERE booking_id = ? AND type = 'Manual'",
-        (minor, cop, booking_id),
+        (day.isoformat(), currency, minor, booking_id),
     )
     if cur.rowcount == 0:
         conn.execute(
-            "INSERT INTO booking_lines (booking_id, type, date, currency, amount_minor,"
-            " rate, amount_cop) VALUES (?, 'Manual', ?, 'COP', ?, ?, ?)",
-            (booking_id, day.isoformat(), minor, COP_RATE, cop),
+            "INSERT INTO booking_lines (booking_id, type, date, currency, amount_minor)"
+            " VALUES (?, 'Manual', ?, ?, ?)",
+            (booking_id, day.isoformat(), currency, minor),
         )
 
 
@@ -192,10 +214,16 @@ def list_bookings(
 
 @validated
 def update_booking(
-    conn: sqlite3.Connection, booking: Booking, manual_amount_cop: int | None = None
+    conn: sqlite3.Connection, booking: Booking, manual_amount: Manual | None = None
 ) -> None:
-    """Save the booking's own fields; `manual_amount_cop` edits its Manual line."""
+    """Save the booking's own fields; `manual_amount` edits its Manual line. A new check-in
+    makes all its lines wait for their conversion again (decision 36)."""
     with transaction(conn):
+        conn.execute(
+            f"UPDATE booking_lines SET {_UNCONVERTED}"
+            " WHERE booking_id = (SELECT id FROM bookings WHERE id = ? AND check_in IS NOT ?)",
+            (booking.id, booking.check_in.isoformat()),
+        )
         conn.execute(
             "UPDATE bookings SET airbnb_code = ?, listing = ?, guest_name = ?, check_in = ?,"
             " check_out = ?, guests = ?, notes = ? WHERE id = ?",
@@ -210,8 +238,8 @@ def update_booking(
                 booking.id,
             ),
         )
-        if manual_amount_cop is not None:
-            _set_manual_amount(conn, booking.id, booking.check_in, manual_amount_cop)
+        if manual_amount is not None:
+            _set_manual_amount(conn, booking.id, booking.check_in, manual_amount)
 
 
 @validated
@@ -224,16 +252,11 @@ def delete_booking(conn: sqlite3.Connection, booking_id: int) -> None:
 
 @validated
 def add_line(conn: sqlite3.Connection, line: BookingLine) -> bool:
-    """Add an imported line, converting with the known rate. False if it already existed."""
-    if line.currency == "COP":
-        line.rate = COP_RATE
-    else:
-        line.rate = rate_for(conn, line.currency, line.date)
-    line.amount_cop = None if line.rate is None else to_cop(line.amount_minor, line.rate)
+    """Add an imported line, waiting for its conversion. False if it already existed."""
     cur = conn.execute(
         "INSERT INTO booking_lines (booking_id, type, date, currency, amount_minor,"
-        " service_fee_minor, cleaning_fee_minor, gross_minor, rate, amount_cop)"
-        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        " service_fee_minor, cleaning_fee_minor, gross_minor)"
+        " VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
         " ON CONFLICT (booking_id, type, date, currency, amount_minor) DO NOTHING",
         (
             line.booking_id,
@@ -244,8 +267,6 @@ def add_line(conn: sqlite3.Connection, line: BookingLine) -> bool:
             line.service_fee_minor,
             line.cleaning_fee_minor,
             line.gross_minor,
-            line.rate,
-            line.amount_cop,
         ),
     )
     if cur.rowcount == 0:
@@ -261,109 +282,6 @@ def list_lines(conn: sqlite3.Connection, booking_id: int) -> list[BookingLine]:
     return [_line(r) for r in rows]
 
 
-# --- exchange rates ---------------------------------------------------------------------------
-
-
-@validated
-def set_exchange_rate(conn: sqlite3.Connection, rate: ExchangeRate) -> None:
-    """Add or change a rate and re-convert the lines."""
-    with transaction(conn):
-        conn.execute(
-            "INSERT INTO exchange_rates (date, currency, rate) VALUES (?, ?, ?)"
-            " ON CONFLICT (date, currency) DO UPDATE SET rate = excluded.rate",
-            (rate.date.isoformat(), rate.currency, rate.rate),
-        )
-        recompute_lines(conn)
-
-
-@validated
-def upsert_exchange_rates(
-    conn: sqlite3.Connection, rates: list[ExchangeRate]
-) -> tuple[int, int, int]:
-    """Add or change many rates, then re-convert the lines once.
-
-    Returns (rates added, rates changed, lines recomputed).
-    """
-    added = changed = 0
-    with transaction(conn):
-        for rate in rates:
-            row = conn.execute(
-                "SELECT rate FROM exchange_rates WHERE date = ? AND currency = ?",
-                (rate.date.isoformat(), rate.currency),
-            ).fetchone()
-            if row is None:
-                added += 1
-            elif row["rate"] != rate.rate:
-                changed += 1
-            else:
-                continue
-            conn.execute(
-                "INSERT INTO exchange_rates (date, currency, rate) VALUES (?, ?, ?)"
-                " ON CONFLICT (date, currency) DO UPDATE SET rate = excluded.rate",
-                (rate.date.isoformat(), rate.currency, rate.rate),
-            )
-        recomputed = recompute_lines(conn)
-    return added, changed, recomputed
-
-
-@validated
-def delete_exchange_rate(conn: sqlite3.Connection, day: date, currency: str) -> None:
-    with transaction(conn):
-        conn.execute(
-            "DELETE FROM exchange_rates WHERE date = ? AND currency = ?",
-            (day.isoformat(), currency),
-        )
-        recompute_lines(conn)
-
-
-def list_exchange_rates(
-    conn: sqlite3.Connection, currency: str | None = None
-) -> list[ExchangeRate]:
-    sql = "SELECT * FROM exchange_rates"
-    args: list[str] = []
-    if currency is not None:
-        sql += " WHERE currency = ?"
-        args.append(currency)
-    rows = conn.execute(sql + " ORDER BY date DESC, currency", args).fetchall()
-    return [ExchangeRate(date.fromisoformat(r["date"]), r["currency"], r["rate"]) for r in rows]
-
-
-def rate_for(conn: sqlite3.Connection, currency: str, day: date) -> int | None:
-    """Latest rate on or before `day`, None when there is none."""
-    if currency == "COP":
-        return COP_RATE
-    row = conn.execute(
-        "SELECT rate FROM exchange_rates WHERE currency = ? AND date <= ?"
-        " ORDER BY date DESC LIMIT 1",
-        (currency, day.isoformat()),
-    ).fetchone()
-    return row["rate"] if row else None
-
-
-def recompute_lines(conn: sqlite3.Connection) -> int:
-    """Fill or update rate / amount_cop of every non-COP line from the exchange rates.
-
-    Returns how many lines changed.
-    """
-    changed = 0
-    with transaction(conn):
-        rows = conn.execute(
-            "SELECT id, currency, date, amount_minor, rate, amount_cop FROM booking_lines"
-            " WHERE currency <> 'COP'"
-        ).fetchall()
-        for r in rows:
-            rate = rate_for(conn, r["currency"], date.fromisoformat(r["date"]))
-            cop = None if rate is None else to_cop(r["amount_minor"], rate)
-            if (rate, cop) == (r["rate"], r["amount_cop"]):
-                continue
-            changed += 1
-            conn.execute(
-                "UPDATE booking_lines SET rate = ?, amount_cop = ? WHERE id = ?",
-                (rate, cop, r["id"]),
-            )
-    return changed
-
-
 # --- expenses ---------------------------------------------------------------------------------
 
 
@@ -377,6 +295,10 @@ def _expense(r: sqlite3.Row) -> Expense:
         useful_life_days=r["useful_life_days"],
         description=r["description"],
         recurring_expense_id=r["recurring_expense_id"],
+        original_minor=r["original_minor"],
+        currency=r["currency"],
+        rate=r["rate"],
+        rate_date=_day(r["rate_date"]),
     )
 
 
@@ -384,6 +306,10 @@ def _expense_args(e: Expense) -> tuple:
     return (
         e.date.isoformat(),
         e.amount,
+        e.original_minor,
+        e.currency,
+        e.rate,
+        e.rate_date.isoformat() if e.rate_date else None,
         e.category,
         e.booking_id,
         e.useful_life_days,
@@ -393,14 +319,16 @@ def _expense_args(e: Expense) -> tuple:
 
 
 _EXPENSE_COLS = (
-    "date, amount, category, booking_id, useful_life_days, description, recurring_expense_id"
+    "date, amount, original_minor, currency, rate, rate_date, category, booking_id,"
+    " useful_life_days, description, recurring_expense_id"
 )
+_EXPENSE_VALUES = ", ".join("?" * 11)
 
 
 @validated
 def create_expense(conn: sqlite3.Connection, expense: Expense) -> int:
     cur = conn.execute(
-        f"INSERT INTO expenses ({_EXPENSE_COLS}) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        f"INSERT INTO expenses ({_EXPENSE_COLS}) VALUES ({_EXPENSE_VALUES})",
         _expense_args(expense),
     )
     expense.id = cur.lastrowid
@@ -411,7 +339,7 @@ def create_expense(conn: sqlite3.Connection, expense: Expense) -> int:
 def insert_generated_expense(conn: sqlite3.Connection, expense: Expense) -> bool:
     """Insert unless (recurring_expense_id, date) exists. True if it was new."""
     cur = conn.execute(
-        f"INSERT INTO expenses ({_EXPENSE_COLS}) VALUES (?, ?, ?, ?, ?, ?, ?)"
+        f"INSERT INTO expenses ({_EXPENSE_COLS}) VALUES ({_EXPENSE_VALUES})"
         " ON CONFLICT (recurring_expense_id, date) DO NOTHING",
         _expense_args(expense),
     )
@@ -447,6 +375,14 @@ def list_expenses(
     return [_expense(r) for r in rows]
 
 
+def default_currency(conn: sqlite3.Connection) -> str:
+    """The currency of the most recently saved (not generated) expense, else USD."""
+    row = conn.execute(
+        "SELECT currency FROM expenses WHERE recurring_expense_id IS NULL ORDER BY id DESC LIMIT 1"
+    ).fetchone()
+    return row["currency"] if row else "USD"
+
+
 def list_expenses_of_recurring(conn: sqlite3.Connection, recurring_id: int) -> list[Expense]:
     rows = conn.execute(
         "SELECT * FROM expenses WHERE recurring_expense_id = ? ORDER BY date", (recurring_id,)
@@ -456,9 +392,18 @@ def list_expenses_of_recurring(conn: sqlite3.Connection, recurring_id: int) -> l
 
 @validated
 def update_expense(conn: sqlite3.Connection, expense: Expense) -> None:
+    """Save; a changed date, amount or currency makes it wait for its conversion again."""
+    old = get_expense(conn, expense.id)
+    if old is not None and (old.date, old.original_minor, old.currency) != (
+        expense.date,
+        expense.original_minor,
+        expense.currency,
+    ):
+        expense.amount = expense.rate = expense.rate_date = None
     conn.execute(
-        "UPDATE expenses SET date = ?, amount = ?, category = ?, booking_id = ?,"
-        " useful_life_days = ?, description = ?, recurring_expense_id = ? WHERE id = ?",
+        "UPDATE expenses SET date = ?, amount = ?, original_minor = ?, currency = ?, rate = ?,"
+        " rate_date = ?, category = ?, booking_id = ?, useful_life_days = ?, description = ?,"
+        " recurring_expense_id = ? WHERE id = ?",
         (*_expense_args(expense), expense.id),
     )
 
@@ -474,7 +419,8 @@ def _recurring(r: sqlite3.Row) -> RecurringExpense:
     return RecurringExpense(
         id=r["id"],
         description=r["description"],
-        amount=r["amount"],
+        amount_minor=r["amount_minor"],
+        currency=r["currency"],
         category=r["category"],
         start_month=r["start_month"],
         end_month=r["end_month"],
@@ -484,9 +430,16 @@ def _recurring(r: sqlite3.Row) -> RecurringExpense:
 @validated
 def create_recurring_expense(conn: sqlite3.Connection, item: RecurringExpense) -> int:
     cur = conn.execute(
-        "INSERT INTO recurring_expenses (description, amount, category, start_month, end_month)"
-        " VALUES (?, ?, ?, ?, ?)",
-        (item.description, item.amount, item.category, item.start_month, item.end_month),
+        "INSERT INTO recurring_expenses (description, amount_minor, currency, category,"
+        " start_month, end_month) VALUES (?, ?, ?, ?, ?, ?)",
+        (
+            item.description,
+            item.amount_minor,
+            item.currency,
+            item.category,
+            item.start_month,
+            item.end_month,
+        ),
     )
     item.id = cur.lastrowid
     return item.id
@@ -505,9 +458,17 @@ def list_recurring_expenses(conn: sqlite3.Connection) -> list[RecurringExpense]:
 @validated
 def update_recurring_expense(conn: sqlite3.Connection, item: RecurringExpense) -> None:
     conn.execute(
-        "UPDATE recurring_expenses SET description = ?, amount = ?, category = ?,"
-        " start_month = ?, end_month = ? WHERE id = ?",
-        (item.description, item.amount, item.category, item.start_month, item.end_month, item.id),
+        "UPDATE recurring_expenses SET description = ?, amount_minor = ?, currency = ?,"
+        " category = ?, start_month = ?, end_month = ? WHERE id = ?",
+        (
+            item.description,
+            item.amount_minor,
+            item.currency,
+            item.category,
+            item.start_month,
+            item.end_month,
+            item.id,
+        ),
     )
 
 
@@ -518,7 +479,7 @@ def delete_recurring_expense(conn: sqlite3.Connection, item_id: int) -> None:
 
 # --- settings ---------------------------------------------------------------------------------
 
-_INT_SETTINGS = ("long_term_rent_cop_per_month", "backup_keep")
+_INT_SETTINGS = ("backup_keep",)
 _ALLOCATIONS = ("check_in", "spread")
 
 
@@ -534,6 +495,10 @@ def load_settings(conn: sqlite3.Connection) -> Settings:
             setattr(settings, key, stored[key])
     if "property_listings" in stored:
         settings.property_listings = list(json.loads(stored["property_listings"]))
+    if "long_term_rent_entered" in stored:
+        settings.long_term_rent_entered = json.loads(stored["long_term_rent_entered"])
+        usd = stored.get("long_term_rent_usd")
+        settings.long_term_rent_usd = None if usd is None else int(usd)
     return settings
 
 
@@ -548,7 +513,15 @@ def save_settings(conn: sqlite3.Connection, settings: Settings) -> None:
         "per_booking_allocation": settings.per_booking_allocation,
         "property_listings": json.dumps(settings.property_listings),
     }
+    entered = settings.long_term_rent_entered
+    if entered is not None:
+        values["long_term_rent_entered"] = json.dumps(entered)
+        if settings.long_term_rent_usd is not None:
+            values["long_term_rent_usd"] = str(settings.long_term_rent_usd)
     with transaction(conn):
+        for key in ("long_term_rent_entered", "long_term_rent_usd"):
+            if key not in values:  # no rent, or the rent waits for a rate
+                conn.execute("DELETE FROM settings WHERE key = ?", (key,))
         for key, value in values.items():
             conn.execute(
                 "INSERT INTO settings (key, value) VALUES (?, ?)"

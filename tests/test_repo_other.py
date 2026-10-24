@@ -2,6 +2,7 @@ from datetime import date
 
 import pytest
 
+from rios_de_asia_accounting.conversion import convert_waiting
 from rios_de_asia_accounting.model import (
     Booking,
     BookingLine,
@@ -33,9 +34,9 @@ def test_expense_round_trip_and_range(conn):
     assert len(repo.list_expenses(conn)) == 2
     assert [x.amount for x in repo.list_expenses(conn, d("2026-02-01"), d("2026-03-01"))] == [50]
     assert repo.list_expenses(conn, end=d("2026-01-05")) == []
-    e.amount = 2000
+    e.original_minor, e.currency = 800_000, "COP"
     repo.update_expense(conn, e)
-    assert repo.get_expense(conn, eid).amount == 2000
+    assert repo.get_expense(conn, eid).amount is None  # waits for its new conversion
     repo.delete_expense(conn, eid)
     assert repo.get_expense(conn, eid) is None
 
@@ -62,7 +63,8 @@ def test_recurring_round_trip_and_generated_dedup(conn):
 def test_settings_defaults_and_round_trip(conn):
     assert repo.load_settings(conn) == Settings()
     s = Settings(
-        long_term_rent_cop_per_month=1_500_000,
+        long_term_rent_usd=150_000,
+        long_term_rent_entered={"original_minor": 150_000, "currency": "USD", "date": "2026-01-01"},
         per_booking_allocation="spread",
         property_listings=["Casa Río", "Loft"],
         backup_keep=10,
@@ -70,8 +72,9 @@ def test_settings_defaults_and_round_trip(conn):
     repo.save_settings(conn, s)
     assert repo.load_settings(conn) == s
     s.backup_keep = 5
+    s.long_term_rent_usd = None  # waiting for a rate
     repo.save_settings(conn, s)
-    assert repo.load_settings(conn).backup_keep == 5
+    assert repo.load_settings(conn) == s
 
 
 def test_settings_validation(conn):
@@ -100,12 +103,15 @@ def test_constraint_violations_become_validation_errors(conn):
 
 def test_load_inputs(conn):
     bid = repo.create_booking(
-        conn, Booking(d("2026-01-01"), d("2026-01-04"), airbnb_code="A"), manual_amount_cop=300_000
+        conn,
+        Booking(d("2026-01-01"), d("2026-01-04"), airbnb_code="A"),
+        manual_amount=(300_000, "USD"),
     )
-    repo.add_line(conn, BookingLine(bid, "Co-Host payout", d("2026-01-04"), "COP", -3_000_000))
+    repo.add_line(conn, BookingLine(bid, "Co-Host payout", d("2026-01-04"), "COP", -4_000_000))
     repo.create_expense(conn, Expense(d("2026-01-02"), 10, "fixed"))
+    convert_waiting(conn, d("2026-10-23"))
     inputs = repo.load_inputs(conn)
     (b,) = inputs.bookings
-    assert (b.net_payout, b.cohost_cost, b.nights) == (300_000, 30_000, 3)
+    assert (b.net_payout, b.cohost_cost, b.nights) == (300_000, 1_000, 3)
     assert [e.amount for e in inputs.expenses] == [10]
     assert inputs.settings == Settings()

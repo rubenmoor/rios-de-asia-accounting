@@ -18,30 +18,45 @@ def db_path(tmp_path):
 
 
 @pytest.mark.parametrize(
-    ("text", "pesos"),
-    [("1.234.567", 1234567), ("1,234,567", 1234567), ("1234567", 1234567), ("1 234", 1234)],
+    ("text", "currency", "minor"),
+    [
+        ("1.234.567", "COP", 123456700),
+        ("1,234,567", "COP", 123456700),
+        ("1 234", "COP", 123400),
+        ("1,234.50", "USD", 123450),
+        ("1.234,50", "EUR", 123450),
+        ("1.234", "USD", 123400),
+        ("12,5", "USD", 1250),
+        ("1234567", "USD", 123456700),
+    ],
 )
-def test_parse_money(text, pesos):
-    assert forms.parse_money(text) == pesos
+def test_parse_amount(text, currency, minor):
+    assert forms.parse_amount(text, currency) == minor
 
 
-@pytest.mark.parametrize("text", ["12,5", "1.5", "12.34.567", "-5", "abc", "1.2345", ""])
-def test_parse_money_errors(text):
+@pytest.mark.parametrize(
+    ("text", "currency"),
+    [
+        ("12,5", "COP"),
+        ("12.34.567", "COP"),
+        ("-5", "USD"),
+        ("abc", "USD"),
+        ("1.2345", "EUR"),
+        ("", "USD"),
+    ],
+)
+def test_parse_amount_errors(text, currency):
     with pytest.raises(ValueError):
-        forms.parse_money(text)
+        forms.parse_amount(text, currency)
 
 
-def test_format_money():
-    assert forms.format_money(1234567) == "1.234.567"
-    assert forms.format_money(0) == "0"
+def test_format_amount():
+    assert forms.format_amount(123456700, "COP") == "1.234.567"
+    assert forms.format_amount(123456) == "1.234,56"
+    assert forms.format_amount(-5) == "-0,05"
 
 
-def test_rates_dates_months():
-    assert forms.parse_rate("4100.5") == 410050
-    assert forms.format_rate(410050) == "4100.50"
-    assert forms.format_rate(410000) == "4100"
-    with pytest.raises(ValueError):
-        forms.parse_rate("4100.123")
+def test_dates_months():
     assert forms.parse_date("2026-03-05") == date(2026, 3, 5)
     assert forms.parse_month("2026-03") == date(2026, 3, 1)
     for bad in ("2026-13-01", "5/3/2026"):
@@ -49,13 +64,10 @@ def test_rates_dates_months():
             forms.parse_date(bad)
     with pytest.raises(ValueError):
         forms.parse_month("2026-3x")
-    assert forms.parse_currency("usd") == "USD"
-    with pytest.raises(ValueError):
-        forms.parse_currency("US")
 
 
 def test_form_collects_one_error_per_field():
-    form = forms.Form({"amount": "12,5", "day": ""})
+    form = forms.Form({"amount": "12,5", "currency": "COP", "day": ""})
     assert form.money("amount", positive=True) is None
     assert form.day("day", required=True) is None
     assert set(form.errors) == {"amount", "day"}

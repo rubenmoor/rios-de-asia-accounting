@@ -15,14 +15,18 @@ def client(tmp_path):
 
 def test_settings_roundtrip(client):
     body = {
-        "long_term_rent_cop_per_month": "1.500.000",
+        "long_term_rent": "1.500.000",
+        "long_term_rent_currency": "COP",
         "per_booking_allocation": "spread",
         "backup_keep": "10",
         "listings": ["Casa A"],
     }
     assert client.put("/api/settings", json=body).status_code == 200
     got = client.get("/api/settings").get_json()
-    assert got["long_term_rent_cop_per_month"] == 1_500_000 and got["listings"] == ["Casa A"]
+    assert got["long_term_rent_usd"] == 37_500 and got["listings"] == ["Casa A"]
+    entered = got["long_term_rent_entered"]
+    assert (entered["original_minor"], entered["currency"]) == (150_000_000, "COP")
+    assert entered["rate_date"] == entered["date"] and entered["rate"] == 4_000_000_000
 
 
 def test_invalid_settings_is_422(client):

@@ -2,6 +2,7 @@ from datetime import date
 
 import pytest
 
+from rios_de_asia_accounting.conversion import convert_waiting
 from rios_de_asia_accounting.model import Booking, BookingLine, Expense, RecurringExpense
 from rios_de_asia_accounting.recurring import due_expenses, generate_recurring, load_days
 from rios_de_asia_accounting.storage import repo
@@ -20,13 +21,15 @@ def d(s):
 
 
 def tpl(start, end=None, id=1):
-    return RecurringExpense("wifi", 100, "fixed", start, end, id)
+    return RecurringExpense("wifi", 400_000, "fixed", start, end, id, currency="COP")
 
 
 def test_due_months():
     got = due_expenses([tpl("2026-01", "2026-03")], d("2026-10-23"))
     assert [e.date for e in got] == [d("2026-01-01"), d("2026-02-01"), d("2026-03-01")]
-    assert (got[0].amount, got[0].category, got[0].description) == (100, "fixed", "wifi")
+    first = got[0]
+    assert (first.amount, first.original_minor, first.currency) == (None, 400_000, "COP")
+    assert (first.category, first.description) == ("fixed", "wifi")
     assert got[0].recurring_expense_id == 1
 
 
@@ -45,24 +48,29 @@ def test_december_to_january():
 
 
 def test_generate_idempotent_keep_edit_recreate_deleted(conn):
-    rid = repo.create_recurring_expense(conn, RecurringExpense("wifi", 100, "fixed", "2026-08"))
+    rid = repo.create_recurring_expense(conn, tpl("2026-08", id=None))
     assert generate_recurring(conn, d("2026-10-23")) == 3
     assert generate_recurring(conn, d("2026-10-23")) == 0
+    convert_waiting(conn, d("2026-10-23"))
     rows = repo.list_expenses_of_recurring(conn, rid)
-    rows[0].amount = 999
+    assert [(e.amount, e.rate_date) for e in rows] == [
+        (100, d(f"2026-{m:02d}-01")) for m in (8, 9, 10)
+    ]
+    rows[0].original_minor = 4_000_000
     repo.update_expense(conn, rows[0])
     conn.execute("DELETE FROM expenses WHERE id = ?", (rows[1].id,))
     assert generate_recurring(conn, d("2026-10-23")) == 1
-    assert [e.amount for e in repo.list_expenses_of_recurring(conn, rid)] == [999, 100, 100]
+    convert_waiting(conn, d("2026-10-23"))
+    assert [e.amount for e in repo.list_expenses_of_recurring(conn, rid)] == [1_000, 100, 100]
 
 
 def test_load_days(conn):
     repo.create_recurring_expense(
-        conn, RecurringExpense("rent", 3100, "fixed", "2026-01", "2026-01")
+        conn, RecurringExpense("rent", 3100, "fixed", "2026-01", "2026-01", currency="USD")
     )
     repo.create_expense(conn, Expense(d("2026-01-10"), 1000, "capex", useful_life_days=100))
     bid = repo.create_booking(conn, Booking(d("2026-01-05"), d("2026-01-07")))
-    repo.add_line(conn, BookingLine(bid, "Reservation", d("2026-01-05"), "COP", 20_000))
+    repo.add_line(conn, BookingLine(bid, "Reservation", d("2026-01-05"), "COP", 800_000))
     days = load_days(conn, d("2026-01-31"))
     assert len(days) == 31 and days[0].date == d("2026-01-01")
     assert sum(x.cost_fixed for x in days) == 3100

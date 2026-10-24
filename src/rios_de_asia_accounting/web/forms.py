@@ -3,40 +3,42 @@
 import re
 from collections.abc import Callable, Collection, Mapping
 from datetime import date
-from decimal import Decimal
 from typing import Any
 
 from rios_de_asia_accounting.model import Booking
 from rios_de_asia_accounting.storage.repo import ValidationError
 
-_MONEY = re.compile(r"\d+|\d{1,3}(?:[.,  ]\d{3})+")
-_RATE = re.compile(r"\d+(?:\.\d{1,2})?")
-_CURRENCY = re.compile(r"[A-Za-z]{3}")
+_WHOLE = re.compile(r"\d+|\d{1,3}(?:[.,  ]\d{3})+")
+_DECIMALS = re.compile(r"(.*)[.,](\d{1,2})")
+CURRENCIES = ["USD", "COP", "EUR"]  # money entry (decision 39)
 
 
-def parse_money(text: str) -> int:
-    """Whole pesos: digits with optional . , or space thousands separators."""
+def parse_amount(text: str, currency: str) -> int:
+    """An amount in minor units of `currency` (decision 39).
+
+    COP: whole pesos, with optional . , or space thousands separators. USD and EUR: up to 2
+    decimals; the last . or , followed by 1-2 digits at the end is the decimal mark, other
+    . , and spaces are thousands separators ("1.234,50" = "1,234.50", "1.234" = 1234.00).
+    """
     text = text.strip()
-    if not _MONEY.fullmatch(text):
-        raise ValueError("enter whole pesos, e.g. 1.234.567 (no decimals)")
-    return int(re.sub(r"\D", "", text))
+    if currency == "COP":
+        if not _WHOLE.fullmatch(text):
+            raise ValueError("enter whole pesos, e.g. 1.234.567 (no decimals)")
+        return int(re.sub(r"\D", "", text)) * 100
+    whole, cents = text, "0"
+    if m := _DECIMALS.fullmatch(text):
+        whole, cents = m.group(1) or "0", m.group(2).ljust(2, "0")
+    if not _WHOLE.fullmatch(whole):
+        raise ValueError("enter an amount with up to 2 decimals, e.g. 1.234,50 or 1,234.50")
+    return int(re.sub(r"\D", "", whole)) * 100 + int(cents)
 
 
-def format_money(pesos: int) -> str:
-    return f"{pesos:,}".replace(",", ".")
-
-
-def parse_rate(text: str) -> int:
-    """COP per unit with up to 2 decimals after a dot; returns the stored scaled integer."""
-    cleaned = text.strip().replace(",", "")
-    if not _RATE.fullmatch(cleaned):
-        raise ValueError("enter a rate with up to 2 decimals after a dot, e.g. 4100.50")
-    return int(Decimal(cleaned) * 100)
-
-
-def format_rate(rate: int) -> str:
-    text = f"{Decimal(rate) / 100:.2f}"
-    return text[:-3] if text.endswith(".00") else text
+def format_amount(minor: int, currency: str = "USD") -> str:
+    """COP as whole pesos (1.234.567), other currencies with 2 decimals (1.234,56)."""
+    sign = "-" if minor < 0 else ""
+    whole, cents = divmod(abs(minor), 100)
+    grouped = f"{whole:,}".replace(",", ".")
+    return f"{sign}{grouped}" if currency == "COP" else f"{sign}{grouped},{cents:02d}"
 
 
 def parse_date(text: str) -> date:
@@ -52,12 +54,6 @@ def parse_month(text: str) -> date:
         return date.fromisoformat(text.strip() + "-01")
     except ValueError:
         raise ValueError("enter a month as YYYY-MM") from None
-
-
-def parse_currency(text: str) -> str:
-    if not _CURRENCY.fullmatch(text.strip()):
-        raise ValueError("enter a 3-letter currency code, e.g. USD")
-    return text.strip().upper()
 
 
 def parse_int(text: str) -> int:
@@ -129,11 +125,10 @@ class Form:
         self.values[field] = value
         return value
 
-    def money(self, field: str, **kw: Any) -> int | None:
-        return self.parsed(field, parse_money, **kw)
-
-    def rate(self, field: str, **kw: Any) -> int | None:
-        return self.parsed(field, parse_rate, **kw)
+    def money(self, field: str, currency_field: str = "currency", **kw: Any) -> int | None:
+        """An amount in minor units of the currency chosen in `currency_field`."""
+        currency = self.choice(currency_field, CURRENCIES)
+        return self.parsed(field, lambda text: parse_amount(text, currency or "USD"), **kw)
 
     def day(self, field: str, **kw: Any) -> date | None:
         return self.parsed(field, parse_date, **kw)
@@ -143,9 +138,6 @@ class Form:
 
     def whole(self, field: str, **kw: Any) -> int | None:
         return self.parsed(field, parse_int, **kw)
-
-    def currency(self, field: str, **kw: Any) -> str | None:
-        return self.parsed(field, parse_currency, **kw)
 
     def choice(self, field: str, options: Collection[str], required: bool = True) -> str | None:
         value = self.raw.get(field, "").strip()

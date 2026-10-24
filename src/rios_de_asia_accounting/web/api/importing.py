@@ -15,9 +15,7 @@ from rios_de_asia_accounting.importer.airbnb_csv import (
     parse,
     plan_import,
 )
-from rios_de_asia_accounting.importer.trm_csv import ParsedRates, RatesSummary, apply_rates
-from rios_de_asia_accounting.importer.trm_csv import parse as parse_rates
-from rios_de_asia_accounting.web.api.common import bp, info, invalid, ok, read_form
+from rios_de_asia_accounting.web.api.common import bp, info, invalid, ok, read_form, today
 from rios_de_asia_accounting.web.app_db import get_db
 from rios_de_asia_accounting.web.forms import Form
 
@@ -45,7 +43,6 @@ def _save_upload(upload: FileStorage) -> Path:
 
 GONE = "the uploaded file is gone; upload it again"
 NO_AIRBNB_FILE = "choose the Airbnb CSV file"
-NO_RATES_FILE = "choose the exchange-rate CSV file"
 NO_LISTING = "choose at least one listing"
 
 
@@ -82,7 +79,7 @@ def apply_upload(
         plan = plan_import(conn, parse(path), chosen or None)
         if plan.needs_listing_choice:
             return plan, None, NO_LISTING
-        summary = apply_import(conn, plan)
+        summary = apply_import(conn, plan, today())
     except FileError as e:
         path.unlink(missing_ok=True)
         return None, None, str(e)
@@ -92,16 +89,6 @@ def apply_upload(
 
 def cancel_upload(token: str) -> None:
     _token_path(token).unlink(missing_ok=True)
-
-
-def import_rates_file(conn, upload: FileStorage, currency: str) -> tuple[RatesSummary, ParsedRates]:
-    """Apply an uploaded exchange-rate CSV; raises FileError."""
-    path = _save_upload(upload)
-    try:
-        parsed = parse_rates(path)
-        return apply_rates(conn, parsed, currency), parsed
-    finally:
-        path.unlink(missing_ok=True)
 
 
 def _problems(problems) -> list[dict]:
@@ -147,7 +134,7 @@ def _summary(s: ImportSummary) -> dict:
         "new": s.new,
         "updated": s.updated,
         "lines_added": s.lines_added,
-        "needing_rate": s.needing_rate,
+        "waiting": s.waiting,
         "skipped": {
             "payouts": s.skipped_payouts,
             "known_lines": s.skipped_known_lines,
@@ -155,16 +142,6 @@ def _summary(s: ImportSummary) -> dict:
         },
         "problems": _problems(s.problems),
         "warnings": s.warnings,
-    }
-
-
-def _rates_summary(s: RatesSummary, parsed: ParsedRates) -> dict:
-    return {
-        "added": s.added,
-        "changed": s.changed,
-        "lines_recomputed": s.lines_recomputed,
-        "needing_rate": s.needing_rate,
-        "problems": _problems(parsed.problems),
     }
 
 
@@ -203,20 +180,3 @@ def apply_airbnb():
 def cancel_airbnb(token: str):
     cancel_upload(token)
     return ok(None, [info("Import cancelled; nothing was changed.")])
-
-
-@bp.post("/import/rates")
-def import_rates():
-    form = Form(request.form)
-    currency = form.currency("currency", required=True)
-    upload = request.files.get("file")
-    if upload is None or not has_file(upload):
-        form.error("file", NO_RATES_FILE)
-    if form.ok:
-        try:
-            summary, parsed = import_rates_file(get_db(), upload, currency)
-        except FileError as e:
-            form.error("file", str(e))
-    if not form.ok:
-        return invalid(form)
-    return ok(_rates_summary(summary, parsed))

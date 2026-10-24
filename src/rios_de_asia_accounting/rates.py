@@ -11,7 +11,8 @@ import urllib.request
 from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 
-RATE_SCALE = 1_000_000
+from rios_de_asia_accounting.money import RATE_SCALE
+
 TIMEOUT = 10
 USER_AGENT = "rios-de-asia-accounting (exchange rate fetch)"
 COP_URL = "https://www.datos.gov.co/resource/32sa-8pi3.json"

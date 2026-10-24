@@ -1,12 +1,14 @@
 """Helpers shared by all API modules: request reading, responses, notices, errors."""
 
+from datetime import date
 from typing import Any
 
-from flask import Blueprint, Flask, Response, jsonify, request
+from flask import Blueprint, Flask, Response, current_app, jsonify, request
 from werkzeug.exceptions import BadRequest, HTTPException
 
+from rios_de_asia_accounting.storage import repo
 from rios_de_asia_accounting.storage.repo import ValidationError
-from rios_de_asia_accounting.web.forms import Form
+from rios_de_asia_accounting.web.forms import CURRENCIES, Form
 
 bp = Blueprint("api", __name__, url_prefix="/api")
 
@@ -25,6 +27,25 @@ def warning(text: str) -> dict[str, str]:
 
 def error(text: str) -> dict[str, str]:
     return notice("error", text)
+
+
+def today() -> date:
+    return current_app.config.get("TODAY") or date.today()
+
+
+def saved_notice(what: str, waiting: bool, currency: str, day: date) -> dict[str, str]:
+    """'X saved.', or the warning that it waits for its rate (decision 37)."""
+    if not waiting:
+        return info(f"{what.capitalize()} saved.")
+    return warning(
+        f"Saved. No {currency} rate for {day} yet (no connection?); this {what} is left out"
+        " of the figures until the rate is fetched."
+    )
+
+
+def money_options(conn) -> dict:
+    """The currency choice of the money fields (decision 39)."""
+    return {"currencies": CURRENCIES, "default_currency": repo.default_currency(conn)}
 
 
 def read_form() -> Form:

@@ -12,6 +12,7 @@ from waitress import create_server
 
 from rios_de_asia_accounting.backup import BackupError, backup, before_migrate_hook, resolve_keep
 from rios_de_asia_accounting.config import ConfigError, resolve_backup_dir, resolve_db_path
+from rios_de_asia_accounting.conversion import convert_waiting
 from rios_de_asia_accounting.importer.airbnb_csv import (
     FileError,
     ImportPlan,
@@ -19,8 +20,6 @@ from rios_de_asia_accounting.importer.airbnb_csv import (
     parse,
     plan_import,
 )
-from rios_de_asia_accounting.importer.trm_csv import apply_rates
-from rios_de_asia_accounting.importer.trm_csv import parse as parse_rates
 from rios_de_asia_accounting.recurring import generate_recurring
 from rios_de_asia_accounting.storage.db import connect, migrate
 from rios_de_asia_accounting.web.app import create_app
@@ -192,29 +191,11 @@ def run_import(db: str | None, csv_path: str, listings: list[str] | None, dry_ru
         print(
             f"imported: {summary.new} new, {summary.updated} updated, "
             f"{summary.lines_added} line(s) added; "
-            f"{summary.needing_rate} booking(s) need an exchange rate"
+            f"{summary.waiting} line(s) wait for an exchange rate"
         )
         return 0
     finally:
         conn.close()
-
-
-def run_import_rates(db: str | None, csv_path: str, currency: str) -> None:
-    parsed = parse_rates(csv_path)
-    conn = connect(resolve_db_path(db))
-    try:
-        migrate(conn)
-        summary = apply_rates(conn, parsed, currency)
-    finally:
-        conn.close()
-    print(f"{len(parsed.problems)} problem(s)")
-    for pr in parsed.problems:
-        print(f"  line {pr.line}: {pr.message}")
-    print(
-        f"{currency} rates: {summary.added} added, {summary.changed} changed; "
-        f"{summary.lines_recomputed} line(s) recomputed; "
-        f"{summary.needing_rate} booking(s) still need an exchange rate"
-    )
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -246,9 +227,6 @@ def main(argv: list[str] | None = None) -> None:
     import_parser.add_argument(
         "--dry-run", action="store_true", help="show what would happen, change nothing"
     )
-    rates_parser = sub.add_parser("import-rates", help="import the official TRM rate history")
-    rates_parser.add_argument("csv", help="TRM history CSV from datos.gov.co")
-    rates_parser.add_argument("--currency", default="USD", help="currency of the rates")
     for p in (parser, serve_parser):
         p.add_argument("--backup-dir", help="backup folder (default: see backup)")
         p.add_argument("--port", type=int, help="port to listen on (default: a free port)")
@@ -263,14 +241,13 @@ def main(argv: list[str] | None = None) -> None:
             code = run_import(args.db, args.csv, args.listing, args.dry_run)
             if code:
                 sys.exit(code)
-        elif args.command == "import-rates":
-            run_import_rates(args.db, args.csv, args.currency)
         else:
             run_migrate(args.db, args.backup_dir)
             db_path = resolve_db_path(args.db)
             conn = connect(db_path)
             try:
                 generate_recurring(conn, date.today())
+                convert_waiting(conn, date.today())
             finally:
                 conn.close()
             serve(db_path, args.port, not args.no_browser, args.backup_dir)

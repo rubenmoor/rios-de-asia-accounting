@@ -80,7 +80,7 @@ def test_no_occupancy():
 
 def test_benchmark_full_month():
     days = [Day(day) for day in date_range(d("2024-02-01"), d("2024-02-29"))]
-    m = summarize(days, month_range(2024, 2), Settings(long_term_rent_cop_per_month=2_900_001))
+    m = summarize(days, month_range(2024, 2), Settings(long_term_rent_usd=2_900_001))
     assert m.benchmark == 2_900_001
     assert m.profit_vs_long_term == -2_900_001
 
@@ -90,7 +90,7 @@ def test_benchmark_across_february_march_of_a_leap_year():
     m = summarize(
         days,
         custom(d("2024-02-28"), d("2024-03-02")),
-        Settings(long_term_rent_cop_per_month=290_000),
+        Settings(long_term_rent_usd=290_000),
     )
     # February: 290 000 / 29 = 10 000 a day; March: 290 000 / 31 = 9 354 rest 26 → 9 355
     assert m.benchmark == 2 * 10_000 + 2 * 9_355
@@ -105,12 +105,12 @@ def assert_empty(m):
 
 
 def test_empty_range():
-    settings = Settings(long_term_rent_cop_per_month=900_000)
+    settings = Settings(long_term_rent_usd=900_000)
     assert_empty(summarize(ten_days(), custom(d("2026-01-05"), d("2026-01-04")), settings))
 
 
 def test_range_before_first_day():
-    settings = Settings(long_term_rent_cop_per_month=900_000)
+    settings = Settings(long_term_rent_usd=900_000)
     assert_empty(summarize(ten_days(), month_range(2025, 12), settings))
 
 
