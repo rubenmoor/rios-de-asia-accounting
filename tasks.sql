@@ -2293,13 +2293,41 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (124, 23, 'write the masterplan of milestone 4: first round of improvements', 'masterplan', 'done', NULL, '2026-10-23, plan 23 body and intro; decisions 29-31 raised', 'Write `plan 23: masterplan`, the masterplan of `milestone 4: first round of improvements`: expand on everything that needs to be done to achieve it,
 divided into parts, with an intro in plain English (`pm plan edit 23 --intro "…" --body -`). State in the masterplan that its own tasks are not implementation work: each of them writes the
 plan for one part.', '2026-10-24T03:15:59Z', '2026-10-24T03:18:30Z', NULL, 0, NULL, NULL);
-INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (125, 23, 'create tasks for plan 23: masterplan', 'split', 'open', 1000, NULL, 'Split `plan 23: masterplan` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (125, 23, 'create tasks for plan 23: masterplan', 'split', 'done', 1000, '2026-10-23, tasks 126-130', 'Split `plan 23: masterplan` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
 done and dropped ones stay as they are (pm refuses to change them): drop the open ones that no longer fit and add
 tasks for what the plan asks beyond them. A task that writes a plan gets `--kind plan`. A task that needs another
 task''s result (in this plan or another, in any work tree) requires it: `pm task add … --requires <task id>`, or
 `pm task requires <task id> <prerequisite id>` for an existing one; priority is only a hint and orders nothing across
 work trees. When you drop an open task that others require and add one in its place, drop it with
-`--replaced-by <new task id>`.', '2026-10-24T03:18:26Z', NULL, 124, 0, NULL, NULL);
+`--replaced-by <new task id>`.', '2026-10-24T03:18:26Z', '2026-10-24T03:19:07Z', 124, 0, NULL, NULL);
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (126, 23, 'write the plan for part 1: remove blocked days', 'plan', 'open', 1000, NULL, 'Write the plan for part 1 of `plan 23: masterplan` (read that part): `pm plan add 4 "remove blocked days" --priority 900 --intro "…"`.
+
+- Covers: migration dropping `blocked_days`, the model/allocation/repo/API/frontend/test/spec/README removals, and a superseding decision for `decision 21: the per-day view starts on the first day any input is spread over` (start date no longer counts blocked days).
+- Done when the plan exists with the masterplan''s priority (900).', '2026-10-24T03:19:04Z', NULL, 125, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (127, 23, 'write the plan for part 2: USD inside, exchange rates fetched automatically', 'plan', 'open', 990, NULL, 'Write the plan for part 2 of `plan 23: masterplan` (read that part in full): `pm plan add 4 "USD inside, exchange rates fetched automatically" --priority 850 --intro "…"`.
+
+- Needs web access: verify a free, keyless source of historical daily COP and EUR rates against USD (candidates: the TRM API on datos.gov.co, Frankfurter/ECB, a multi-currency API) — check the real endpoints and response formats, write them into the plan.
+- Record (`pm decision record`) each choice the part lists: storage in USD cents with original amount/currency/rate/rate date; the rate source and caching in `exchange_rates`; behaviour when fetching fails; converting existing COP data; currency choice at expense entry (superseding `decision 15: data entry forms: how money and hours are typed` for money); which of Rates page / manual rate API / TRM CSV import / "lacking a rate" notices go; settings amounts.
+- Raise a decision for the owner only where the choice really is theirs.
+- The plan''s first implementation task must require the last implementation task of part 1''s plan (`plan … remove blocked days`), so the USD migration runs after blocked days are gone.
+- Done when the plan exists with priority 850 and the decisions above are recorded.', '2026-10-24T03:19:04Z', NULL, 125, 1, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (128, 23, 'write the plan for part 3: display currency', 'plan', 'open', 980, NULL, 'Write the plan for part 3 of `plan 23: masterplan` (read that part): `pm plan add 4 "display currency" --priority 500 --intro "…"`.
+
+- Builds on part 2''s plan (`USD inside, exchange rates fetched automatically`): reuse its rate source and fetch code; its implementation tasks require part 2''s implementation tasks they build on.
+- Record (`pm decision record`): conversion on server or client; number formats per currency; how the chosen currency and its rate/date are kept in settings and shown.
+- Done when the plan exists with priority 500.', '2026-10-24T03:19:04Z', NULL, 125, 1, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (129, 23, 'write the plan for part 4: add expenses inline in the sheet', 'plan', 'open', 970, NULL, 'Write the plan for part 4 of `plan 23: masterplan` (read that part): `pm plan add 4 "add expenses inline in the sheet" --priority 400 --intro "…"`.
+
+- "+" button opening an entry row inside the `DataTable` sheet on Expenses and Recurring; date pre-filled with today, start month with this month; field errors in the row; `/expenses/new` and `/recurring/new` go; README styling conventions updated.
+- Uses part 2''s currency choice next to the amount: its implementation tasks require the part 2 task that adds currency entry.
+- Decide (and record) whether editing existing rows also goes inline, only if it costs nothing extra.
+- Done when the plan exists with priority 400.', '2026-10-24T03:19:05Z', NULL, 125, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (130, 23, 'write the plan for part 5: hand-entered bookings, the Time page and the Quit button', 'plan', 'open', 960, NULL, 'Write the plan for part 5 of `plan 23: masterplan` (read that part): `pm plan add 4 "hand-entered bookings, the Time page and the Quit button" --priority 400 --intro "…"`.
+
+- Follow the owner''s answers to `decision 29: Hand-entered bookings: remove the ''New booking'' button so that all income comes from the Airbnb CSV?`, `decision 30: Time page: remove the log of your own hosting hours, or keep it and explain it?` and `decision 31: Quit button: remove it, or keep it with a clearer name?`; write their consequences (`pm decision consequences`).
+- Removals include API, routes, nav, tests, specs and README; if the Time page goes, also the time log table (migration), own-time metrics, the hourly-value setting, and a superseding decision for `decision 21: the per-day view starts on the first day any input is spread over`.
+- If part 2''s plan already exists, have tasks that touch money code (metrics, settings) require the matching part 2 tasks or run before them, to avoid conflicting edits.
+- Done when the plan exists with priority 400.', '2026-10-24T03:19:05Z', NULL, 125, 0, NULL, 'main');
 
 INSERT INTO decision (id, subject, status, options, body, intro, answer, reason, created_at, closed_at, created_by_task, signoff, kind, decided_by_task, consequences) VALUES (1, 'Sign off the masterplan of milestone 1: first version build', 'answered', '["approve"]', '', 'This is the overall roadmap for building the first working version of a small, private bookkeeping app for one Airbnb apartment. The app turns every booking and every cost into amounts per calendar day, so it can answer whether hosting pays off, whether prices are set well, and how things are trending. The roadmap splits the build into parts, starting with a short architecture document the owner approves before anything else is built, and ending with a check against the real Airbnb export.
 
@@ -2474,6 +2502,8 @@ INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, b
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (122, 122, '2026-10-24T00:32:55Z', '2026-10-24T00:33:28Z', 'done', NULL, 0, '164704db95478e32eeacf77fe52d0df096eb3e7d', 'main', 'claude-sonnet-5-5', 'a8bfe631-4eea-442b-8e47-15441577e559', 121, 4, 8, 1610, 329994, 8315, 0.6379544, 86309, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (123, 123, '2026-10-24T00:33:25Z', '2026-10-24T00:33:52Z', 'done', NULL, 0, '04726e6ce9ee5acb04e229c4e449640ce95bb236', NULL, 'claude-sonnet-5-5', 'f8616dbd-c0f0-4df2-8d0e-de0381157625', NULL, 14, 22, 2775, 355215, 29067, 0.17958350000000004, 41325, 60, 1465683);
 INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (124, 124, '2026-10-24T03:16:03Z', '2026-10-24T03:18:41Z', 'done', NULL, 0, 'ec886414b9cda6f2496d8600975adab92931a028', NULL, 'claude-opus-5-5', '3bbd9f36-ab90-4935-be79-228f71e7936e', NULL, 13, 26, 12416, 581708, 70456, 0.92841360000000006, 70463, 60, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (125, 125, '2026-10-24T03:18:41Z', '2026-10-24T03:19:13Z', 'done', NULL, 0, '608243e3192753948b5df6d87ed0cae228418c68', NULL, 'claude-opus-5-5', 'f709096f-446e-4d2f-94f6-ac48539c2221', NULL, 5, 10, 3134, 149498, 28697, 0.3221956, 41135, 60, 1465683);
+INSERT INTO run (id, task_id, started_at, ended_at, result, reason, exit_code, base_commit, worktree, model, session_id, continues_run, turns, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, context_tokens, cache_minutes, pid) VALUES (126, 126, '2026-10-24T03:19:08Z', NULL, 'running', NULL, NULL, '608243e3192753948b5df6d87ed0cae228418c68', 'main', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1465683);
 
 INSERT INTO task_decision (task_id, decision_id) VALUES (2, 1);
 INSERT INTO task_decision (task_id, decision_id) VALUES (4, 2);
@@ -2494,6 +2524,9 @@ INSERT INTO task_decision (task_id, decision_id) VALUES (63, 25);
 INSERT INTO task_decision (task_id, decision_id) VALUES (65, 25);
 INSERT INTO task_decision (task_id, decision_id) VALUES (66, 25);
 INSERT INTO task_decision (task_id, decision_id) VALUES (67, 25);
+INSERT INTO task_decision (task_id, decision_id) VALUES (130, 29);
+INSERT INTO task_decision (task_id, decision_id) VALUES (130, 30);
+INSERT INTO task_decision (task_id, decision_id) VALUES (130, 31);
 
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (4, 3);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (4, 12);
@@ -2646,3 +2679,6 @@ INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (121, 115)
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (121, 118);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (122, 105);
 INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (122, 118);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (127, 126);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (128, 127);
+INSERT INTO task_prerequisite_tasks (task_id, prerequisite_id) VALUES (129, 127);
