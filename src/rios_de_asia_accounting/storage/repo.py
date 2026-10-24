@@ -7,7 +7,6 @@ from datetime import date
 from typing import TypeVar
 
 from rios_de_asia_accounting.model import (
-    BlockedDay,
     Booking,
     BookingLine,
     ExchangeRate,
@@ -519,40 +518,6 @@ def delete_recurring_expense(conn: sqlite3.Connection, item_id: int) -> None:
     conn.execute("DELETE FROM recurring_expenses WHERE id = ?", (item_id,))
 
 
-# --- blocked days -----------------------------------------------------------------------------
-
-
-def _blocked(r: sqlite3.Row) -> BlockedDay:
-    return BlockedDay(date.fromisoformat(r["date"]), r["reason"], r["note"])
-
-
-@validated
-def set_blocked_day(conn: sqlite3.Connection, day: BlockedDay) -> None:
-    """Block a day, or change the reason / note if it is blocked already."""
-    conn.execute(
-        "INSERT INTO blocked_days (date, reason, note) VALUES (?, ?, ?)"
-        " ON CONFLICT (date) DO UPDATE SET reason = excluded.reason, note = excluded.note",
-        (day.date.isoformat(), day.reason, day.note),
-    )
-
-
-def get_blocked_day(conn: sqlite3.Connection, day: date) -> BlockedDay | None:
-    row = conn.execute("SELECT * FROM blocked_days WHERE date = ?", (day.isoformat(),)).fetchone()
-    return _blocked(row) if row else None
-
-
-def list_blocked_days(
-    conn: sqlite3.Connection, start: date | None = None, end: date | None = None
-) -> list[BlockedDay]:
-    where, args = _range_filter(start, end)
-    rows = conn.execute(f"SELECT * FROM blocked_days{where} ORDER BY date", args).fetchall()
-    return [_blocked(r) for r in rows]
-
-
-def delete_blocked_day(conn: sqlite3.Connection, day: date) -> None:
-    conn.execute("DELETE FROM blocked_days WHERE date = ?", (day.isoformat(),))
-
-
 # --- time log ---------------------------------------------------------------------------------
 
 
@@ -649,7 +614,6 @@ def load_inputs(conn: sqlite3.Connection) -> Inputs:
     return Inputs(
         bookings=list_bookings(conn),
         expenses=list_expenses(conn),
-        blocked_days=list_blocked_days(conn),
         time_log=list_time_entries(conn),
         settings=load_settings(conn),
     )
