@@ -8,6 +8,7 @@ import {
   postFile,
   type Written,
 } from "../api";
+import { type Column, DataTable } from "../components/DataTable";
 import { Field } from "../components/Field";
 import { useNotices } from "../components/Notices";
 import { PageTitle, SectionTitle } from "../components/Titles";
@@ -159,63 +160,56 @@ function UploadStep({
   );
 }
 
+const BOOKING_COLUMNS: Column<PlannedBooking>[] = [
+  { header: "Code", cell: (p) => p.code },
+  {
+    header: "Check-in – check-out",
+    cell: (p) => `${p.check_in} – ${p.check_out}`,
+  },
+  { header: "Guest", cell: (p) => p.guest },
+  { header: "Listing", cell: (p) => p.listing },
+  { header: "Lines", cell: (p) => p.lines, numeric: true },
+];
+
+const UPDATED_COLUMNS: Column<PlannedBooking>[] = [
+  { header: "Code", cell: (p) => p.code },
+  {
+    header: "Change",
+    cell: (p) =>
+      p.changes.length === 0
+        ? "new lines only"
+        : p.changes.map((c) => (
+            <div key={c.field}>
+              {c.field}: {c.old || "-"} → {c.new}
+            </div>
+          )),
+  },
+  { header: "New lines", cell: (p) => p.lines, numeric: true },
+];
+
 function BookingTable({ rows }: { rows: PlannedBooking[] }) {
   return (
-    <table className="table mb-4">
-      <thead>
-        <tr>
-          <th>Code</th>
-          <th>Check-in – check-out</th>
-          <th>Guest</th>
-          <th>Listing</th>
-          <th className="text-right">Lines</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((p) => (
-          <tr key={p.code}>
-            <td>{p.code}</td>
-            <td>
-              {p.check_in} – {p.check_out}
-            </td>
-            <td>{p.guest}</td>
-            <td>{p.listing}</td>
-            <td className="text-right">{p.lines}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div className="mb-4">
+      <DataTable
+        columns={BOOKING_COLUMNS}
+        rows={rows}
+        rowKey={(p) => p.code}
+        empty=""
+      />
+    </div>
   );
 }
 
 function UpdatedTable({ rows }: { rows: PlannedBooking[] }) {
   return (
-    <table className="table mb-4">
-      <thead>
-        <tr>
-          <th>Code</th>
-          <th>Change</th>
-          <th className="text-right">New lines</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((p) => (
-          <tr key={p.code}>
-            <td>{p.code}</td>
-            <td>
-              {p.changes.length === 0
-                ? "new lines only"
-                : p.changes.map((c) => (
-                    <div key={c.field}>
-                      {c.field}: {c.old || "-"} → {c.new}
-                    </div>
-                  ))}
-            </td>
-            <td className="text-right">{p.lines}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div className="mb-4">
+      <DataTable
+        columns={UPDATED_COLUMNS}
+        rows={rows}
+        rowKey={(p) => p.code}
+        empty=""
+      />
+    </div>
   );
 }
 
