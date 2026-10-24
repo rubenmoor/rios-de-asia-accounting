@@ -168,12 +168,18 @@ const LINE_COLUMNS: Column<Line>[] = [
   { header: "Date", cell: (l) => l.date },
   { header: "Type", cell: (l) => l.type },
   { header: "Currency", cell: (l) => l.currency },
-  { header: "Amount", cell: (l) => amount(l.amount_minor), numeric: true },
+  {
+    header: "Amount",
+    cell: (l) => amount(l.amount_minor),
+    numeric: true,
+    negative: (l) => l.amount_minor < 0,
+  },
   {
     header: "COP",
     cell: (l) =>
       l.amount_cop === null ? "needs rate" : formatMoney(l.amount_cop),
     numeric: true,
+    negative: (l) => l.amount_cop !== null && l.amount_cop < 0,
   },
 ];
 

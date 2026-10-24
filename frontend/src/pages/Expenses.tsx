@@ -3,7 +3,11 @@ import { type FormEvent, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import { ApiError, api } from "../api";
 import { ConfirmDelete } from "../components/ConfirmDelete";
-import { type Column, DataTable } from "../components/DataTable";
+import {
+  type Column,
+  DataTable,
+  SheetFooterRow,
+} from "../components/DataTable";
 import { Field } from "../components/Field";
 import {
   DateInput,
@@ -168,11 +172,11 @@ export function ExpenseList() {
         rowKey={(e) => e.id}
         empty="No expenses."
         footer={
-          <tr>
+          <SheetFooterRow>
             <th colSpan={3}>Total</th>
-            <th className="text-right">{showMoney(total)}</th>
+            <th className="num">{showMoney(total)}</th>
             <th />
-          </tr>
+          </SheetFooterRow>
         }
       />
     </div>
