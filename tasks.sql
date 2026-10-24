@@ -915,6 +915,46 @@ The masterplan was written for the Jinja templates; `milestone 3: add a proper c
    - `PageTitle` (h1, optional slot for part 4''s section icon) and `SectionTitle` (h2) components replacing the repeated `text-2xl font-bold mb-4` / `text-xl font-bold …` classes in `pages/*.tsx`; same texts.
    - README section listing what parts 2–4 use: numbers `num`/`neg`; tables via `DataTable` (part 2 restyles it, pages don''t add table classes); forms via `Field` + `inputs.tsx`, form actions in one `flex gap-2 mt-4` row; buttons: `btn btn-primary` Save/Apply, `btn btn-ghost` or `btn-soft` Cancel/Reset links, `btn btn-error` Delete via `ConfirmDelete`; errors: page-level `alert alert-error`, field-level `text-error` under the field (in `Field`); hints: `Field`''s `hint`; muted notes `opacity-70`; icons inline SVG components in `frontend/src/components/icons.tsx` (created by part 4).
    - Done when no page uses the old heading classes and the README section exists.', 'The bookkeeping app is getting a friendlier look inspired by paper ledgers and spreadsheets, without changing what any screen does. This first step sets up the shared groundwork: a colour scheme like ruled ledger paper with red ink for losses, the frame around every screen (the menu, the messages, the page area), and a short guide for how tables, forms and buttons should be styled. The later design steps build on it, so the whole app ends up looking consistent.', '2026-10-24T00:12:11Z', 57);
+INSERT INTO plan (id, milestone_id, subject, priority, body, intro, created_at, created_by_task) VALUES (20, 2, 'spreadsheet-style tables and dashboard', 300, 'Part 2 of `plan 11: masterplan` (`milestone 2: visual design update`): every table and the dashboard in spreadsheet style. Builds on `plan 19: styling foundation`; read its "Where things stand" section first (the app is React now, `decision 26: Once the in-browser screens are done, how does the visual design update continue?`).
+
+## What exists
+
+- `frontend/src/components/DataTable.tsx`: the shared list table (`columns` with `header`, `cell`, `numeric`, `href`; `empty` text row; optional `footer` rows). Used by bookings, booking detail lines, expenses (list + recurring + generated), blocked days, time log, rates. Expenses and Time pass footer total rows (`<th colSpan=…>Total</th>` …).
+- Hand-built tables: booking detail key/value table (`pages/Bookings.tsx` `BookingDetail`), import preview''s two tables (`pages/Import.tsx`, new bookings / changed bookings), dashboard metric table and expense breakdown table (`pages/Dashboard.tsx`).
+- Dashboard: `PeriodForm` (Month, From, To, Apply, Reset link to `/`, error lines below), the "N booking(s) need(s) an exchange rate" warning, `cell()` formatting with the real minus sign `−` and `text-error` for negative money.
+- Charts: `frontend/src/charts/LineChart.tsx`, `BarChart.tsx`, colours `PALETTE`/`DASHES` in `chartMath.ts`, hard-coded `GRID`/`TEXT` greys, `fontFamily="sans-serif"`.
+
+## Ground rules (every task)
+
+- No functional change: same texts, numbers and formats (`decision 10: a figure that cannot be computed is shown as empty, not as zero` dash, the `−` sign, `%` and hours formats, `decision 15: data entry forms: how money and hours are typed`), same columns and order, links, URL parameters and dashboard structure (`decision 18: dashboard layout: which periods are shown and which period the cost breakdown uses`).
+- Offline, no new npm dependencies, no web fonts; one light theme (`decision 28: visual design: one light ledger theme, no dark mode`).
+- Use part 1''s conventions: `num` / `neg` classes, the `--ledger-rule` colour variables, `PageTitle` / `SectionTitle`, the README "Styling conventions" section. Add to that README section what this part introduces (the `sheet` table classes).
+- Decorations (column letters, row numbers) are `aria-hidden` and never replace a real header or value.
+- Checks: in `frontend/`: `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`; `pytest`; `nix flake check`. Look at the pages in the running app (`rios-de-asia-accounting --no-browser`), with a few rows of data and with none.
+
+## Tasks
+
+1. **Spreadsheet table style and `DataTable`** (requires part 1''s "ledger theme" and "shared conventions" tasks)
+   - A `sheet` component class in `frontend/src/index.css` (on top of daisyUI `table`): thin grid lines on every cell in the ledger rule colour, header cells like spreadsheet column headers (`base-200`, small, semibold), zebra rows, compact cell padding, hover highlight of the row; footer rows (totals) set off with a heavier top rule (part 4 may add a double underline).
+   - `DataTable` uses it, wrapped in `overflow-x-auto`: numeric columns get `num` instead of `text-right`; a decorative letter row (A, B, C … one per column) above the real header row and a row-number gutter (1, 2, 3 …) on the left, both `aria-hidden`, muted, like a spreadsheet''s frame; the empty-state row keeps its text and spans all columns.
+   - Footer rows need a gutter cell too: export a small helper (e.g. `SheetFooterRow` or a `gutter` cell) and use it in the Expenses and Time footers; their total cells get `num`.
+   - Optional `negative?: (row) => boolean` on `Column` that adds `neg`; use it for booking detail lines (`Amount`, `COP` below zero). Only the colour changes, not the text.
+   - Done when all `DataTable` pages show the sheet look with the same columns, texts and links.
+2. **Other tables on the sheet style** (requires 1)
+   - Import preview: the two tables use `sheet` (via `DataTable` where it fits without changing text, else the same classes and gutter by hand); the import summary stays a list (part 4 decorates it).
+   - Booking detail key/value table: a two-column sheet with the labels as a header column (`base-200`), money values `num`.
+   - Done when no table in `pages/` other than the dashboard uses plain `className="table"`.
+3. **Dashboard metric table, toolbar and headings** (requires 1)
+   - Metric table and expense breakdown table on `sheet`: period columns as column headers (label + muted date range), metric labels as a frozen first column (`sticky left-0` with background) so wide tables scroll under it, values `num`, negatives `neg` instead of `text-error` (same `cell()` text with `−`).
+   - `PeriodForm` as a compact "formula bar": one bordered strip (`base-200`, small inputs `input-sm`, short inline labels Month/From/To, an `fx`-like decorative marker, `aria-hidden`), Apply `btn-primary btn-sm`, Reset `btn-ghost btn-sm` link to `/`; same input names, same submit behaviour, error lines below the strip as `text-error`. Wraps on narrow windows.
+   - Headings via `PageTitle`/`SectionTitle` (if part 1 did not already), chart sub-headings (`h3`) in the same style one size smaller; date range after "Expense breakdown" muted.
+   - The exchange-rate warning as the same alert style as part 1''s notices (warning icon), still a link to `/rates` with the same text; the "Nothing here yet" empty text unchanged (part 4 may decorate it).
+   - Done when the dashboard reads like one sheet with a toolbar on top and every number is where it was.
+4. **Charts in the ledger colours** (requires part 1''s "ledger theme" task)
+   - `chartMath.ts` `PALETTE`, `LineChart.tsx`, `BarChart.tsx`: series colours from the theme (ledger green, ledger blue, then two more distinguishable inks; no red for a series, red means negative), keep `DASHES` so series differ without colour; grid lines in the ledger rule colour, axis text in the base content colour, `fontFamily` the app''s system stack (or `inherit`), tick labels with tabular figures; bars in ledger green.
+   - Colours via CSS variables (`style`/Tailwind `stroke-*`/`fill-*` classes; SVG presentation attributes don''t resolve `var()`), so the theme stays the single source.
+   - Same data, series, sizes, labels, `<title>` tooltips; `chartMath.test.ts` keeps passing (adjust only an assertion on literal colour values).
+   - Done when the charts match the theme in the running app.', 'The app''s lists of bookings, expenses, hours and rates, and the summary figures on its front page, are going to look like a spreadsheet: ruled grid lines, a header row like column headings, alternating row shading, numbers lined up on the right and losses in red ink. The front page''s period picker becomes a slim toolbar like the formula bar of a spreadsheet, and the charts take on the same paper-and-ink colours. Nothing about what is shown or how it is calculated changes; the point is that the books look and read like books.', '2026-10-24T00:13:47Z', 58);
 
 INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (1, 1, 'write the masterplan of milestone 1: first version build', 'masterplan', 'done', NULL, '2026-10-23, plan 1 body and intro (no files)', 'Write `plan 1: masterplan`, the masterplan of `milestone 1: first version build`: expand on everything that needs to be done to achieve it,
 divided into parts, with an intro in plain English (`pm plan edit 1 --intro "…" --body -`). State in the masterplan that its own tasks are not implementation work: each of them writes the
@@ -1916,6 +1956,13 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 - Bring existing pages in line with these conventions only where it''s a pure class change.
 
 Done when: no page uses the old heading classes, the README section exists, and all checks in the plan pass.', '2026-10-24T00:12:39Z', NULL, 102, 0, NULL, 'main');
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (106, 20, 'create tasks for plan 20: spreadsheet-style tables and dashboard', 'split', 'open', 1000, NULL, 'Split `plan 20: spreadsheet-style tables and dashboard` into tasks and identify all decisions that need to be made. If the plan already has tasks, its
+done and dropped ones stay as they are (pm refuses to change them): drop the open ones that no longer fit and add
+tasks for what the plan asks beyond them. A task that writes a plan gets `--kind plan`. A task that needs another
+task''s result (in this plan or another, in any work tree) requires it: `pm task add … --requires <task id>`, or
+`pm task requires <task id> <prerequisite id>` for an existing one; priority is only a hint and orders nothing across
+work trees. When you drop an open task that others require and add one in its place, drop it with
+`--replaced-by <new task id>`.', '2026-10-24T00:13:47Z', NULL, 58, 0, NULL, NULL);
 
 INSERT INTO decision (id, subject, status, options, body, intro, answer, reason, created_at, closed_at, created_by_task, signoff, kind, decided_by_task, consequences) VALUES (1, 'Sign off the masterplan of milestone 1: first version build', 'answered', '["approve"]', '', 'This is the overall roadmap for building the first working version of a small, private bookkeeping app for one Airbnb apartment. The app turns every booking and every cost into amounts per calendar day, so it can answer whether hosting pays off, whether prices are set well, and how things are trending. The roadmap splits the build into parts, starting with a short architecture document the owner approves before anything else is built, and ending with a check against the real Airbnb export.
 
