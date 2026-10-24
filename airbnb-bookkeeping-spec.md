@@ -57,7 +57,7 @@ Fields: description, amount and currency (as typed), category, start_month, end_
 
 ### `settings`
 Key-value: long-term rental benchmark (net USD/month, stored in US cents; typed in any currency and converted at the rate of the day it is saved),
-default per-booking allocation mode.
+default per-booking allocation mode, display currency (`currency`: USD, COP or EUR, default USD) and the rate it was chosen with (`display_rate`: rate and rate date; none for USD).
 
 The per-day view starts on the earliest check-in or the first day any expense is spread over
 (`decision 44: the per-day view starts on the first day any input is spread over, without blocked days or own time`).
@@ -114,6 +114,10 @@ Also: total capex not yet amortized (remaining book value).
   check-in; expenses: their own date; monthly expenses: the 1st of the month): COP from the official TRM
   (datos.gov.co), EUR from the ECB via Frankfurter, cached per day. An entry whose rate cannot be fetched
   is saved, waits, and is left out of the figures until the rate arrives.
+- Display currency: figures are shown in USD, COP or EUR, chosen with a switch in the page header. Choosing
+  COP or EUR fetches today's rate once; it is kept (with its date, shown in the header) until the next switch
+  and applied to every figure in the browser. COP is shown in whole pesos, USD and EUR with two decimals
+  (1.234,56), the currency by its code. Books and entry forms stay as described above.
 - Dates as ISO `YYYY-MM-DD`; check-out exclusive.
 - Single property; no multi-user, no auth; network only to fetch exchange rates, no CDN or web fonts.
 
