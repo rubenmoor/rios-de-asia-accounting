@@ -87,7 +87,8 @@ The look is one light daisyUI theme, `ledger` (`frontend/src/index.css`). Pages 
 - **Buttons:** `btn btn-primary` for Save/Apply, `btn btn-ghost` for Cancel/Back/Reset, `btn btn-error btn-outline btn-sm` for the Delete trigger (via `ConfirmDelete`, a small "Void entry" slip dialog; its Delete is `btn-error`, its Cancel `btn-ghost`). Filter bars (list pages, dashboard period) are a `Toolbar` (`components/Toolbar.tsx`): the formula-bar strip (`base-200`, bordered, `fx` mark) with `ToolbarField` short labels and `input-sm`/`select-sm` controls, Filter/Apply `btn-sm` (`btn-secondary` or `btn-primary`), the "New …" link as `action` (`btn-primary btn-sm`, pushed right), filter errors below the strip.
 - **Errors:** page-level `FormError` / `alert alert-error`; field-level under the field (done by `Field`).
 - **Hints:** `Field`'s `hint`. Muted notes: `opacity-70`.
-- **Icons:** inline SVG components in `frontend/src/components/icons.tsx` (no icon fonts, no CDN).
+- **Icons:** inline SVG components in `frontend/src/components/icons.tsx` (no icon fonts, no CDN). `Logo` (the open-ledger mark) sits before the app name in the navbar.
+- **Favicon:** `frontend/src/assets/favicon.svg` plus `favicon-32.png` and `apple-touch-icon.png` (rendered once from the SVG with `rsvg-convert`), linked from `index.html` as `/src/assets/…`. They are not in `frontend/public/`: Flask serves only `/assets/*` as files and answers every other GET with `index.html`, so Vite must hash them into `/assets/`.
 
 ## Import the Airbnb CSV
 
