@@ -349,8 +349,9 @@ Checked against `airbnb_.csv` (144 rows, 10/2021 – 10/2026).
   (notes, guests) are kept.
 - The CSV has a guest **name**, not a guest count: `guests` stays empty (editable);
   the name goes into a new `guest_name` column.
-- Overlapping stays within the imported listings are reported as warnings, not
-  errors.
+- Overlapping stays within the same listing are reported as warnings, not errors.
+  The listing name is the listing's identity (Airbnb has no other id in the export), so
+  stays in differently named listings never overlap.
 
 ### Listings — the export has more than one
 

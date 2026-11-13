@@ -297,7 +297,8 @@ def _warn_overlaps(conn: Connection, plan: ImportPlan) -> None:
     for p in plan.new + plan.updated:
         stays[p.code] = (p.listing, p.check_in, p.check_out)
     for (a, (la, sa, ea)), (b, (lb, sb, eb)) in combinations(sorted(stays.items()), 2):
-        if (a in touched or b in touched) and sa < eb and sb < ea:
+        # the listing name is Airbnb's only listing id: differently named stays never clash
+        if (a in touched or b in touched) and la == lb and sa < eb and sb < ea:
             plan.warnings.append(
                 f"overlapping stays: {a} ({la}, {sa} to {ea}) and {b} ({lb}, {sb} to {eb})"
             )
