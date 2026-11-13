@@ -88,7 +88,7 @@ const expenseColumns = (
   { header: "Description", cell: (e) => e.description },
   {
     header: `Amount (${currency})`,
-    cell: (e) => <AmountCell e={e} />,
+    cell: (e) => <AmountCell e={e} withOriginal />,
     numeric: true,
   },
   {
