@@ -2787,6 +2787,25 @@ INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, crea
 * delete code that isn''t actually used
 * check pending decisions if they are still relevant and really pending
 * check other milestones if their contents are up-to-date; raise a decision for each change they need', '2026-10-24T14:11:05Z', '2026-10-24T14:11:46Z', NULL, 0, NULL, NULL);
+INSERT INTO task (id, plan_id, subject, kind, status, priority, note, body, created_at, retired_at, created_by_task, web, model, worktree) VALUES (156, NULL, 'bookings list: bulk select (shift-click for a range) and bulk delete', 'exec', 'open', NULL, NULL, 'Let the owner select many bookings on the Bookings screen at once, the way you select emails, and delete them all in one go. Useful for cleaning up after a bad or test import.
+
+**Selection** (`frontend/src/pages/Bookings.tsx`, maybe `components/DataTable.tsx`)
+- A checkbox column on the bookings list; a header checkbox selects or clears all rows currently shown (after filters).
+- Shift-click selects a range: clicking a checkbox with shift held sets every row between the last clicked row and this one to the new state, as in Gmail.
+- Clicking a checkbox never opens the booking; clicking the rest of the row works as before.
+- When anything is selected, a bar or toolbar shows "N selected", a "Delete" button and a way to clear the selection. Changing the filters clears the selection.
+- If the checkbox lives in `DataTable`, keep it optional so the other tables don''t change.
+
+**Bulk delete** (`web/api/bookings.py`, `storage/repo.py`)
+- Confirm first, with `ConfirmDelete` or the same pattern: "Delete N bookings?", and say when some were imported from Airbnb, because a re-import brings those back (see `deleteQuestion`).
+- New endpoint, e.g. `POST /api/bookings/delete` with `{"ids": [...]}`, deleting in **one transaction**: all or nothing.
+- A booking with an expense linked to it can''t be deleted today (`ON DELETE RESTRICT`, message from `_delete_refused`). If any selected booking is refused, delete none and say which bookings block it (code or guest and dates) and why.
+- Afterwards: refresh the list, clear the selection, show a notice like "12 bookings deleted."
+
+**Done when**
+- Click, shift-click range and select-all behave as described in the browser.
+- A bulk delete removes exactly the selected bookings with their lines; a selection containing a blocked booking deletes nothing and explains why.
+- npm typecheck/lint/build and pytest pass; per AGENTS.md, keep new tests sparse (one API test for all-or-nothing is enough).', '2026-11-13T14:57:15Z', NULL, NULL, 0, NULL, NULL);
 
 INSERT INTO decision (id, subject, status, options, body, intro, answer, reason, created_at, closed_at, created_by_task, signoff, kind, decided_by_task, consequences) VALUES (1, 'Sign off the masterplan of milestone 1: first version build', 'answered', '["approve"]', '', 'This is the overall roadmap for building the first working version of a small, private bookkeeping app for one Airbnb apartment. The app turns every booking and every cost into amounts per calendar day, so it can answer whether hosting pays off, whether prices are set well, and how things are trending. The roadmap splits the build into parts, starting with a short architecture document the owner approves before anything else is built, and ending with a check against the real Airbnb export.
 
