@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, timedelta
 
 from flask import request
 
@@ -171,6 +171,7 @@ def dashboard():
         body["rolling_90"] = [
             {"date": p.date.isoformat(), "adr": p.adr, "revpar": p.revpar, "occupancy": p.occupancy}
             for p in metrics.rolling_90(data.days)
+            if p.date >= today() - timedelta(days=90)
         ]
         body["breakdown"] = {
             **_range(data.breakdown_range),
