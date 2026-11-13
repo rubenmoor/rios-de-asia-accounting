@@ -116,8 +116,12 @@ type Open = "new" | number | null;
 export function ExpenseList() {
   const { currency, money } = useDisplay();
   const [params, setParams] = useSearchParams();
-  const from = params.get("from") ?? "";
-  const to = params.get("to") ?? "";
+  // Without from/to in the URL the filter is the current month; an explicit
+  // empty from/to (cleared fields) means no limit.
+  const fresh = !params.has("from") && !params.has("to");
+  const month = currentMonthLimits();
+  const from = fresh ? month.from : (params.get("from") ?? "");
+  const to = fresh ? month.to : (params.get("to") ?? "");
   const category = params.get("category") ?? "";
   const [draft, setDraft] = useState({ from, to, category });
   const query = new URLSearchParams();
@@ -137,8 +141,8 @@ export function ExpenseList() {
   const apply = (e: FormEvent) => {
     e.preventDefault();
     const next = new URLSearchParams();
-    if (draft.from) next.set("from", draft.from);
-    if (draft.to) next.set("to", draft.to);
+    next.set("from", draft.from);
+    next.set("to", draft.to);
     if (draft.category) next.set("category", draft.category);
     setParams(next);
   };
@@ -252,6 +256,15 @@ function localToday() {
   const d = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+// First and last day of the current month (local time) as YYYY-MM-DD.
+function currentMonthLimits() {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const ym = `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+  const last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  return { from: `${ym}-01`, to: `${ym}-${pad(last)}` };
 }
 
 const ENTRY_FORM = "expense-entry";
