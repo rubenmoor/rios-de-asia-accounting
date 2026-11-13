@@ -134,7 +134,13 @@ def list_bookings():
     listing = request.args.get("listing") or None
     found = repo.list_bookings(conn, first, last + timedelta(days=1) if last else None, listing)
     found.sort(key=lambda b: (b.check_in, b.id or 0), reverse=True)
-    return [_summary(b) for b in found]
+    imported = {
+        r[0]
+        for r in conn.execute(
+            "SELECT DISTINCT booking_id FROM booking_lines WHERE type <> 'Manual'"
+        )
+    }
+    return [{**_summary(b), "imported": b.id in imported} for b in found]
 
 
 @bp.get("/bookings/options")
@@ -215,3 +221,37 @@ def delete_booking(booking_id: int) -> Response | tuple:
         form.errors[""] = _delete_refused(form.errors[""])
         return invalid(form)
     return ok(None, [info("Booking deleted.")])
+
+
+def _label(b: Booking) -> str:
+    return f"{b.check_in} – {b.check_out} ({b.airbnb_code or b.guest_name or '-'})"
+
+
+@bp.post("/bookings/delete")
+def delete_bookings():
+    """Delete the selected bookings, all or none (one transaction)."""
+    conn = get_db()
+    body = request.get_json(silent=True)
+    ids = body.get("ids") if isinstance(body, dict) else None
+    if not isinstance(ids, list) or not ids or not all(type(i) is int for i in ids):
+        return {"error": "ids must be a non-empty list of booking ids"}, 400
+    ids = list(dict.fromkeys(ids))
+    found = {b.id: b for b in (repo.get_booking(conn, i) for i in ids) if b}
+    if len(found) != len(ids):
+        return {"error": "booking not found"}, 404
+    blocked = repo.bookings_with_expenses(conn, ids)
+    if blocked:
+        names = ", ".join(_label(found[i]) for i in ids if i in blocked)
+        form = Form()
+        form.error(
+            "",
+            f"No bookings deleted: expenses are still linked to {names}. "
+            "Delete those expenses first.",
+        )
+        return invalid(form)
+    form = Form()
+    form.apply(lambda: repo.delete_bookings(conn, ids))
+    if not form.ok:
+        return invalid(form)
+    n = len(ids)
+    return ok(None, [info(f"{n} booking{'s' if n != 1 else ''} deleted.")])

@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from rios_de_asia_accounting.model import Booking, BookingLine
+from rios_de_asia_accounting.model import Booking, BookingLine, Expense
 from rios_de_asia_accounting.storage import repo
 from rios_de_asia_accounting.storage.db import connect, migrate
 from rios_de_asia_accounting.web.app import create_app
@@ -60,3 +60,17 @@ def test_imported_booking_only_takes_guests_and_notes(client, db_path):
     saved = client.put(f"/api/bookings/{bid}", json=body).get_json()["data"]
     assert (saved["check_in"], saved["guest_name"]) == ("2026-04-01", "Bob")
     assert (saved["guests"], saved["notes"], saved["net_payout"]) == (2, "hi", 100_000)
+
+
+def test_bulk_delete_is_all_or_nothing(client, db_path):
+    conn = connect(db_path)
+    a = repo.create_booking(conn, Booking(date(2026, 5, 1), date(2026, 5, 3)))
+    b = repo.create_booking(conn, Booking(date(2026, 5, 4), date(2026, 5, 6)))
+    repo.create_expense(conn, Expense(date(2026, 5, 4), 100, "per_booking", booking_id=b))
+    refused = client.post("/api/bookings/delete", json={"ids": [a, b]})
+    assert refused.status_code == 422
+    assert "2026-05-04" in refused.get_json()["errors"][""]
+    assert len(client.get("/api/bookings").get_json()) == 2
+    done = client.post("/api/bookings/delete", json={"ids": [a]})
+    assert done.get_json()["notices"][0]["text"] == "1 booking deleted."
+    assert [x["id"] for x in client.get("/api/bookings").get_json()] == [b]

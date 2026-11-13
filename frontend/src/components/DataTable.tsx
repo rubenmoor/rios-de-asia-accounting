@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode } from "react";
+import { Fragment, type ReactNode, useRef } from "react";
 import { Link } from "react-router";
 import { BlankLedgerDoodle } from "./icons";
 
@@ -72,6 +72,7 @@ export function DataTable<T>({
   onEdit: openEditor,
   canEdit,
   rowClass,
+  selection,
 }: {
   columns: Column<T>[];
   rows: T[];
@@ -89,13 +90,37 @@ export function DataTable<T>({
   canEdit?: (row: T) => boolean;
   // Extra class on a plain row, e.g. to mark locked ones.
   rowClass?: (row: T) => string | undefined;
+  // Optional checkbox column. A shift-click sets every row between the last
+  // clicked one and this one to the new state; the header box (de)selects all.
+  selection?: {
+    selected: Set<string | number>;
+    onChange: (selected: Set<string | number>) => void;
+  };
 }) {
+  const last = useRef<number | null>(null);
+  const keys = rows.map(rowKey);
+  const select = (i: number, checked: boolean, range: boolean) => {
+    if (!selection) return;
+    const next = new Set(selection.selected);
+    const [from, to] =
+      range && last.current !== null && last.current < keys.length
+        ? [Math.min(last.current, i), Math.max(last.current, i)]
+        : [i, i];
+    for (const key of keys.slice(from, to + 1)) {
+      if (checked) next.add(key);
+      else next.delete(key);
+    }
+    last.current = i;
+    selection.onChange(next);
+  };
+  const all = keys.length > 0 && keys.every((k) => selection?.selected.has(k));
   return (
     <div className="overflow-x-auto">
       <table className="table sheet">
         <thead>
           <tr className="letters">
             <td className="gutter" aria-hidden="true" />
+            {selection && <td aria-hidden="true" />}
             {columns.map((c, i) => (
               <td key={c.header} aria-hidden="true">
                 {letter(i)}
@@ -104,6 +129,22 @@ export function DataTable<T>({
           </tr>
           <tr>
             <td className="gutter" aria-hidden="true" />
+            {selection && (
+              <th>
+                <input
+                  type="checkbox"
+                  className="checkbox checkbox-sm"
+                  aria-label="Select all"
+                  checked={all}
+                  onChange={(e) => {
+                    last.current = null;
+                    selection.onChange(
+                      e.target.checked ? new Set(keys) : new Set(),
+                    );
+                  }}
+                />
+              </th>
+            )}
             {columns.map((c) => (
               <th key={c.header} className={c.numeric ? "num" : undefined}>
                 {c.header}
@@ -117,7 +158,7 @@ export function DataTable<T>({
               <td className="gutter" aria-hidden="true">
                 1
               </td>
-              <td colSpan={columns.length}>
+              <td colSpan={columns.length + (selection ? 1 : 0)}>
                 <div className="flex items-center gap-3 py-2">
                   <BlankLedgerDoodle className="size-10 shrink-0 opacity-70" />
                   <div>
@@ -154,6 +195,24 @@ export function DataTable<T>({
                 <td className="gutter" aria-hidden="true">
                   {i + 1}
                 </td>
+                {selection && (
+                  <td>
+                    <input
+                      type="checkbox"
+                      className="checkbox checkbox-sm"
+                      aria-label="Select row"
+                      checked={selection.selected.has(rowKey(row))}
+                      onChange={() => {}}
+                      onClick={(e) =>
+                        select(
+                          i,
+                          e.currentTarget.checked,
+                          (e.nativeEvent as MouseEvent).shiftKey,
+                        )
+                      }
+                    />
+                  </td>
+                )}
                 {columns.map((c, j) => (
                   <td
                     key={c.header}

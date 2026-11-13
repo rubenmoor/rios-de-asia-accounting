@@ -247,6 +247,22 @@ def delete_booking(conn: sqlite3.Connection, booking_id: int) -> None:
     conn.execute("DELETE FROM bookings WHERE id = ?", (booking_id,))
 
 
+def bookings_with_expenses(conn: sqlite3.Connection, booking_ids: list[int]) -> set[int]:
+    """Those of the bookings that an expense is linked to (they can't be deleted)."""
+    marks = ",".join("?" * len(booking_ids))
+    rows = conn.execute(
+        f"SELECT DISTINCT booking_id FROM expenses WHERE booking_id IN ({marks})", booking_ids
+    ).fetchall()
+    return {r[0] for r in rows}
+
+
+def delete_bookings(conn: sqlite3.Connection, booking_ids: list[int]) -> None:
+    """Delete the bookings with their lines in one transaction: all or nothing."""
+    with transaction(conn):
+        for booking_id in booking_ids:
+            delete_booking(conn, booking_id)
+
+
 # --- booking lines ----------------------------------------------------------------------------
 
 

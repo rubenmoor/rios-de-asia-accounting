@@ -35,6 +35,7 @@ type Summary = {
   nights: number;
   net_payout: number | null;
   waiting: boolean;
+  imported: boolean;
 };
 type Line = {
   date: string;
@@ -110,6 +111,19 @@ export function BookingList() {
     queryKey: ["bookings", "list", from, to, listing],
     queryFn: () => api<Summary[]>("GET", `/api/bookings?${query}`),
   });
+  const [selected, setSelected] = useState<Set<string | number>>(new Set());
+  // Changing the filters clears the selection.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset on filter change only
+  useEffect(() => setSelected(new Set()), [from, to, listing]);
+  const shown = bookings.data ?? [];
+  const chosen = shown.filter((b) => selected.has(b.id));
+  const remover = useSave({
+    method: "POST",
+    path: "/api/bookings/delete",
+    resource: "bookings",
+    onSaved: () => setSelected(new Set()),
+  });
+  const refused = remover.errors[""];
   const filterErrors =
     bookings.error instanceof ApiError ? bookings.error.fieldErrors : {};
   const invalid =
@@ -192,9 +206,34 @@ export function BookingList() {
           {bookings.error.message}
         </div>
       )}
+      {refused && (
+        <div role="alert" className="alert alert-error mb-4">
+          {refused}
+        </div>
+      )}
+      {chosen.length > 0 && (
+        <div className="mb-3 flex items-center gap-3">
+          <span>{chosen.length} selected</span>
+          <ConfirmDelete
+            label="Delete"
+            question={`Delete ${chosen.length} booking${chosen.length === 1 ? "" : "s"}?`}
+            detail={bulkDetail(chosen.filter((b) => b.imported).length)}
+            pending={remover.pending}
+            onConfirm={() => remover.save({ ids: chosen.map((b) => b.id) })}
+          />
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => setSelected(new Set())}
+          >
+            Clear selection
+          </button>
+        </div>
+      )}
       <DataTable
+        selection={{ selected, onChange: setSelected }}
         columns={columns(currency, money)}
-        rows={bookings.data ?? []}
+        rows={shown}
         rowKey={(b) => b.id}
         empty="No bookings."
       />
@@ -258,6 +297,11 @@ function Loading({
 const deleteQuestion = (imported: boolean) =>
   imported
     ? "It was imported from Airbnb; a re-import brings it back."
+    : undefined;
+
+const bulkDetail = (imported: number) =>
+  imported > 0
+    ? `${imported} imported from Airbnb; a re-import brings ${imported === 1 ? "it" : "them"} back.`
     : undefined;
 
 export function BookingDetail() {
